@@ -24,6 +24,7 @@ class Common(Configuration):
 
         # Your apps
         'integrabackend.users',
+        'integrabackend.resident',
 
     )
 
