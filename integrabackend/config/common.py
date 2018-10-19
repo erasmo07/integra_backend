@@ -25,6 +25,7 @@ class Common(Configuration):
         # Your apps
         'integrabackend.users',
         'integrabackend.resident',
+        'integrabackend.invitation',
         'integrabackend.solicitude',
 
     )
