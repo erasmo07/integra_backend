@@ -5,14 +5,22 @@ from django.contrib import admin
 from django.views.generic.base import RedirectView
 from rest_framework.routers import DefaultRouter
 from rest_framework.authtoken import views
-from .users.views import UserViewSet, UserCreateViewSet
-from .resident.views import ResidentCreateViewSet
+from .users.views import UserViewSet
+from .resident.views import ResidentCreateViewSet, PersonViewSet
+from .invitation.views import InvitationViewSet, TypeInvitationViewSet
 from .solicitude.views import ServiceViewSet
+
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet)
-router.register(r'users', UserCreateViewSet)
-router.register('resident', ResidentCreateViewSet)
+# router.register(r'users', UserCreateViewSet)
+router.register(r'resident', ResidentCreateViewSet)
+router.register(r'invitation', InvitationViewSet)
+router.register(
+    r'type-invitation',
+    TypeInvitationViewSet,
+    base_name='type-invitation')
+router.register(r'person', PersonViewSet)
 router.register(r'service', ServiceViewSet)
 
 
