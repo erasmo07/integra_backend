@@ -3,25 +3,9 @@ from django.urls import path, re_path, include, reverse_lazy
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.views.generic.base import RedirectView
-from rest_framework.routers import DefaultRouter
 from rest_framework.authtoken import views
-from .users.views import UserViewSet
-from .resident.views import ResidentCreateViewSet, PersonViewSet
-from .invitation.views import InvitationViewSet, TypeInvitationViewSet
-from .solicitude.views import ServiceViewSet
-
-
-router = DefaultRouter()
-router.register(r'users', UserViewSet)
-# router.register(r'users', UserCreateViewSet)
-router.register(r'resident', ResidentCreateViewSet)
-router.register(r'invitation', InvitationViewSet)
-router.register(
-    r'type-invitation',
-    TypeInvitationViewSet,
-    base_name='type-invitation')
-router.register(r'person', PersonViewSet)
-router.register(r'service', ServiceViewSet)
+from .schema_view import schema_view
+from .routers import router
 
 
 urlpatterns = [
@@ -29,6 +13,10 @@ urlpatterns = [
     path('api/v1/', include(router.urls)),
     path('api-token-auth/', views.obtain_auth_token),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+
+    path('swagger<format>.json|.yaml', schema_view.without_ui(cache_timeout=0), name='schema-json'),
+    path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+    path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
 
     # the 'api-root' from django rest-frameworks default router
     # http://www.django-rest-framework.org/api-guide/routers/#defaultrouter
