@@ -1,10 +1,11 @@
 from django.urls import reverse
+from django.forms.models import model_to_dict
 from faker import Faker
 from rest_framework import status
 from rest_framework.test import APITestCase
 from nose.tools import eq_, ok_
 
-from .factories import ServiceFactory
+from .factories import ServiceFactory, ServiceRequestFactory, StateFactory
 from ...users.test.factories import UserFactory
 
 
@@ -23,9 +24,9 @@ class TestServiceTestCase(APITestCase):
     def test_get_request_list_succeeds(self):
         self.factory.create()
         response = self.client.get(self.url)
-        for item in response.json():
-            ok_(item.get('id'))
-            ok_(item.get('name') is not None)
+        for service in response.json().get('results'):
+            ok_(service.get('id'))
+            ok_(service.get('name') is not None)
 
     def test_get_request_with_pk_succeeds(self):
         service = self.factory.create()
@@ -38,3 +39,38 @@ class TestServiceTestCase(APITestCase):
         service = response.json()
         ok_(service.get('id'))
         ok_(service.get('name') is not None)
+
+
+class TestSolicitudeServiceTestCase(APITestCase):
+    """
+    Test /solicitude-service CRUD
+    """
+
+    def setUp(self):
+        self.model = ServiceRequestFactory._meta.model 
+        self.factory = ServiceRequestFactory
+        self.base_name = 'servicerequest'
+        self.url = reverse('%s-list' % self.base_name)
+        self.client.force_authenticate(user=UserFactory.build())
+    
+    def test_request_post_success(self):
+        service = ServiceFactory.create()
+        state = StateFactory.create()
+        user = UserFactory.create()
+        service_request = ServiceRequestFactory(
+            service=service, state=state, user=user)
+        data = model_to_dict(service_request)
+        data.pop('close_date')
+
+        response = self.client.post(self.url, data)
+
+        eq_(response.status_code, status.HTTP_201_CREATED)
+        service = response.json()
+        ok_(service.get('id'))
+        ok_(service.get('creation_date'))
+        eq_(service.get('service'), service_request.service.pk)
+        eq_(service.get('state'), service_request.state.pk)
+        eq_(service.get('note'), service_request.note)
+        eq_(service.get('phone'), service_request.phone)
+        eq_(service.get('email'), service_request.email)
+        eq_(service.get('ownership'), service_request.ownership)
