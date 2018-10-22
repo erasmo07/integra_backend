@@ -4,6 +4,7 @@ Django==2.1.1
 django-configurations==2.1
 gunicorn==19.8.1
 newrelic==4.4.0.103
+mysql
 
 # For the persistence stores
 psycopg2-binary==2.7.5
@@ -37,3 +38,7 @@ coverage==4.5.1
 # Static and Media Storage
 django-storages==1.7.1
 boto3==1.9.4
+
+# Internal library
+oraculo-gpc
+-e git+https://erasmo_montes@bitbucket.org/erasmo_montes/partenon.git#egg=master
