@@ -33,6 +33,10 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
     queryset = ServiceRequest.objects.all()
     serializer_class = ServiceRequestSerializer
 
+    def get_queryset(self):
+        queryset = super(ServiceRequestViewSet, self).get_queryset()
+        return queryset.filter(user=self.request.user)
+
     def perform_create(self, serializer):
         super(ServiceRequestViewSet, self).perform_create(serializer)
         helpers.process_to_create_service_request(serializer.instance)
