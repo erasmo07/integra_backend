@@ -1,9 +1,11 @@
 from django.shortcuts import render
 from rest_framework import viewsets
-from .models import Service, ServiceRequest, State
+from rest_framework import status
+from rest_framework.response import Response
+from .models import Service, ServiceRequest, State, Day
 from .serializers import (
     ServiceSerializer, StateSerializer,
-    ServiceRequestSerializer)
+    ServiceRequestSerializer, DaySerializer)
 from .enums import StateEnums
 from . import helpers
 
@@ -26,6 +28,14 @@ class StateSolicitudeServiceViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = StateSerializer
     
 
+class DayViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    List day.
+    """
+    queryset = Day.objects.filter(active=True)
+    serializer_class = DaySerializer
+
+
 class ServiceRequestViewSet(viewsets.ModelViewSet):
     """
     CRUD service request
@@ -36,7 +46,8 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = super(ServiceRequestViewSet, self).get_queryset()
         return queryset.filter(user=self.request.user)
-
+    
     def perform_create(self, serializer):
-        super(ServiceRequestViewSet, self).perform_create(serializer)
+        state_open, _ = State.objects.get_or_create(name=StateEnums.service_request.draft)
+        serializer.save(user=self.request.user, state=state_open)
         helpers.process_to_create_service_request(serializer.instance)
