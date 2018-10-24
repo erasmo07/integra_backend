@@ -7,7 +7,10 @@ from nose.tools import eq_, ok_
 
 from .factories import ServiceFactory, ServiceRequestFactory, StateFactory
 from ...users.test.factories import UserFactory
+from integrabackend.resident.test.factories import PropertyFactory, PropertyTypeFactory
 
+
+faker = Faker()
 
 class TestServiceTestCase(APITestCase):
     """
@@ -54,11 +57,13 @@ class TestSolicitudeServiceTestCase(APITestCase):
         self.client.force_authenticate(user=UserFactory.build())
     
     def test_request_post_success(self):
-        service = ServiceFactory.create()
-        state = StateFactory.create()
-        user = UserFactory.create()
+        property = PropertyFactory(
+            property_type=PropertyTypeFactory.create())
         service_request = ServiceRequestFactory(
-            service=service, state=state, user=user)
+            service=ServiceFactory.create(),
+            state=StateFactory.create(),
+            user=UserFactory.create(), 
+            property=property)
         data = model_to_dict(service_request)
         data.pop('close_date')
 

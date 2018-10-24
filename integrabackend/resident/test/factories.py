@@ -1,9 +1,14 @@
 import factory
 import random
+from faker import Faker
+from integrabackend.users.test.factories import UserFactory
+
+
+fake = Faker()
 
 
 class ResidentFactory(factory.django.DjangoModelFactory):
-
+    
     class Meta:
         model = 'resident.Resident'
 
@@ -20,6 +25,7 @@ class TypeIdentificationFactory(factory.django.DjangoModelFactory):
         model = 'resident.TypeIdentification'
 
     count_character = random.randrange(0, 256)
+    name = factory.Sequence(lambda n: f'testuser{n}')
 
 
 class PersonFactory(factory.django.DjangoModelFactory):
@@ -30,3 +36,24 @@ class PersonFactory(factory.django.DjangoModelFactory):
     name = factory.Sequence(lambda n: f'testuser{n}')
     email = factory.Faker('email')
     identification = factory.Sequence(lambda n: f'testuser{n}')
+    create_by = ResidentFactory.build()
+    type_identification = TypeIdentificationFactory.build()
+
+
+class PropertyTypeFactory(factory.django.DjangoModelFactory):
+    name = factory.Sequence(lambda n: f'testuser{n}')
+
+    class Meta:
+        model = 'resident.PropertyType'
+
+
+class PropertyFactory(factory.django.DjangoModelFactory):
+    name = factory.Sequence(lambda n: f'testuser{n}')
+    address = factory.Sequence(lambda n: f'testuser{n}')
+    street = factory.Sequence(lambda n: f'testuser{n}')
+    number = factory.Sequence(lambda n: f'testuser{n}')
+
+    class Meta:
+        model = 'resident.Property'
+    
+
