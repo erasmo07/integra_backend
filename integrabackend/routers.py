@@ -1,6 +1,7 @@
 from rest_framework.routers import DefaultRouter
 from .users.views import UserViewSet
-from .resident.views import ResidentCreateViewSet, PersonViewSet
+from .resident.views import (
+    ResidentCreateViewSet, PersonViewSet, PropertyViewSet)
 from .invitation.views import InvitationViewSet, TypeInvitationViewSet
 from .solicitude.views import (
     ServiceViewSet, StateSolicitudeServiceViewSet,
@@ -8,11 +9,13 @@ from .solicitude.views import (
 
 
 router = DefaultRouter()
+
 # APP - User
 router.register(r'users', UserViewSet)
 
 # APP - Resident
 router.register(r'resident', ResidentCreateViewSet)
+router.register(r'propery', PropertyViewSet)
 
 # APP - Invitation
 router.register(

@@ -27,4 +27,4 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
             'id', 'user', 'service',
             'service', 'state', 'client_sap',
             'note', 'creation_date', 'close_date',
-            'phone', 'email', 'ownership')
+            'phone', 'email', 'ownership', 'property')

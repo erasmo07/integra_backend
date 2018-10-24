@@ -23,14 +23,12 @@ class TestInvitationTestCase(APITestCase):
     def setUp(self):
         self.base_name = 'invitation'
         self.url = reverse('%s-list' % self.base_name)
-        resident = ResidentFactory.create()
-        type_invitation = TypeInvitationFactory.create()
         invitation = InvitationFactory.create(
-            resident=resident, type_invitation=type_invitation)
-        create_by = ResidentFactory.create()
-        type_identification = TypeIdentificationFactory.create()
+            resident=ResidentFactory(user=UserFactory.create()),
+            type_invitation=TypeInvitationFactory.create())
         person = PersonFactory.create(
-            create_by=create_by, type_identification=type_identification)
+            create_by=ResidentFactory(user=UserFactory.create()), 
+            type_identification=TypeIdentificationFactory.create())
         invitation.invitated.add(person)
         self.data = InvitationSerializer(invitation).data
         self.client.force_authenticate(user=UserFactory.build())
@@ -51,7 +49,7 @@ class TestInvitationTestCase(APITestCase):
         eq_(response.status_code, status.HTTP_201_CREATED)
 
         response = self.client.get(self.url)
-        for invitation in response.json():
+        for invitation in response.json().get('results'):
             ok_(invitation.get('id'))
             eq_(invitation.get('resident'), self.data.get('resident'))
             eq_(invitation.get('type_invitation'),
@@ -78,7 +76,8 @@ class TestInvitationTestCase(APITestCase):
         kwargs = {'pk': response.json().get('id')}
         url = reverse('%s-detail' % self.base_name, kwargs=kwargs)
 
-        resident = ResidentFactory.create()
+        user = UserFactory.create()
+        resident = ResidentFactory(user=user)
         self.data['resident'] = str(resident.id)
         response = self.client.put(url, self.data)
 
@@ -101,7 +100,7 @@ class TestTypeInvitationTestCase(APITestCase):
     def test_get_request_list_succeeds(self):
         TypeInvitationFactory.create()
         response = self.client.get(self.url)
-        for type_invitation in response.json():
+        for type_invitation in response.json().get('results'):
             ok_(type_invitation.get('id'))
             ok_(type_invitation.get('name') is not None)
 

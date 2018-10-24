@@ -49,6 +49,10 @@ class ServiceRequest(models.Model):
     creation_date = models.DateTimeField(auto_now_add=True)
     close_date = models.DateTimeField(null=True, blank=True)
     phone = models.CharField(max_length=32)
+    property = models.ForeignKey(
+        'resident.Property',
+        related_name='property',
+        on_delete=models.PROTECT,)
     email = models.EmailField()
     ownership = models.CharField(max_length=120)
     ticket_id = models.IntegerField(null=True)

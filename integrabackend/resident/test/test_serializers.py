@@ -3,12 +3,13 @@ from django.forms.models import model_to_dict
 from nose.tools import eq_, ok_
 from .factories import ResidentFactory
 from ..serializers import ResidentSerializer
+from ...users.test.factories import UserFactory
 
 
 class TestResidentSerializer(TestCase):
 
     def setUp(self):
-        self.data = model_to_dict(ResidentFactory.build())
+        self.data = model_to_dict(ResidentFactory(user=UserFactory.create()))
 
     def test_serializer_with_empty_data(self):
         serializer = ResidentSerializer(data={})

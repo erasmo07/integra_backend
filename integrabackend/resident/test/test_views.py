@@ -6,8 +6,10 @@ from rest_framework.test import APITestCase
 from nose.tools import eq_, ok_
 
 from ..models import Resident
+from ..serializers import ResidentSerializer
 from .factories import (
-    ResidentFactory, PersonFactory, TypeIdentificationFactory)
+    ResidentFactory, PersonFactory, TypeIdentificationFactory,
+    PropertyFactory, PropertyTypeFactory)
 from ...users.test.factories import UserFactory
 
 
@@ -22,8 +24,9 @@ class TestResidentListTestCase(APITestCase):
     def setUp(self):
         self.base_name = 'resident'
         self.url = reverse('%s-list' % self.base_name)
-        self.data = model_to_dict(ResidentFactory.build())
-        self.client.force_authenticate(user=UserFactory.build())
+        self.data = ResidentSerializer(
+            ResidentFactory(user=UserFactory.create())).data
+        self.client.force_authenticate(user=UserFactory.create())
 
     def test_post_request_with_no_data_fails(self):
         response = self.client.post(self.url, {})
@@ -60,10 +63,9 @@ class TestPersonTestCase(APITestCase):
         self.base_name = 'person'
         self.url = reverse('%s-list' % self.base_name)
         self.model = PersonFactory._meta.model
-        resident = ResidentFactory.create()
         self.data = model_to_dict(
             PersonFactory(
-                create_by=resident,
+                create_by=ResidentFactory(user=UserFactory.create()),
                 type_identification=TypeIdentificationFactory.create()))
         self.client.force_authenticate(user=UserFactory.build())
 
@@ -82,3 +84,22 @@ class TestPersonTestCase(APITestCase):
         eq_(str(person.create_by.id), self.data.get('create_by'))
         eq_(str(person.type_identification.id),
             str(self.data.get('type_identification')))
+
+
+
+class TestPropertyTestCase(APITestCase):
+    """
+    Tests /property ENDPOINT operations
+    """
+
+    def setUp(self):
+        self.base_name = 'property'
+        self.url = reverse('%s-list' % self.base_name)
+        self.model = PropertyFactory._meta.model
+        self.data = model_to_dict(PropertyFactory(
+            property_type=PropertyTypeFactory.create()))
+        self.client.force_authenticate(user=UserFactory.create())
+    
+    def test_get_request_without_pk(self):
+        response = self.client.get(self.url)
+        eq_(response.status_code, status.HTTP_200_OK)

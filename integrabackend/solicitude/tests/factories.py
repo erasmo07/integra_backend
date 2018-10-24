@@ -1,6 +1,7 @@
 import factory
 import random
 
+
 class StateFactory(factory.django.DjangoModelFactory):
     id = factory.Faker('uuid4')
     name = factory.Sequence(lambda n: f'testuser{n}')
