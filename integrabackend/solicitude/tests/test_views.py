@@ -5,7 +5,9 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 from nose.tools import eq_, ok_
 
-from .factories import ServiceFactory, ServiceRequestFactory, StateFactory
+from .factories import (
+    ServiceFactory, ServiceRequestFactory, StateFactory,
+    DayFactory, DateServiceRequestFactory)
 from ...users.test.factories import UserFactory
 from integrabackend.resident.test.factories import PropertyFactory, PropertyTypeFactory
 
@@ -59,13 +61,17 @@ class TestSolicitudeServiceTestCase(APITestCase):
     def test_request_post_success(self):
         property = PropertyFactory(
             property_type=PropertyTypeFactory.create())
+        date_service_request = DateServiceRequestFactory()
+        date_service_request.day.add(DayFactory.create())
         service_request = ServiceRequestFactory(
             service=ServiceFactory.create(),
             state=StateFactory.create(),
             user=UserFactory.create(), 
-            property=property)
+            property=property,
+            date_service_request=date_service_request)
         data = model_to_dict(service_request)
-        data.pop('close_date')
+        data['date_service_request'] = model_to_dict(date_service_request)
+        data['date_service_request']['day'] = [DayFactory.create().pk]
 
         response = self.client.post(self.url, data)
 

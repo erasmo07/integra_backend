@@ -5,7 +5,7 @@ from .resident.views import (
 from .invitation.views import InvitationViewSet, TypeInvitationViewSet
 from .solicitude.views import (
     ServiceViewSet, StateSolicitudeServiceViewSet,
-    ServiceRequestViewSet)
+    ServiceRequestViewSet, DayViewSet)
 
 
 router = DefaultRouter()
@@ -29,3 +29,4 @@ router.register(r'person', PersonViewSet)
 router.register(r'service', ServiceViewSet)
 router.register(r'state/solicitude', StateSolicitudeServiceViewSet)
 router.register(r'service-request', ServiceRequestViewSet)
+router.register(r'day', DayViewSet)
