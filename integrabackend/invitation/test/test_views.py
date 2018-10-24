@@ -23,14 +23,12 @@ class TestInvitationTestCase(APITestCase):
     def setUp(self):
         self.base_name = 'invitation'
         self.url = reverse('%s-list' % self.base_name)
-        resident = ResidentFactory.create()
-        type_invitation = TypeInvitationFactory.create()
         invitation = InvitationFactory.create(
-            resident=resident, type_invitation=type_invitation)
-        create_by = ResidentFactory.create()
-        type_identification = TypeIdentificationFactory.create()
+            resident=ResidentFactory(user=UserFactory.create()),
+            type_invitation=TypeInvitationFactory.create())
         person = PersonFactory.create(
-            create_by=create_by, type_identification=type_identification)
+            create_by=ResidentFactory(user=UserFactory.create()), 
+            type_identification=TypeIdentificationFactory.create())
         invitation.invitated.add(person)
         self.data = InvitationSerializer(invitation).data
         self.client.force_authenticate(user=UserFactory.build())
