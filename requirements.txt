@@ -40,5 +40,5 @@ django-storages==1.7.1
 boto3==1.9.4
 
 # Internal library
-oraculo-gpc
-partenon
+-e git+https://erasmo_montes@bitbucket.org/erasmo_montes/partenon.git#egg=partenon
+-e git+https://erasmo_montes@bitbucket.org/erasmo_montes/oraculo.git#egg=oraculo
