@@ -6,6 +6,7 @@ from .invitation.views import InvitationViewSet, TypeInvitationViewSet
 from .solicitude.views import (
     ServiceViewSet, StateSolicitudeServiceViewSet,
     ServiceRequestViewSet, DayViewSet)
+from . import proxys
 
 
 router = DefaultRouter()
@@ -15,7 +16,7 @@ router.register(r'users', UserViewSet)
 
 # APP - Resident
 router.register(r'resident', ResidentCreateViewSet)
-router.register(r'propery', PropertyViewSet)
+router.register(r'property', PropertyViewSet)
 
 # APP - Invitation
 router.register(
@@ -30,3 +31,5 @@ router.register(r'service', ServiceViewSet)
 router.register(r'state/solicitude', StateSolicitudeServiceViewSet)
 router.register(r'service-request', ServiceRequestViewSet)
 router.register(r'day', DayViewSet)
+
+router.register(r'client-info', proxys.ClientInfoViewSet, base_name='updatetime')

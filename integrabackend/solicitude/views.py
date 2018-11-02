@@ -19,7 +19,6 @@ class ServiceViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = ServiceSerializer 
 
 
-
 class StateSolicitudeServiceViewSet(viewsets.ReadOnlyModelViewSet):
     """
     List solicitud service's status
@@ -48,6 +47,9 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         return queryset.filter(user=self.request.user)
     
     def perform_create(self, serializer):
-        state_open, _ = State.objects.get_or_create(name=StateEnums.service_request.draft)
-        serializer.save(user=self.request.user, state=state_open)
+        state_open, _ = State.objects.get_or_create(
+            name=StateEnums.service_request.draft)
+        serializer.save(
+            user=self.request.user,
+            state=state_open)
         helpers.process_to_create_service_request(serializer.instance)
