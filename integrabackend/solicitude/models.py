@@ -47,10 +47,9 @@ class ServiceRequest(models.Model):
     client_sap = models.CharField(max_length=5)
     creation_date = models.DateTimeField(auto_now_add=True)
     close_date = models.DateTimeField(null=True, blank=True)
-    note = models.TextField()
+    note = models.TextField(null=True)
     phone = models.CharField(max_length=32)
     email = models.EmailField()
-    ownership = models.CharField(max_length=120)
     ticket_id = models.IntegerField(null=True)
 
     service = models.ForeignKey("solicitude.Service", on_delete=models.CASCADE)
