@@ -1,12 +1,15 @@
 import uuid
 import calendar
-import datetime as dt; 
+import datetime as dt
 from django.conf import settings
 from django.db import models
 
 day_name = list(calendar.day_name)
 CHOICE_DAY = [list(a) for a in zip(day_name, day_name)] 
 CHOICE_TIME = [(i, dt.time(i).strftime('%I %p')) for i in range(24)]
+CHOICE_TYPE_DATE = [
+    ('Laborable', 'Laborable'),
+    ('Fin de semana', 'Fin de semana')]
 
 
 class Service(models.Model):
@@ -45,7 +48,7 @@ class ServiceRequest(models.Model):
         primary_key=True,
         default=uuid.uuid4,
         editable=False)
-    client_sap = models.CharField(max_length=5)
+    sap_customer = models.CharField(max_length=5)
     creation_date = models.DateTimeField(auto_now_add=True)
     close_date = models.DateTimeField(null=True, blank=True)
     note = models.TextField(null=True)
@@ -87,3 +90,29 @@ class Day(models.Model):
         max_length=10, choices=CHOICE_DAY,
         unique=True) 
     active = models.BooleanField(default=True)
+    day_type = models.ForeignKey(
+        'solicitude.DayType',
+        on_delete=models.PROTECT)
+
+
+class DayType(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False)
+    name = models.CharField(
+        max_length=20, choices=CHOICE_TYPE_DATE)
+
+
+class ScheduleAvailability(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False)
+    day_type = models.OneToOneField(
+        'solicitude.DayType',
+        on_delete=models.PROTECT,
+        related_name='schedule_availability')
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    msg_display = models.CharField(max_length=50)

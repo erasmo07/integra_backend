@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import (
     Service, State, ServiceRequest,
-    DateServiceRequested, Day)
+    DateServiceRequested, Day, DayType, ScheduleAvailability)
 from ..users.serializers import UserSerializer
 
 
@@ -21,11 +21,29 @@ class StateSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', )
 
 
+class ScheduleAvailabilitySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ScheduleAvailability
+        fields = ('start_time', 'end_time', 'msg_display')
+        read_only_fields = ('id', )
+        
+
+class DayTypeSerializer(serializers.ModelSerializer):
+    schedule_availability = ScheduleAvailabilitySerializer(read_only=True)
+
+    class Meta:
+        model = DayType
+        fields = ('id', 'name', 'schedule_availability')
+        read_only_fields = ('id', )
+
+
 class DaySerializer(serializers.ModelSerializer):
+    day_type = DayTypeSerializer(read_only=True)
 
     class Meta:
         model = Day
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'day_type')
         read_only_fields = ('id', )
 
 
@@ -43,10 +61,9 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = ServiceRequest
         fields = (
-            'id', 'service', 'client_sap',
+            'id', 'service', 'sap_customer',
             'note', 'creation_date', 'phone',
-            'email', 'ownership', 'property',
-            'date_service_request')
+            'email', 'property', 'date_service_request')
     
     def create(self, validated_data):
         date_service_request = validated_data.pop('date_service_request')
