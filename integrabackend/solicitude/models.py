@@ -17,6 +17,7 @@ class Service(models.Model):
     name = models.CharField(max_length=60) 
     generates_invoice = models.BooleanField(default=False)
     requires_approval = models.BooleanField(default=False)
+    sap_code_service = models.CharField(max_length=50)
 
     def __str__(self):
         return self.name 
