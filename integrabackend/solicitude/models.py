@@ -13,7 +13,8 @@ CHOICE_TYPE_DATE = [
     ('Fin de semana', 'Fin de semana')]
 CHOICE_SERVICE = [
     (topic.topic, topic.topic)
-    for topic in Topics.objects.get_entitys()]
+    for topic in Topics.objects.get_entitys()
+    if hasattr(topic, 'topic')]
 
 
 class Service(models.Model):
@@ -81,8 +82,8 @@ class DateServiceRequested(models.Model):
         primary_key=True,
         default=uuid.uuid4,
         editable=False)   
-    checking = models.CharField(max_length=2, choices=CHOICE_TIME)
-    checkout = models.CharField(max_length=2, choices=CHOICE_TIME)
+    checking = models.TimeField(auto_now=False, auto_now_add=False)
+    checkout = models.TimeField(auto_now=False, auto_now_add=False)
     day = models.ManyToManyField('solicitude.Day')
 
 
@@ -110,7 +111,7 @@ class DayType(models.Model):
     
     @property
     def holiday(self):
-        return True if self.name is 'Fin de semana' else False
+        return True if self.name == 'Fin de semana' else False
 
 
 class ScheduleAvailability(models.Model):
