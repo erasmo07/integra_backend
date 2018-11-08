@@ -9,7 +9,9 @@ class ServiceSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Service 
-        fields = ('id', 'name')
+        fields = (
+            'id', 'name', 'scheduled',
+            'generates_invoice', 'requires_approval')
         read_only_fields = ('id', )
 
 
@@ -34,7 +36,9 @@ class DayTypeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = DayType
-        fields = ('id', 'name', 'schedule_availability')
+        fields = (
+            'id', 'name', 'holiday',
+            'schedule_availability')
         read_only_fields = ('id', )
 
 

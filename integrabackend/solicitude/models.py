@@ -3,6 +3,7 @@ import calendar
 import datetime as dt
 from django.conf import settings
 from django.db import models
+from partenon.helpdesk import Topics 
 
 day_name = list(calendar.day_name)
 CHOICE_DAY = [list(a) for a in zip(day_name, day_name)] 
@@ -10,6 +11,9 @@ CHOICE_TIME = [(i, dt.time(i).strftime('%I %p')) for i in range(24)]
 CHOICE_TYPE_DATE = [
     ('Laborable', 'Laborable'),
     ('Fin de semana', 'Fin de semana')]
+CHOICE_SERVICE = [
+    (topic.topic, topic.topic)
+    for topic in Topics.objects.get_entitys()]
 
 
 class Service(models.Model):
@@ -17,10 +21,11 @@ class Service(models.Model):
         primary_key=True,
         default=uuid.uuid4,
         editable=False)
-    name = models.CharField(max_length=60) 
+    name = models.CharField(max_length=60, choices=CHOICE_SERVICE) 
     generates_invoice = models.BooleanField(default=False)
     requires_approval = models.BooleanField(default=False)
     sap_code_service = models.CharField(max_length=50)
+    scheduled = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name 
@@ -93,7 +98,7 @@ class Day(models.Model):
     day_type = models.ForeignKey(
         'solicitude.DayType',
         on_delete=models.PROTECT)
-
+    
 
 class DayType(models.Model):
     id = models.UUIDField(
@@ -102,6 +107,10 @@ class DayType(models.Model):
         editable=False)
     name = models.CharField(
         max_length=20, choices=CHOICE_TYPE_DATE)
+    
+    @property
+    def holiday(self):
+        return True if self.name is 'Fin de semana' else False
 
 
 class ScheduleAvailability(models.Model):

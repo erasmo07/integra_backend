@@ -1,0 +1,9 @@
+{
+    "python.pythonPath": "/Users/mazy/.virtualenvs/integra_backend/bin/python",
+    "python.unitTest.nosetestArgs": [
+        "integrabackend"
+    ],
+    "python.unitTest.pyTestEnabled": false,
+    "python.unitTest.unittestEnabled": false,
+    "python.unitTest.nosetestsEnabled": true
+}
