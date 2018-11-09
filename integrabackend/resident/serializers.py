@@ -6,8 +6,9 @@ class ResidentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Resident
-        fields = ('id', 'name', 'email',
-                  'telephone', 'sap_customer')
+        fields = (
+            'id', 'name', 'email',
+            'telephone', 'sap_customer', 'user')
         read_only_fields = ('id', 'sap_customer')
 
 

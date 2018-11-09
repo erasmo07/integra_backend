@@ -5,7 +5,7 @@ from .resident.views import (
 from .invitation.views import InvitationViewSet, TypeInvitationViewSet
 from .solicitude.views import (
     ServiceViewSet, StateSolicitudeServiceViewSet,
-    ServiceRequestViewSet, DayViewSet)
+    ServiceRequestViewSet, DayViewSet, AvisoViewSet)
 from . import proxys
 
 
@@ -31,5 +31,7 @@ router.register(r'service', ServiceViewSet)
 router.register(r'state/solicitude', StateSolicitudeServiceViewSet)
 router.register(r'service-request', ServiceRequestViewSet)
 router.register(r'day', DayViewSet)
+router.register(r'aviso', AvisoViewSet, base_name='create_aviso')
 
+# PROXYS
 router.register(r'client-info', proxys.ClientInfoViewSet, base_name='updatetime')

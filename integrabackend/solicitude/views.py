@@ -8,6 +8,7 @@ from .serializers import (
     ServiceRequestSerializer, DaySerializer)
 from .enums import StateEnums
 from . import helpers
+from partenon.ERP import ERPAviso
 
 
 # Create your views here.
@@ -23,7 +24,8 @@ class StateSolicitudeServiceViewSet(viewsets.ReadOnlyModelViewSet):
     """
     List solicitud service's status
     """
-    queryset = State.objects.filter(StateEnums.service_request.limit_choice)
+    queryset = State.objects.filter(
+        StateEnums.service_request.limit_choice)
     serializer_class = StateSerializer
     
 
@@ -53,3 +55,36 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
             user=self.request.user,
             state=state_open)
         helpers.process_to_create_service_request(serializer.instance)
+
+
+class AvisoViewSet(viewsets.ViewSet):
+    model = ServiceRequest
+
+    def create(self, request):
+        ticket_id = self.request.data.get('ticket_id')
+        if not ticket_id:
+            response = Response({'message': 'Not set ticket_id'})
+            response.status_code = 404
+            return response
+
+        try:
+            obj = self.model.objects.get(ticket_id=ticket_id)
+            helpers.process_to_create_aviso(obj)
+            return Response({'success': 'ok'})
+        except Exception as ex:
+            response = Response({"message": str(ex)})
+            response.status_code = 404
+            return response
+    
+    def list(self, request):
+        params = request.query_params.dict()
+        ticket_id = params.get('ticket_id')
+        if not ticket_id:
+            response = Response({'message': 'Not set ticket_id'})
+            response.status_code = 404
+            return response
+
+        obj = self.model.objects.get(ticket_id=ticket_id)
+        erp_aviso = ERPAviso()
+        info = erp_aviso.info(obj.aviso_id)
+        return Response(info)
