@@ -61,6 +61,7 @@ class ServiceRequest(models.Model):
     phone = models.CharField(max_length=32)
     email = models.EmailField()
     ticket_id = models.IntegerField(null=True)
+    aviso_id = models.IntegerField(null=True)
 
     service = models.ForeignKey("solicitude.Service", on_delete=models.CASCADE)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE) 
