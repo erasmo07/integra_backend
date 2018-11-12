@@ -1,5 +1,11 @@
 FROM python:3.6
 ENV PYTHONUNBUFFERED 1
+ENV FAVEO_USERNAME=admin
+ENV FAVEO_PASSWORD=Nomelose123
+ENV FAVEO_BASE_URL=http://faveo.grupopuntacana.com:81/
+ENV SAP_USERNAME=dchot
+ENV SAP_PASSWORD=1234567
+ENV SAP_BASE_URL=http://athena.grupopuntacana.com:8000
 
 # Allows docker to cache installed dependencies between builds
 COPY ./requirements.txt requirements.txt
@@ -15,4 +21,4 @@ EXPOSE 8000
 # Migrates the database, uploads staticfiles, and runs the production server
 CMD ./manage.py migrate && \
     ./manage.py collectstatic --noinput && \
-    newrelic-admin run-program gunicorn --bind 0.0.0.0:$PORT --access-logfile - integrabackend.wsgi:application
+    newrelic-admin run-program gunicorn --bind 0.0.0.0:8000 --access-logfile - integrabackend.wsgi:application

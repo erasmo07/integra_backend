@@ -46,7 +46,7 @@ class Common(Configuration):
 
     ALLOWED_HOSTS = ["*"]
     ROOT_URLCONF = 'integrabackend.urls'
-    SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
+    SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'dev')
     WSGI_APPLICATION = 'integrabackend.wsgi.application'
 
     # Email
@@ -66,7 +66,7 @@ class Common(Configuration):
 
     # General
     APPEND_SLASH = False
-    TIME_ZONE = 'UTC'
+    TIME_ZONE = 'America/Santo_Domingo'
     LANGUAGE_CODE = 'en-us'
     # If you set this to False, Django will make some optimizations so as not
     # to load the internationalization machinery.

@@ -3,22 +3,44 @@ version: '2'
 services:
   postgres:
     image: postgres:9.6
-  web:
+
+  nginx:
+    build: ./nginx
+    volumes:
+      - static_volume:/code/static
+    ports:
+      - 80:80
+    depends_on:
+      - web
+
+  faveo_db:
+    build: https://erasmo_montes@bitbucket.org/erasmo_montes/faveo_db.git
+    ports:
+      - 5002:5000
     restart: always
     environment:
-      - DJANGO_SECRET_KEY=local
+      - APP_NAME=faveo-db
+      - FLASK_DEBUG=1
+      - PYTHONUNBUFFERED=0
+      - APP_SETTINGS=project.server.config.DevelopmentConfig
+      - DATABASE_URL=mysql+mysqldb://interfase:Nomelose123@faveo.grupopuntacana.com/faveolivetest
+      - SECRET_KEY=change_me_in_prod  
+
+  web:
+    restart: always
     image: web
     build: ./
-    command: >
-      bash -c "python wait_for_postgres.py &&
-               ./manage.py migrate &&
-               ./manage.py runserver 0.0.0.0:8000"
     volumes:
       - ./:/code
+      - static_volume:/code/static
     ports:
       - "8000:8000"
+    expose:
+      - 8000
     depends_on:
       - postgres
+      - faveo_db
+
   documentation:
     restart: always
     build: ./
@@ -27,3 +49,6 @@ services:
       - ./:/code
     ports:
       - "8001:8001"
+
+volumes:
+  static_volume:
