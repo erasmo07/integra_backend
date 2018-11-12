@@ -1,5 +1,8 @@
+from django.core.mail import send_mail
+from django.conf import settings
 from partenon.helpdesk import HelpDeskUser, Topics, Prioritys
 from partenon.ERP import ERPAviso
+from . import enums 
 
 
 class ServiceRequestHasAviso(Exception):
@@ -20,6 +23,9 @@ def process_to_create_service_request(instance):
 
 
 def process_to_create_aviso(service_request):
+    """
+    Function to create a new aviso on service-request
+    """
     if service_request.aviso_id:
         raise ServiceRequestHasAviso(
             'Esta solicitud ya tiene un aviso')
@@ -34,3 +40,15 @@ def process_to_create_aviso(service_request):
     if hasattr(aviso, 'aviso'):
         service_request.aviso_id = aviso.aviso
         service_request.save()
+
+
+def notify_to_aprove_or_reject_service(service_request):
+    """
+    Function to notify the client for aprove or reject
+    cotization of service.
+    """
+    send_mail(
+        subject=enums.Subjects.aprove_or_reject_service,
+        message='Here is the message',
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[service_request.email])
