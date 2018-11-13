@@ -12,3 +12,6 @@ migrations:
 
 server:
 	docker-compose up
+
+superuser:
+	docker-compose run web python manage.py createsuperuser
