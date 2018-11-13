@@ -1,5 +1,8 @@
+import json
+from mock import patch, MagicMock
 from django.urls import reverse
 from django.forms.models import model_to_dict
+from django.core import mail
 from faker import Faker
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -7,7 +10,7 @@ from nose.tools import eq_, ok_
 
 from .factories import (
     ServiceFactory, ServiceRequestFactory, StateFactory,
-    DayFactory, DateServiceRequestFactory)
+    DayFactory, DateServiceRequestFactory, DayTypeFactory)
 from ...users.test.factories import UserFactory
 from integrabackend.resident.test.factories import PropertyFactory, PropertyTypeFactory
 
@@ -29,7 +32,7 @@ class TestServiceTestCase(APITestCase):
     def test_get_request_list_succeeds(self):
         self.factory.create()
         response = self.client.get(self.url)
-        for service in response.json().get('results'):
+        for service in response.json():
             ok_(service.get('id'))
             ok_(service.get('name') is not None)
 
@@ -62,7 +65,9 @@ class TestSolicitudeServiceTestCase(APITestCase):
         property = PropertyFactory(
             property_type=PropertyTypeFactory.create())
         date_service_request = DateServiceRequestFactory()
-        date_service_request.day.add(DayFactory.create())
+        day_type = DayTypeFactory()
+        day = DayFactory(day_type=day_type)
+        date_service_request.day.add(day)
         service_request = ServiceRequestFactory(
             service=ServiceFactory.create(),
             state=StateFactory.create(),
@@ -70,10 +75,12 @@ class TestSolicitudeServiceTestCase(APITestCase):
             property=property,
             date_service_request=date_service_request)
         data = model_to_dict(service_request)
+        data.pop('user')
+        data['property'] = str(property.id)
         data['date_service_request'] = model_to_dict(date_service_request)
-        data['date_service_request']['day'] = [DayFactory.create().pk]
+        data['date_service_request']['day'] = [day.id]
 
-        response = self.client.post(self.url, data)
+        response = self.client.post(self.url, data, format='json')
 
         eq_(response.status_code, status.HTTP_201_CREATED)
         service = response.json()
