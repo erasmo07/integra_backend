@@ -49,7 +49,7 @@ class TestInvitationTestCase(APITestCase):
         eq_(response.status_code, status.HTTP_201_CREATED)
 
         response = self.client.get(self.url)
-        for invitation in response.json().get('results'):
+        for invitation in response.json():
             ok_(invitation.get('id'))
             eq_(invitation.get('resident'), self.data.get('resident'))
             eq_(invitation.get('type_invitation'),
@@ -100,7 +100,7 @@ class TestTypeInvitationTestCase(APITestCase):
     def test_get_request_list_succeeds(self):
         TypeInvitationFactory.create()
         response = self.client.get(self.url)
-        for type_invitation in response.json().get('results'):
+        for type_invitation in response.json():
             ok_(type_invitation.get('id'))
             ok_(type_invitation.get('name') is not None)
 

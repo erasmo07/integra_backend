@@ -1,7 +1,7 @@
 import factory
 import random
 import calendar
-from ..models import CHOICE_DAY, CHOICE_TIME
+from ..models import CHOICE_DAY, CHOICE_TIME, CHOICE_TYPE_DATE
 
 
 class StateFactory(factory.django.DjangoModelFactory):
@@ -28,11 +28,9 @@ class ServiceRequestFactory(factory.django.DjangoModelFactory):
     
     id = factory.Faker('uuid4')
     note = factory.Sequence(lambda n: f'note{n}')
-    client_sap = factory.Sequence(lambda n: f'note{n}')
+    sap_customer = factory.Sequence(lambda n: f'note{n}')
     ticket_id = factory.Sequence(lambda n: n)
     phone = factory.Sequence(lambda n: f'note{n}')
-    phone = factory.Sequence(lambda n: f'{n}@example.com')
-    ownership = factory.Sequence(lambda n: f'{n}@example.com')
     email = factory.Sequence(lambda n: f'{n}@example.com')
 
 
@@ -42,8 +40,17 @@ class DateServiceRequestFactory(factory.django.DjangoModelFactory):
         model = 'solicitude.DateServiceRequested'
     
     id = factory.Faker('uuid4')
-    checking = factory.Iterator([i for i in range(24)])
-    checkout = factory.Iterator([i for i in range(24)])
+    checking = factory.Sequence(lambda n: f'{n}:00:00')
+    checkout = factory.Sequence(lambda n: f'{n}:00:00')
+
+
+class DayTypeFactory(factory.DjangoModelFactory):
+
+    class Meta:
+        model = 'solicitude.DayType'
+    
+    id = factory.Faker('uuid4')
+    name = factory.Iterator(CHOICE_TYPE_DATE)
 
 
 class DayFactory(factory.django.DjangoModelFactory):

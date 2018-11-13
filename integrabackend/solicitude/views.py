@@ -67,9 +67,15 @@ class AvisoViewSet(viewsets.ViewSet):
             response.status_code = 404
             return response
 
+        service_request = self.model.objects.filter(ticket_id=ticket_id)
+        if not service_request.exists():
+            response = Response(
+                {'message': 'Not exists service request with it ticket_id'})
+            response.status_code = 404
+            return response
+
         try:
-            obj = self.model.objects.get(ticket_id=ticket_id)
-            helpers.process_to_create_aviso(obj)
+            helpers.process_to_create_aviso(service_request.first())
             return Response({'success': 'ok'})
         except Exception as ex:
             response = Response({"message": str(ex)})
@@ -84,7 +90,33 @@ class AvisoViewSet(viewsets.ViewSet):
             response.status_code = 404
             return response
 
-        obj = self.model.objects.get(ticket_id=ticket_id)
+        service_request = self.model.objects.filter(ticket_id=ticket_id)
+        if not service_request.exists():
+            response = Response(
+                {'message': 'Not exists service request with it ticket_id'})
+            response.status_code = 404
+            return response
+
         erp_aviso = ERPAviso()
-        info = erp_aviso.info(obj.aviso_id)
+        info = erp_aviso.info(service_request.first().aviso_id)
         return Response(info)
+
+
+    def update(self, request, pk=None):
+        state = request.data.get('state')
+        if not state:
+            response = Response(
+                {'message': 'Not set state'})
+            response.status_code = 404
+            return response
+
+        service_request = self.model.objects.filter(aviso_id=pk)
+        if not service_request.exists():
+            response = Response(
+                {'message': 'Not exists service request with it PK'})
+            response.status_code = 404
+            return response
+        
+        if state == "RACU":
+            helpers.notify_to_aprove_or_reject_service(service_request.first())
+        return Response({'success': 'ok'})
