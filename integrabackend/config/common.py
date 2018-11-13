@@ -51,6 +51,9 @@ class Common(Configuration):
 
     # Email
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = 'owa.puntacana.com'
+    DEFAULT_FROM_EMAIL = "no-reply@puntacana.com"
+    EMAIL_PORT = 25
 
     ADMINS = (
         ('Author', 'aplicaciones@puntacana.com'),
