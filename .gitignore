@@ -111,3 +111,6 @@ integrabackend/*/migrations
 
 # migrations
 integrabackend/*/migrations/*
+
+# VSCODE
+.vscode/*
