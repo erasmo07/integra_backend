@@ -4,17 +4,22 @@ from django.db import models
 
 
 class Resident(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False)
+
     name = models.CharField(max_length=120)
     email = models.EmailField()
-    user = models.OneToOneField(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE) 
     identification = models.CharField(max_length=20)
     is_active = models.BooleanField(default=False)
     telephone = models.CharField(max_length=12, null=True, blank=True)
     sap_customer = models.CharField(max_length=10)
+
     properties = models.ManyToManyField('resident.Property')
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE)
 
 
 class TypeIdentification(models.Model):
