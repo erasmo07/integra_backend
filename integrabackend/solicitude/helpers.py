@@ -36,7 +36,8 @@ def process_to_create_aviso(service_request):
         "TITULO", "NOTA",
         service_request.service.name,
         service_request.email,
-        service_request.service.sap_code_service)
+        service_request.service.sap_code_service,
+        require_quotation=service_request.require_quotation)
     if hasattr(aviso, 'aviso'):
         service_request.aviso_id = aviso.aviso
         service_request.save()

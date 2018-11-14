@@ -1,11 +1,16 @@
 FROM python:3.6
 ENV PYTHONUNBUFFERED 1
+ENV DJANGO_SECRET_KEY=local
+
 ENV FAVEO_USERNAME=admin
 ENV FAVEO_PASSWORD=Nomelose123
 ENV FAVEO_BASE_URL=http://faveo.grupopuntacana.com:81/
+
+ENV FAVEO_DB_BASE_URL=http://172.30.16.124:5002/
+
 ENV SAP_USERNAME=dchot
 ENV SAP_PASSWORD=1234567
-ENV SAP_BASE_URL=http://athena.grupopuntacana.com:8000
+ENV SAP_BASE_URL=http://athena.grupopuntacana.com:8000/
 
 # Allows docker to cache installed dependencies between builds
 COPY ./requirements.txt requirements.txt

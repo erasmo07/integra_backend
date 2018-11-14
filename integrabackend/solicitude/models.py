@@ -60,6 +60,7 @@ class ServiceRequest(models.Model):
     note = models.TextField(null=True)
     phone = models.CharField(max_length=32)
     email = models.EmailField()
+    require_quotation = models.BooleanField(default=False)
     ticket_id = models.IntegerField(null=True)
     aviso_id = models.IntegerField(null=True)
 

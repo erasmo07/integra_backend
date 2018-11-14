@@ -67,7 +67,8 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'service', 'sap_customer',
             'note', 'creation_date', 'phone',
-            'email', 'property', 'date_service_request')
+            'email', 'property', 'date_service_request',
+            'require_quotation')
     
     def create(self, validated_data):
         date_service_request = validated_data.pop('date_service_request')
