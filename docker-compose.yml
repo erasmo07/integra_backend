@@ -1,9 +1,6 @@
 version: '2'
 
 services:
-  postgres:
-    image: postgres:9.6
-
   nginx:
     build: ./nginx
     volumes:
@@ -12,19 +9,6 @@ services:
       - 80:80
     depends_on:
       - web
-
-  faveo_db:
-    build: https://erasmo_montes@bitbucket.org/erasmo_montes/faveo_db.git
-    ports:
-      - 5002:5000
-    restart: always
-    environment:
-      - APP_NAME=faveo-db
-      - FLASK_DEBUG=1
-      - PYTHONUNBUFFERED=0
-      - APP_SETTINGS=project.server.config.DevelopmentConfig
-      - DATABASE_URL=mysql+mysqldb://interfase:Nomelose123@faveo.grupopuntacana.com/faveolivetest
-      - SECRET_KEY=change_me_in_prod  
 
   web:
     restart: always
@@ -37,18 +21,8 @@ services:
       - "8000:8000"
     expose:
       - 8000
-    depends_on:
-      - postgres
-      - faveo_db
-
-  documentation:
-    restart: always
-    build: ./
-    command: "mkdocs serve"
-    volumes:
-      - ./:/code
-    ports:
-      - "8001:8001"
+    environment:
+      - DATABASE_URL=mysql://root:@172.30.16.124/integra_backend
 
 volumes:
   static_volume:
