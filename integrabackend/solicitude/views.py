@@ -7,7 +7,8 @@ from .models import Service, ServiceRequest, State, Day
 from .pagintates import ServiceRequestPaginate
 from .serializers import (
     ServiceSerializer, StateSerializer,
-    ServiceRequestSerializer, DaySerializer)
+    ServiceRequestSerializer, ServiceRequestSerializerList,
+    DaySerializer)
 from .enums import StateEnums
 from . import helpers
 from partenon.ERP import ERPAviso
@@ -46,6 +47,12 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
     queryset = ServiceRequest.objects.all()
     serializer_class = ServiceRequestSerializer
     pagination_class = ServiceRequestPaginate 
+
+    def get_serializer_class(self):
+        serializers = {
+            'list': ServiceRequestSerializerList,
+            'retrieve': ServiceRequestSerializerList}
+        return serializers.get(self.action, self.serializer_class)
 
     def get_queryset(self):
         queryset = super(ServiceRequestViewSet, self).get_queryset()

@@ -3,6 +3,7 @@ from .models import (
     Service, State, ServiceRequest,
     DateServiceRequested, Day, DayType, ScheduleAvailability)
 from ..users.serializers import UserSerializer
+from ..resident.serializers import PropertySerializer
 
 
 class ServiceSerializer(serializers.ModelSerializer):
@@ -59,8 +60,20 @@ class DateServiceRequestSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', )
 
 
+class ServiceRequestSerializerList(serializers.ModelSerializer):
+    date_service_request = DateServiceRequestSerializer()
+    state = StateSerializer(read_only=True)
+    property = PropertySerializer(read_only=True)
+    service = ServiceSerializer(read_only=True)
+
+    class Meta:
+        model = ServiceRequest
+        fields = "__all__"
+
+
 class ServiceRequestSerializer(serializers.ModelSerializer):
     date_service_request = DateServiceRequestSerializer()
+    state = StateSerializer(read_only=True)
 
     class Meta:
         model = ServiceRequest
@@ -68,7 +81,7 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
             'id', 'service', 'sap_customer',
             'note', 'creation_date', 'phone',
             'email', 'property', 'date_service_request',
-            'require_quotation')
+            'require_quotation', 'state')
     
     def create(self, validated_data):
         date_service_request = validated_data.pop('date_service_request')
