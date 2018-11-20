@@ -1,10 +1,12 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
+from django.http import Http404
 from rest_framework import viewsets
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.decorators import action
 from .models import Service, ServiceRequest, State, Day
-from .pagintates import ServiceRequestPaginate
+from .paginates import ServiceRequestPaginate
 from .serializers import (
     ServiceSerializer, StateSerializer,
     ServiceRequestSerializer, ServiceRequestSerializerList,
@@ -66,6 +68,14 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
             state=state_open)
         helpers.create_service_request(serializer.instance)
 
+    @action(detail=True, methods=['POST'], url_path='approve-quotation')
+    def aprove_quotation(self, request, pk=None):
+        try:
+            helpers.aprove_quotation(self.get_object())
+        except ServiceRequest.quotation.RelatedObjectDoesNotExist:
+            message = "ServiceRequest %s hasn't quotation" % pk
+            return Response({'message': message}, status.HTTP_404_NOT_FOUND)
+        return Response({'success': 'ok'}, status.HTTP_200_OK)
 
 class AvisoViewSet(viewsets.ViewSet):
     model = ServiceRequest

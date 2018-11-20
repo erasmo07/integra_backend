@@ -87,3 +87,30 @@ def client_valid_quotation(
         message='Here is the message',
         from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[service_request.email])
+def aprove_quotation(
+    service_request,
+    model_state=models.State,
+    states=enums.StateEnums):
+    """ Process for aprove quotation """
+
+    # UPDATE TICKE ON HELPDESK
+    status = Status.get_state_by_name(name=states.ticket.aprove_quotation)
+    ticket = HelpDeskTicket(ticket_id=service_request.ticket_id)
+    ticket.change_state(status)
+
+    # UPDATA AVISO ON EPR SYSTEM
+    ERPAviso.update(
+        service_request.aviso_id,
+        states.aviso.aprove_quotation)
+    
+    # UPDATE QUOTATION REGISTER
+    state_aprove, _ = model_state.objects.get_or_create(
+        name=states.quotation.approved)
+    service_request.quotation.state = state_aprove
+    service_request.quotation.save()
+
+    # UPDATE SERVICE REQUEST STATE
+    state_service_request, _ = model_state.objects.get_or_create(
+        name=states.service_request.approve_quotation)
+    service_request.state = state_service_request
+    service_request.save()
