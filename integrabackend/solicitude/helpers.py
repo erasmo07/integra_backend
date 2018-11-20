@@ -83,10 +83,32 @@ def client_valid_quotation(
     service_request.save()
 
 
-        subject=enums.Subjects.aprove_or_reject_service,
-        message='Here is the message',
+def client_valid_work(
+    service_request,
+    states=enums.StateEnums,
+    subject=enums.Subjects.aprove_or_reject_service,
+    model_state=models.State):
+    """
+    Function to notify the client for aprove or reject
+    work realized.
+    """
+    # SEND EMAIL TO CLIENT
+    send_mail(
+        subject=subject,
+        message='Here is the message for valid work',
         from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[service_request.email])
+    
+    # UPDATE SERVICE REQUES STATE APROVE WORK 
+    state, _ = model_state.objects.get_or_create(
+        name=states.service_request.waith_valid_work)
+    service_request.update(state=state)
+
+    # UPDATE TICKET STATE WAITING APPROVAL
+    ticket = HelpDeskTicket(ticket_id=service_request.ticket_id)
+    ticket.change_state(states.ticket.waith_valid_work)
+
+
 def aprove_quotation(
     service_request,
     model_state=models.State,
