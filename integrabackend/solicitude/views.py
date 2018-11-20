@@ -83,6 +83,17 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
             return Response({'message': message}, status.HTTP_404_NOT_FOUND)
         return Response({'success': 'ok'}, status.HTTP_200_OK)
 
+    @action(detail=True, methods=['POST'], url_path='reject-quotation')
+    def reject_quotation(self, request, pk=None):
+        helpers.reject_quotation(self.get_object())
+        return Response({'success': 'ok'}, status.HTTP_200_OK)
+    
+    @action(detail=True, methods=["POST"], url_path='approve-work')
+    def approve_work(self, request, pk=None):
+        helpers.approve_work(self.get_object())
+        return Response({'success': 'ok'}, status.HTTP_200_OK)
+
+
 class AvisoViewSet(viewsets.ViewSet):
     model = ServiceRequest
 
