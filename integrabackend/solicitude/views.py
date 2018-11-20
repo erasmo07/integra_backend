@@ -20,7 +20,7 @@ class ServiceViewSet(viewsets.ReadOnlyModelViewSet):
     List type service
     """
     queryset = Service.objects.all()
-    serializer_class = ServiceSerializer 
+    serializer_class = ServiceSerializer
 
 
 class StateSolicitudeServiceViewSet(viewsets.ReadOnlyModelViewSet):
@@ -30,7 +30,7 @@ class StateSolicitudeServiceViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = State.objects.filter(
         StateEnums.service_request.limit_choice)
     serializer_class = StateSerializer
-    
+
 
 class DayViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -46,7 +46,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
     """
     queryset = ServiceRequest.objects.all()
     serializer_class = ServiceRequestSerializer
-    pagination_class = ServiceRequestPaginate 
+    pagination_class = ServiceRequestPaginate
 
     def get_serializer_class(self):
         serializers = {

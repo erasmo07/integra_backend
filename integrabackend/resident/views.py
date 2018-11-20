@@ -32,4 +32,3 @@ class PropertyViewSet(viewsets.ModelViewSet):
     def get_queryset(self, *args, **kwargs):
         queryset = super(PropertyViewSet, self).get_queryset(**kwargs)
         return queryset.filter(resident__user=self.request.user)
-    
