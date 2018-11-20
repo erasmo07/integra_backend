@@ -59,3 +59,10 @@ class DayFactory(factory.django.DjangoModelFactory):
     
     id = factory.Faker('uuid4')
     name = factory.Iterator(list(calendar.day_name))
+
+
+class QuotationFactory(factory.django.DjangoModelFactory):
+    id = factory.Faker('uuid4')
+
+    class Meta:
+        model = 'solicitude.Quotation'
