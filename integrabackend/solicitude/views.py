@@ -16,6 +16,12 @@ from . import helpers
 from partenon.ERP import ERPAviso
 
 
+def get_value_or_404(data, key_value, message):
+    if not data.get(key_value):
+        raise Http404(message)
+    return data.get(key_value)
+
+
 # Create your views here.
 class ServiceViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -81,40 +87,24 @@ class AvisoViewSet(viewsets.ViewSet):
     model = ServiceRequest
 
     def create(self, request):
-        ticket_id = self.request.data.get('ticket_id')
-        if not ticket_id:
-            return Response(
-                {'message': 'Not set ticket_id'}, status.HTTP_404_NOT_FOUND)
+        ticket_id = get_value_or_404(
+            self.request.data,
+            'ticket_id', 'Not set ticket_id')
 
-        service_request = self.model.objects.filter(ticket_id=ticket_id)
-        if not service_request.exists():
-            return Response(
-                {'message': 'Not exists service request with it ticket_id'},
-                status.HTTP_404_NOT_FOUND)
-
+        service_request = get_object_or_404(self.model, ticket_id=ticket_id)
         try:
             helpers.process_to_create_aviso(service_request.first())
             return Response({'success': 'ok'}, status.HTTP_201_CREATED)
         except Exception as ex:
             return Response({"message": str(ex)}, status.HTTP_404_NOT_FOUND)
-    
+
     def list(self, request):
-        params = request.query_params.dict()
-        ticket_id = params.get('ticket_id')
-        if not ticket_id:
-            return Response(
-                {'message': 'Not set ticket_id'},
-                status.HTTP_404_NOT_FOUND)
-
-        service_request = self.model.objects.filter(ticket_id=ticket_id)
-        if not service_request.exists():
-            return Response(
-                {'message': 'Not exists service request with it ticket_id'},
-                status.HTTP_404_NOT_FOUND)
-
+        data = request.query_params.dict()
+        ticket_id = get_value_or_404(data, 'ticket_id','Not set ticket_id')
+        service_request = get_object_or_404(self.model, ticket_id=ticket_id)
         try:
             erp_aviso = ERPAviso()
-            info = erp_aviso.info(aviso=service_request.first().aviso_id)
+            info = erp_aviso.info(aviso=service_request.aviso_id)
             return Response(info)
         except Exception as ex:
             return Response(
@@ -122,18 +112,12 @@ class AvisoViewSet(viewsets.ViewSet):
                 status.HTTP_404_NOT_FOUND)
 
     def update(self, request, pk=None):
-        state = request.data.get('state')
-        if not state:
-            return Response(
-                {'message': 'Not set state'},
-                status.HTTP_404_NOT_FOUND)
-
-        service_request = self.model.objects.filter(aviso_id=pk)
-        if not service_request.exists():
-            return Response(
-                {'message': 'Not exists service request with it PK'},
-                status.HTTP_404_NOT_FOUND)
+        state = get_value_or_404(request.data, 'state', 'Not set state')
+        if state == StateEnums.aviso.requires_quote_approval:
+            service_request = get_object_or_404(self.model, aviso_id=pk)
+            helpers.client_valid_quotation(service_request)
         
-        if state == "RACU":
-            helpers.notify_to_aprove_or_reject_service(service_request.first())
-        return Response({'success': 'ok'}, status.HTTP_201_CREATED)
+        if state == StateEnums.aviso.requires_acceptance_closing:
+            service_request = get_object_or_404(self.model, aviso_id=pk)
+            helpers.client_valid_work(service_request)
+        return Response({'success': 'ok'}, status.HTTP_200_OK)
