@@ -138,6 +138,27 @@ def aprove_quotation(
     service_request.save()
 
 
+def approve_work(
+    service_request,
+    states=enums.StateEnums,
+    model_state=models.State):
+    """ Process for aprove work """
+
+    # UPDATE SERVICE REQUEST STATE TO APPROVED
+    state, _ = model_state.objects.get_or_create(
+        name=states.service_request.approved)
+    service_request.update(state=state)
+
+    # CLOSE TICKET
+    ticket = HelpDeskTicket(ticket_id=service_request.ticket_id)
+    ticket.close()
+
+    # UPDATE AVISO STATE ON EPR SYSTEM
+    ERPAviso.update(
+        service_request.aviso_id,
+        states.aviso.accepted_work)
+
+
 def reject_quotation(service_request):
     """ Process for reject quotation """
 
