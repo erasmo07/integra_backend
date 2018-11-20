@@ -1,20 +1,20 @@
 from django.core.mail import send_mail
 from django.conf import settings
-from partenon.helpdesk import HelpDeskUser, Topics, Prioritys
+from partenon.helpdesk import HelpDeskUser, Topics, Prioritys, Status, HelpDeskTicket
 from partenon.ERP import ERPAviso
-from . import enums 
+from . import enums, models
 
 
 class ServiceRequestHasAviso(Exception):
     pass
 
 
-def process_to_create_service_request(instance):
+def create_service_request(instance):
+    """ Function Docstring """
     helpdesk_user = HelpDeskUser.create_user(
-        instance.user.email,
-        instance.user.first_name,
+        instance.user.email, instance.user.first_name,
         instance.user.last_name)
-    topic = Topics.objects.get_by_name(instance.service.name) 
+    topic = Topics.objects.get_by_name(instance.service.name)
     priority = Prioritys.objects.get_by_name('Normal')
     ticket = helpdesk_user.ticket.create(
         'Subject', instance.note, priority, topic)
@@ -22,14 +22,17 @@ def process_to_create_service_request(instance):
     instance.save()
 
 
-def process_to_create_aviso(service_request):
+def process_to_create_aviso(
+    service_request,
+    model_state=models.State,
+    state_names=enums.StateEnums.service_request):
     """
     Function to create a new aviso on service-request
     """
     if service_request.aviso_id:
         raise ServiceRequestHasAviso(
             'Esta solicitud ya tiene un aviso')
-    
+
     erp_aviso = ERPAviso()
     aviso = erp_aviso.create(
         service_request.sap_customer,

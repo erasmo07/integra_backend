@@ -57,14 +57,14 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = super(ServiceRequestViewSet, self).get_queryset()
         return queryset.filter(user=self.request.user)
-    
+
     def perform_create(self, serializer):
         state_open, _ = State.objects.get_or_create(
             name=StateEnums.service_request.draft)
         serializer.save(
             user=self.request.user,
             state=state_open)
-        helpers.process_to_create_service_request(serializer.instance)
+        helpers.create_service_request(serializer.instance)
 
 
 class AvisoViewSet(viewsets.ViewSet):
