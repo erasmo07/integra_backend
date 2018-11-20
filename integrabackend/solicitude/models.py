@@ -65,10 +65,9 @@ class ServiceRequest(models.Model):
     aviso_id = models.IntegerField(null=True)
 
     service = models.ForeignKey("solicitude.Service", on_delete=models.CASCADE)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE) 
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     state = models.ForeignKey(
         'solicitude.State',
-        related_name='state',
         on_delete=models.CASCADE)
     property = models.ForeignKey(
         'resident.Property',
