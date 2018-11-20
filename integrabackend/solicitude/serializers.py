@@ -7,9 +7,9 @@ from ..resident.serializers import PropertySerializer
 
 
 class ServiceSerializer(serializers.ModelSerializer):
-    
+
     class Meta:
-        model = Service 
+        model = Service
         fields = (
             'id', 'name', 'scheduled',
             'generates_invoice', 'requires_approval')
@@ -17,9 +17,9 @@ class ServiceSerializer(serializers.ModelSerializer):
 
 
 class StateSerializer(serializers.ModelSerializer):
-    
+
     class Meta:
-        model = State 
+        model = State
         fields = ('id', 'name')
         read_only_fields = ('id', )
 
@@ -30,7 +30,7 @@ class ScheduleAvailabilitySerializer(serializers.ModelSerializer):
         model = ScheduleAvailability
         fields = ('start_time', 'end_time', 'msg_display')
         read_only_fields = ('id', )
-        
+
 
 class DayTypeSerializer(serializers.ModelSerializer):
     schedule_availability = ScheduleAvailabilitySerializer(read_only=True)
@@ -55,7 +55,7 @@ class DaySerializer(serializers.ModelSerializer):
 class DateServiceRequestSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = DateServiceRequested 
+        model = DateServiceRequested
         fields = ('id', 'day', 'checking', 'checkout',)
         read_only_fields = ('id', )
 
@@ -82,7 +82,7 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
             'note', 'creation_date', 'phone',
             'email', 'property', 'date_service_request',
             'require_quotation', 'state')
-    
+
     def create(self, validated_data):
         date_service_request = validated_data.pop('date_service_request')
         days = date_service_request.pop('day')
@@ -93,4 +93,4 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
         service_request = ServiceRequest.objects.create(
             date_service_request=date_service_request,
             **validated_data)
-        return service_request 
+        return service_request

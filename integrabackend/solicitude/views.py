@@ -1,10 +1,12 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
+from django.http import Http404
 from rest_framework import viewsets
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.decorators import action
 from .models import Service, ServiceRequest, State, Day
-from .pagintates import ServiceRequestPaginate
+from .paginates import ServiceRequestPaginate
 from .serializers import (
     ServiceSerializer, StateSerializer,
     ServiceRequestSerializer, ServiceRequestSerializerList,
@@ -14,13 +16,19 @@ from . import helpers
 from partenon.ERP import ERPAviso
 
 
+def get_value_or_404(data, key_value, message):
+    if not data.get(key_value):
+        raise Http404(message)
+    return data.get(key_value)
+
+
 # Create your views here.
 class ServiceViewSet(viewsets.ReadOnlyModelViewSet):
     """
     List type service
     """
     queryset = Service.objects.all()
-    serializer_class = ServiceSerializer 
+    serializer_class = ServiceSerializer
 
 
 class StateSolicitudeServiceViewSet(viewsets.ReadOnlyModelViewSet):
@@ -30,7 +38,7 @@ class StateSolicitudeServiceViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = State.objects.filter(
         StateEnums.service_request.limit_choice)
     serializer_class = StateSerializer
-    
+
 
 class DayViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -46,7 +54,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
     """
     queryset = ServiceRequest.objects.all()
     serializer_class = ServiceRequestSerializer
-    pagination_class = ServiceRequestPaginate 
+    pagination_class = ServiceRequestPaginate
 
     def get_serializer_class(self):
         serializers = {
@@ -57,54 +65,57 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = super(ServiceRequestViewSet, self).get_queryset()
         return queryset.filter(user=self.request.user)
-    
+
     def perform_create(self, serializer):
         state_open, _ = State.objects.get_or_create(
             name=StateEnums.service_request.draft)
         serializer.save(
             user=self.request.user,
             state=state_open)
-        helpers.process_to_create_service_request(serializer.instance)
+        helpers.create_service_request(serializer.instance)
+
+    @action(detail=True, methods=['POST'], url_path='approve-quotation')
+    def aprove_quotation(self, request, pk=None):
+        try:
+            helpers.aprove_quotation(self.get_object())
+        except ServiceRequest.quotation.RelatedObjectDoesNotExist:
+            message = "ServiceRequest %s hasn't quotation" % pk
+            return Response({'message': message}, status.HTTP_404_NOT_FOUND)
+        return Response({'success': 'ok'}, status.HTTP_200_OK)
+
+    @action(detail=True, methods=['POST'], url_path='reject-quotation')
+    def reject_quotation(self, request, pk=None):
+        helpers.reject_quotation(self.get_object())
+        return Response({'success': 'ok'}, status.HTTP_200_OK)
+    
+    @action(detail=True, methods=["POST"], url_path='approve-work')
+    def approve_work(self, request, pk=None):
+        helpers.approve_work(self.get_object())
+        return Response({'success': 'ok'}, status.HTTP_200_OK)
 
 
 class AvisoViewSet(viewsets.ViewSet):
     model = ServiceRequest
 
     def create(self, request):
-        ticket_id = self.request.data.get('ticket_id')
-        if not ticket_id:
-            return Response(
-                {'message': 'Not set ticket_id'}, status.HTTP_404_NOT_FOUND)
+        ticket_id = get_value_or_404(
+            self.request.data,
+            'ticket_id', 'Not set ticket_id')
 
-        service_request = self.model.objects.filter(ticket_id=ticket_id)
-        if not service_request.exists():
-            return Response(
-                {'message': 'Not exists service request with it ticket_id'},
-                status.HTTP_404_NOT_FOUND)
-
+        service_request = get_object_or_404(self.model, ticket_id=ticket_id)
         try:
             helpers.process_to_create_aviso(service_request.first())
             return Response({'success': 'ok'}, status.HTTP_201_CREATED)
         except Exception as ex:
             return Response({"message": str(ex)}, status.HTTP_404_NOT_FOUND)
-    
+
     def list(self, request):
-        params = request.query_params.dict()
-        ticket_id = params.get('ticket_id')
-        if not ticket_id:
-            return Response(
-                {'message': 'Not set ticket_id'},
-                status.HTTP_404_NOT_FOUND)
-
-        service_request = self.model.objects.filter(ticket_id=ticket_id)
-        if not service_request.exists():
-            return Response(
-                {'message': 'Not exists service request with it ticket_id'},
-                status.HTTP_404_NOT_FOUND)
-
+        data = request.query_params.dict()
+        ticket_id = get_value_or_404(data, 'ticket_id','Not set ticket_id')
+        service_request = get_object_or_404(self.model, ticket_id=ticket_id)
         try:
             erp_aviso = ERPAviso()
-            info = erp_aviso.info(aviso=service_request.first().aviso_id)
+            info = erp_aviso.info(aviso=service_request.aviso_id)
             return Response(info)
         except Exception as ex:
             return Response(
@@ -112,18 +123,12 @@ class AvisoViewSet(viewsets.ViewSet):
                 status.HTTP_404_NOT_FOUND)
 
     def update(self, request, pk=None):
-        state = request.data.get('state')
-        if not state:
-            return Response(
-                {'message': 'Not set state'},
-                status.HTTP_404_NOT_FOUND)
-
-        service_request = self.model.objects.filter(aviso_id=pk)
-        if not service_request.exists():
-            return Response(
-                {'message': 'Not exists service request with it PK'},
-                status.HTTP_404_NOT_FOUND)
+        state = get_value_or_404(request.data, 'state', 'Not set state')
+        if state == StateEnums.aviso.requires_quote_approval:
+            service_request = get_object_or_404(self.model, aviso_id=pk)
+            helpers.client_valid_quotation(service_request)
         
-        if state == "RACU":
-            helpers.notify_to_aprove_or_reject_service(service_request.first())
-        return Response({'success': 'ok'}, status.HTTP_201_CREATED)
+        if state == StateEnums.aviso.requires_acceptance_closing:
+            service_request = get_object_or_404(self.model, aviso_id=pk)
+            helpers.client_valid_work(service_request)
+        return Response({'success': 'ok'}, status.HTTP_200_OK)

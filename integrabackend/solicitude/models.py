@@ -3,10 +3,10 @@ import calendar
 import datetime as dt
 from django.conf import settings
 from django.db import models
-from partenon.helpdesk import Topics 
+from partenon.helpdesk import Topics
 
 day_name = list(calendar.day_name)
-CHOICE_DAY = [list(a) for a in zip(day_name, day_name)] 
+CHOICE_DAY = [list(a) for a in zip(day_name, day_name)]
 CHOICE_TIME = [(i, dt.time(i).strftime('%I %p')) for i in range(24)]
 CHOICE_TYPE_DATE = [
     ('Laborable', 'Laborable'),
@@ -22,17 +22,17 @@ class Service(models.Model):
         primary_key=True,
         default=uuid.uuid4,
         editable=False)
-    name = models.CharField(max_length=60, choices=CHOICE_SERVICE) 
+    name = models.CharField(max_length=60, choices=CHOICE_SERVICE)
     generates_invoice = models.BooleanField(default=False)
     requires_approval = models.BooleanField(default=False)
     sap_code_service = models.CharField(max_length=50)
     scheduled = models.BooleanField(default=True)
 
     def __str__(self):
-        return self.name 
+        return self.name
 
     def __unicode__(self):
-        return self.nane 
+        return self.nane
 
 
 class State(models.Model):
@@ -46,7 +46,7 @@ class State(models.Model):
         return self.name
 
     def __unicode__(self):
-        return self.name 
+        return self.name
 
 
 class ServiceRequest(models.Model):
@@ -65,10 +65,9 @@ class ServiceRequest(models.Model):
     aviso_id = models.IntegerField(null=True)
 
     service = models.ForeignKey("solicitude.Service", on_delete=models.CASCADE)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE) 
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     state = models.ForeignKey(
         'solicitude.State',
-        related_name='state',
         on_delete=models.CASCADE)
     property = models.ForeignKey(
         'resident.Property',
@@ -79,11 +78,26 @@ class ServiceRequest(models.Model):
         on_delete=models.CASCADE)
 
 
+class Quotation(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False)
+    file = models.FileField(upload_to='quotation', null=True)
+    note = models.TextField(null=True)
+
+    service_request = models.OneToOneField(
+        'solicitude.ServiceRequest',
+        related_name='quotation', on_delete=models.CASCADE)
+    state = models.ForeignKey(
+        'solicitude.State', on_delete=models.PROTECT)
+
+
 class DateServiceRequested(models.Model):
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid4,
-        editable=False)   
+        editable=False)
     checking = models.TimeField(auto_now=False, auto_now_add=False)
     checkout = models.TimeField(auto_now=False, auto_now_add=False)
     day = models.ManyToManyField('solicitude.Day')
@@ -93,15 +107,15 @@ class Day(models.Model):
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid4,
-        editable=False)   
+        editable=False)
     name = models.CharField(
         max_length=10, choices=CHOICE_DAY,
-        unique=True) 
+        unique=True)
     active = models.BooleanField(default=True)
     day_type = models.ForeignKey(
         'solicitude.DayType',
         on_delete=models.PROTECT)
-    
+
 
 class DayType(models.Model):
     id = models.UUIDField(
@@ -110,7 +124,7 @@ class DayType(models.Model):
         editable=False)
     name = models.CharField(
         max_length=20, choices=CHOICE_TYPE_DATE)
-    
+
     @property
     def holiday(self):
         return True if self.name == 'Fin de semana' else False
