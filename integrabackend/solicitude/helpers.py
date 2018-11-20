@@ -114,3 +114,12 @@ def aprove_quotation(
         name=states.service_request.approve_quotation)
     service_request.state = state_service_request
     service_request.save()
+
+
+def reject_quotation(service_request):
+    """ Process for reject quotation """
+
+    # UPDATE AVISO TO REJECT STATE
+    ERPAviso.update(
+        service_request.aviso_id,
+        enums.AvisoEnums.reject_quotation)
