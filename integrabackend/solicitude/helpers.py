@@ -42,7 +42,10 @@ def process_to_create_aviso(
         service_request.service.sap_code_service,
         require_quotation=service_request.require_quotation)
     if hasattr(aviso, 'aviso'):
+        state, _ = model_state.objects.get_or_create(
+            name=state_names.notice_created)
         service_request.aviso_id = aviso.aviso
+        service_request.state = state
         service_request.save()
 
 
