@@ -57,9 +57,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
     pagination_class = ServiceRequestPaginate
 
     def get_serializer_class(self):
-        serializers = {
-            'list': ServiceRequestSerializerList,
-            'retrieve': ServiceRequestSerializerList}
+        serializers = {'list': ServiceRequestSerializerList}
         return serializers.get(self.action, self.serializer_class)
 
     def get_queryset(self):
@@ -104,7 +102,7 @@ class AvisoViewSet(viewsets.ViewSet):
 
         service_request = get_object_or_404(self.model, ticket_id=ticket_id)
         try:
-            helpers.process_to_create_aviso(service_request.first())
+            helpers.process_to_create_aviso(service_request)
             return Response({'success': 'ok'}, status.HTTP_201_CREATED)
         except Exception as ex:
             return Response({"message": str(ex)}, status.HTTP_404_NOT_FOUND)
