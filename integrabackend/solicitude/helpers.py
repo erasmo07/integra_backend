@@ -55,7 +55,7 @@ def client_valid_quotation(
     model_quotation=models.Quotation,
     states=enums.StateEnums,
     ticket_class=HelpDeskTicket,
-    subject=enums.Subjects.aprove_or_reject_service):
+    subject=enums.Subjects.valid_quotation):
     """
     Function to notify the client for aprove or reject
     cotization of service.
@@ -89,7 +89,7 @@ def client_valid_quotation(
 def client_valid_work(
     service_request,
     states=enums.StateEnums,
-    subject=enums.Subjects.aprove_or_reject_service,
+    subject=enums.Subjects.valid_work,
     model_state=models.State):
     """
     Function to notify the client for aprove or reject
@@ -105,11 +105,13 @@ def client_valid_work(
     # UPDATE SERVICE REQUES STATE APROVE WORK 
     state, _ = model_state.objects.get_or_create(
         name=states.service_request.waith_valid_work)
-    service_request.update(state=state)
+    service_request.state = state
+    service_request.save()
 
     # UPDATE TICKET STATE WAITING APPROVAL
     ticket = HelpDeskTicket(ticket_id=service_request.ticket_id)
-    ticket.change_state(states.ticket.waith_valid_work)
+    status_ticket = Status.get_state_by_name(states.ticket.waith_valid_work)
+    ticket.change_state(status_ticket)
 
 
 def aprove_quotation(
@@ -119,14 +121,16 @@ def aprove_quotation(
     """ Process for aprove quotation """
 
     # UPDATE TICKE ON HELPDESK
-    status = Status.get_state_by_name(name=states.ticket.aprove_quotation)
+    status = Status.get_state_by_name(states.ticket.aprove_quotation)
     ticket = HelpDeskTicket(ticket_id=service_request.ticket_id)
     ticket.change_state(status)
 
     # UPDATA AVISO ON EPR SYSTEM
+    """
     ERPAviso.update(
         service_request.aviso_id,
         states.aviso.aprove_quotation)
+    """
     
     # UPDATE QUOTATION REGISTER
     state_aprove, _ = model_state.objects.get_or_create(
@@ -150,7 +154,8 @@ def approve_work(
     # UPDATE SERVICE REQUEST STATE TO APPROVED
     state, _ = model_state.objects.get_or_create(
         name=states.service_request.approved)
-    service_request.update(state=state)
+    service_request.state = state
+    service_request.save()
 
     # CLOSE TICKET
     ticket = HelpDeskTicket(ticket_id=service_request.ticket_id)

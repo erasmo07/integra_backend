@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from .models import (
     Service, State, ServiceRequest,
-    DateServiceRequested, Day, DayType, ScheduleAvailability)
+    DateServiceRequested, Day, DayType, ScheduleAvailability,
+    Quotation)
 from ..users.serializers import UserSerializer
 from ..resident.serializers import PropertySerializer
 
@@ -69,11 +70,19 @@ class ServiceRequestSerializerList(serializers.ModelSerializer):
     class Meta:
         model = ServiceRequest
         fields = "__all__"
+class QuotationSerializer(serializers.ModelSerializer):
+    state = StateSerializer(read_only=True)
+
+    class Meta:
+        model = Quotation
+        fields = ('file', 'state', 'note')
+        read_only_fields = ('id', )
 
 
 class ServiceRequestSerializer(serializers.ModelSerializer):
     date_service_request = DateServiceRequestSerializer()
     state = StateSerializer(read_only=True)
+    quotation = QuotationSerializer(read_only=True)
 
     class Meta:
         model = ServiceRequest
@@ -81,7 +90,7 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
             'id', 'service', 'sap_customer',
             'note', 'creation_date', 'phone',
             'email', 'property', 'date_service_request',
-            'require_quotation', 'state')
+            'require_quotation', 'state', 'quotation')
 
     def create(self, validated_data):
         date_service_request = validated_data.pop('date_service_request')
@@ -94,3 +103,4 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
             date_service_request=date_service_request,
             **validated_data)
         return service_request
+
