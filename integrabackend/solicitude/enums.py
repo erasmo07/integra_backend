@@ -27,6 +27,7 @@ class AvisoEnums:
 class TicketStatusenums:
     aprove_quotation = 'Revisado'
     waiting_approval = 'On Hold'
+    waith_valid_work = 'Resolved'
 
 
 class QuotationEnums:
@@ -43,4 +44,5 @@ class StateEnums:
 
 
 class Subjects:
-    aprove_or_reject_service = "Aprovar o Rechazar cotizacion"
+    valid_quotation = "Aprovar o Rechazar cotizacion"
+    valid_work = "Validar Trabajo realizado"
