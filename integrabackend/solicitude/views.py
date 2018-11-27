@@ -5,6 +5,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import action
+from django_filters.rest_framework import DjangoFilterBackend
 from .models import Service, ServiceRequest, State, Day
 from .paginates import ServiceRequestPaginate
 from .serializers import (
@@ -55,6 +56,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
     queryset = ServiceRequest.objects.all()
     serializer_class = ServiceRequestSerializer
     pagination_class = ServiceRequestPaginate
+    filter_backends = (DjangoFilterBackend,)
 
     def get_serializer_class(self):
         serializers = {'list': ServiceRequestSerializerList}
