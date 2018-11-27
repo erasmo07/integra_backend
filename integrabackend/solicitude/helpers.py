@@ -1,4 +1,6 @@
-from django.core.mail import send_mail
+import base64
+from django.core.files.base import ContentFile
+from django.core.mail import EmailMessage
 from django.conf import settings
 from partenon.helpdesk import HelpDeskUser, Topics, Prioritys, Status, HelpDeskTicket
 from partenon.ERP import ERPAviso
@@ -204,10 +206,22 @@ def approve_work(
         states.aviso.accepted_work)
 
 
-def reject_quotation(service_request):
+def reject_quotation(
+    service_request,
+    model_state=models.State,
+    states=enums.StateEnums):
     """ Process for reject quotation """
+    # CLOSE TICKET
+    ticket = HelpDeskTicket(ticket_id=service_request.ticket_id)
+    ticket.close()
 
     # UPDATE AVISO TO REJECT STATE
     ERPAviso.update(
         service_request.aviso_id,
         enums.AvisoEnums.reject_quotation)
+
+    # UPDATE QUOTATION REGISTER
+    state_reject, _ = model_state.objects.get_or_create(
+        name=states.quotation.reject)
+    service_request.quotation.state = state_reject
+    service_request.quotation.save()
