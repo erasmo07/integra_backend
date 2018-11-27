@@ -53,6 +53,7 @@ class Common(Configuration):
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     EMAIL_HOST = 'owa.puntacana.com'
     DEFAULT_FROM_EMAIL = "no-reply@puntacana.com"
+    DEFAULT_SOPORT_EMAIL = 'soporte@puntacana.com'
     EMAIL_PORT = 25
 
     ADMINS = (
@@ -204,6 +205,9 @@ class Common(Configuration):
         'DEFAULT_AUTHENTICATION_CLASSES': (
             'rest_framework.authentication.SessionAuthentication',
             'rest_framework.authentication.TokenAuthentication',
+        ),
+        'DEFAULT_FILTER_BACKENDS': (
+            'django_filters.rest_framework.DjangoFilterBackend',
         )
     }
 

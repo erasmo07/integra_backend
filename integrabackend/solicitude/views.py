@@ -5,15 +5,21 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.exceptions import APIException
+from django_filters.rest_framework import DjangoFilterBackend
 from .models import Service, ServiceRequest, State, Day
 from .paginates import ServiceRequestPaginate
 from .serializers import (
     ServiceSerializer, StateSerializer,
-    ServiceRequestSerializer, ServiceRequestSerializerList,
-    DaySerializer)
+    ServiceRequestSerializer, DaySerializer)
 from .enums import StateEnums
 from . import helpers
 from partenon.ERP import ERPAviso
+from partenon.ERP.exceptions import NotHasOrder
+
+
+class Http500(APIException):
+    status_code = 500
 
 
 def get_value_or_404(data, key_value, message):
@@ -48,6 +54,7 @@ class DayViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = DaySerializer
 
 
+
 class ServiceRequestViewSet(viewsets.ModelViewSet):
     """
     CRUD service request
@@ -55,10 +62,8 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
     queryset = ServiceRequest.objects.all()
     serializer_class = ServiceRequestSerializer
     pagination_class = ServiceRequestPaginate
-
-    def get_serializer_class(self):
-        serializers = {'list': ServiceRequestSerializerList}
-        return serializers.get(self.action, self.serializer_class)
+    filter_backends = (DjangoFilterBackend,)
+    filter_fields = ('ticket_id',)
 
     def get_queryset(self):
         queryset = super(ServiceRequestViewSet, self).get_queryset()
@@ -70,7 +75,11 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         serializer.save(
             user=self.request.user,
             state=state_open)
-        helpers.create_service_request(serializer.instance)
+        try:
+            helpers.create_service_request(serializer.instance)
+        except Exception as error:
+            serializer.instance.delete()
+            raise Http500(detail=str(error))
 
     @action(detail=True, methods=['POST'], url_path='approve-quotation')
     def aprove_quotation(self, request, pk=None):
@@ -124,7 +133,12 @@ class AvisoViewSet(viewsets.ViewSet):
         state = get_value_or_404(request.data, 'state', 'Not set state')
         if state == StateEnums.aviso.requires_quote_approval:
             service_request = get_object_or_404(self.model, aviso_id=pk)
-            helpers.client_valid_quotation(service_request)
+            try:
+                helpers.client_valid_quotation(service_request)
+            except NotHasOrder as error:
+                return Response(
+                    {'error': str(error)},
+                    status.HTTP_404_NOT_FOUND)
         
         if state == StateEnums.aviso.requires_acceptance_closing:
             service_request = get_object_or_404(self.model, aviso_id=pk)
