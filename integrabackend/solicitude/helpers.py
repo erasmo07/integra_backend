@@ -49,35 +49,70 @@ def process_to_create_aviso(
         service_request.save()
 
 
+def upload_quotation(
+    service_request,
+    aviso_class=ERPAviso):
+
+    # CREATE COTATTION
+    erp_aviso = aviso_class(**dict(aviso=service_request.aviso_id))
+    blob = erp_aviso.create_quotation()
+    quotation_file_name = '%s.pdf' % service_request.aviso_id
+    quotation_file = ContentFile(
+        base64.b64decode(blob),
+        name=quotation_file_name)
+    service_request.quotation.file = quotation_file
+    service_request.quotation.save()
+
+
+def make_quotation(
+    service_request,
+    model=models.Quotation,
+    model_state=models.State,
+    states=enums.StateEnums):
+    state_pending, _ = model_state.objects.get_or_create(
+        name=states.quotation.pending)
+    quotation_data = dict(
+        service_request=service_request, state=state_pending)
+    quotation, _ = model.objects.get_or_create(**quotation_data)
+    upload_quotation(service_request)
+
+
+def notify_valid_work(
+    service_request,
+    subjects=enums.Subjects,
+    email_class=EmailMessage):
+    # SEND EMAIL TO CLIENT
+    subject = subjects.build_subject( 
+        subjects.valid_quotation,
+        service_request.ticket_id)
+    message = 'Here is the message for valid work'
+    recipient_list = [service_request.email]
+    email = email_class(
+        subject=subject, body=message,
+        to=recipient_list, cc=[settings.DEFAULT_SOPORT_EMAIL])
+    email.attach(
+        service_request.quotation.file.name,
+        service_request.quotation.file.read(),
+        'application/pdf')
+    email.send()
+
+
 def client_valid_quotation(
     service_request,
     model_state=models.State,
     model_quotation=models.Quotation,
     states=enums.StateEnums,
-    ticket_class=HelpDeskTicket,
-    subject=enums.Subjects.valid_quotation):
+    ticket_class=HelpDeskTicket):
     """
     Function to notify the client for aprove or reject
     cotization of service.
     """
-    # SEND EMAIL TO CLIENT
-    send_mail(
-        subject=subject,
-        message='Here is the message valid quotation',
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[service_request.email])
+    make_quotation(service_request)
 
     # UPDATE TICKET STATE WAITING APPROVAL
     ticket = ticket_class(ticket_id=service_request.ticket_id)
     status_ticket = Status.get_state_by_name(states.ticket.waiting_approval)
     ticket.change_state(status_ticket)
-
-    # MAKE QUOTATION REGISTER
-    state_pending, _ = model_state.objects.get_or_create(
-        name=states.quotation.pending)
-    quotation_data = dict(
-        service_request=service_request, state=state_pending)
-    quotation, _ = model_quotation.objects.get_or_create(**quotation_data)
 
     # UPDATE SERVICE REQUES STATE APROVE QUOTATION
     state, _ = model_state.objects.get_or_create(
@@ -85,23 +120,27 @@ def client_valid_quotation(
     service_request.state = state
     service_request.save()
 
+    notify_valid_work(service_request)
+
 
 def client_valid_work(
     service_request,
     states=enums.StateEnums,
-    subject=enums.Subjects.valid_work,
-    model_state=models.State):
+    model_state=models.State,
+    subjects=enums.Subjects):
     """
     Function to notify the client for aprove or reject
     work realized.
     """
-    # SEND EMAIL TO CLIENT
+    subject = subjects.build_subject(
+        subjects.valid_work,
+        service_request.ticket_id)
     send_mail(
         subject=subject,
-        message='Here is the message for valid work',
+        message='Here is the message valid quotation',
         from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[service_request.email])
-    
+
     # UPDATE SERVICE REQUES STATE APROVE WORK 
     state, _ = model_state.objects.get_or_create(
         name=states.service_request.waith_valid_work)
@@ -126,11 +165,9 @@ def aprove_quotation(
     ticket.change_state(status)
 
     # UPDATA AVISO ON EPR SYSTEM
-    """
     ERPAviso.update(
         service_request.aviso_id,
         states.aviso.aprove_quotation)
-    """
     
     # UPDATE QUOTATION REGISTER
     state_aprove, _ = model_state.objects.get_or_create(
