@@ -10,8 +10,7 @@ from .models import Service, ServiceRequest, State, Day
 from .paginates import ServiceRequestPaginate
 from .serializers import (
     ServiceSerializer, StateSerializer,
-    ServiceRequestSerializer, ServiceRequestSerializerList,
-    DaySerializer)
+    ServiceRequestSerializer, DaySerializer)
 from .enums import StateEnums
 from . import helpers
 from partenon.ERP import ERPAviso
@@ -49,6 +48,7 @@ class DayViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = DaySerializer
 
 
+
 class ServiceRequestViewSet(viewsets.ModelViewSet):
     """
     CRUD service request
@@ -57,10 +57,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
     serializer_class = ServiceRequestSerializer
     pagination_class = ServiceRequestPaginate
     filter_backends = (DjangoFilterBackend,)
-
-    def get_serializer_class(self):
-        serializers = {'list': ServiceRequestSerializerList}
-        return serializers.get(self.action, self.serializer_class)
+    filter_fields = ('ticket_id',)
 
     def get_queryset(self):
         queryset = super(ServiceRequestViewSet, self).get_queryset()

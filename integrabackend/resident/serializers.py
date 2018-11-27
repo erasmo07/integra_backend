@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Resident, Person, Property
+from .models import Resident, Person, Property, PropertyType
 
 
 class ResidentSerializer(serializers.ModelSerializer):
@@ -21,9 +21,19 @@ class PersonSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', )
 
 
+class PropertyTypeSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = PropertyType
+        fields = ('id', 'name')
+        read_only_fields = ('id', )
+
 class PropertySerializer(serializers.ModelSerializer):
+    property_type = PropertyTypeSerializer(read_only=True)
 
     class Meta:
         model = Property
-        fields = ('id', 'name')
+        fields = (
+            'id', 'name', 'property_type',
+            'address', 'street', 'number')
         read_only_fields = ('id', )
