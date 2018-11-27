@@ -5,6 +5,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.exceptions import APIException
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Service, ServiceRequest, State, Day
 from .paginates import ServiceRequestPaginate
@@ -14,6 +15,10 @@ from .serializers import (
 from .enums import StateEnums
 from . import helpers
 from partenon.ERP import ERPAviso
+
+
+class Http500(APIException):
+    status_code = 500
 
 
 def get_value_or_404(data, key_value, message):
@@ -69,7 +74,11 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         serializer.save(
             user=self.request.user,
             state=state_open)
-        helpers.create_service_request(serializer.instance)
+        try:
+            helpers.create_service_request(serializer.instance)
+        except Exception as error:
+            serializer.instance.delete()
+            raise Http500(detail=str(error))
 
     @action(detail=True, methods=['POST'], url_path='approve-quotation')
     def aprove_quotation(self, request, pk=None):
