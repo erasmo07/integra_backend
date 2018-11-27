@@ -15,6 +15,7 @@ from .serializers import (
 from .enums import StateEnums
 from . import helpers
 from partenon.ERP import ERPAviso
+from partenon.ERP.exceptions import NotHasOrder
 
 
 class Http500(APIException):
@@ -132,7 +133,12 @@ class AvisoViewSet(viewsets.ViewSet):
         state = get_value_or_404(request.data, 'state', 'Not set state')
         if state == StateEnums.aviso.requires_quote_approval:
             service_request = get_object_or_404(self.model, aviso_id=pk)
-            helpers.client_valid_quotation(service_request)
+            try:
+                helpers.client_valid_quotation(service_request)
+            except NotHasOrder as error:
+                return Response(
+                    {'error': str(error)},
+                    status.HTTP_404_NOT_FOUND)
         
         if state == StateEnums.aviso.requires_acceptance_closing:
             service_request = get_object_or_404(self.model, aviso_id=pk)
