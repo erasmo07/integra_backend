@@ -28,6 +28,7 @@ class PropertyTypeSerializer(serializers.ModelSerializer):
         fields = ('id', 'name')
         read_only_fields = ('id', )
 
+
 class PropertySerializer(serializers.ModelSerializer):
     property_type = PropertyTypeSerializer(read_only=True)
 
