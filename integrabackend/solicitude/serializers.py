@@ -94,3 +94,17 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
             **validated_data)
         return service_request
 
+
+class ServiceRequestDetailSerializer(serializers.ModelSerializer):
+    date_service_request = DateServiceRequestSerializer()
+    state = StateSerializer(read_only=True)
+    quotation = QuotationSerializer(read_only=True)
+    service = ServiceSerializer(read_only=True)
+    property = PropertySerializer()
+
+    class Meta:
+        model = ServiceRequest
+        fields = (
+            'id', 'service', 'note', 'phone', 'email', 
+            'property', 'date_service_request', 
+            'require_quotation', 'state', 'quotation')
