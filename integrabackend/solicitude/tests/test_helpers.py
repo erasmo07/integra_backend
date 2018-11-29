@@ -31,12 +31,20 @@ class TestClientValidQuotation(TestCase):
             property=property,
             date_service_request=date_service_request)
     
+    @patch('integrabackend.solicitude.helpers.notify_valid_quotation')
+    @patch('integrabackend.solicitude.helpers.make_quotation')
     @patch('integrabackend.solicitude.helpers.Status')
-    def test_generic_user(self, mock_status):
+    def test_generic_user(self, mock_status, mock_quotation, mock_notification):
         # WHEN
         helpers.client_valid_quotation(
             self.service_request,
-            ticket_class=MagicMock)
+            ticket_class=MagicMock,
+            ticket_state=MagicMock())
 
         # THEN
-        eq_(len(mail.outbox), 1)
+        mock_quotation.assert_called()
+
+        expect_status = helpers.enums.StateEnums.service_request.waith_valid_quotation
+        self.assertEqual(self.service_request.state.name, expect_status)
+
+        mock_notification.assert_called()
