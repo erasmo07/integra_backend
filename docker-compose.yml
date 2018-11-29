@@ -10,6 +10,8 @@ services:
       - 80:80
     depends_on:
       - web
+      - flower_monitor
+
   redis:
     image: redis
     command: redis-server /usr/local/etc/redis/redis.conf
@@ -40,6 +42,20 @@ services:
     depends_on:
       - redis
   
+  flower_monitor:
+    build: .
+    command: "python manage.py celery flower 0.0.0.0:5555 --logging=info"
+    links:
+      - redis
+    volumes:
+      - .:/code
+    ports:
+      - "5555:5555"
+    expose:
+      - 5555
+    depends_on:
+      - redis
+
   web:
     restart: always
     image: web
