@@ -21,8 +21,12 @@ drf_yasg==1.11.0
 flex==6.13.2
 swagger-spec-validator==2.4.1
 django-cors-headers==2.4.0
-django-filter
 
+# Celery
+celery==3.1.18
+redis==2.10.3
+django-celery==3.2.2
+flower
 
 # Developer Tools
 ipdb==0.11
