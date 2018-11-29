@@ -33,17 +33,21 @@ class TestResidentListTestCase(APITestCase):
         eq_(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_post_request_with_valid_data_succeeds(self):
-        response = self.client.post(self.url, self.data)
+        data = ResidentSerializer(
+            ResidentFactory(user=UserFactory.create())).data
+        Resident.objects.all().delete()
+        response = self.client.post(self.url, data)
         eq_(response.status_code, status.HTTP_201_CREATED)
 
         resident = Resident.objects.get(pk=response.data.get('id'))
-        eq_(resident.name, self.data.get('name'))
-        eq_(resident.email, self.data.get('email'))
-        eq_(resident.telephone, self.data.get('telephone'))
-        ok_(resident.is_active)
+        eq_(resident.name, data.get('name'))
+        eq_(resident.email, data.get('email'))
+        eq_(resident.telephone, data.get('telephone'))
 
     def test_get_request_with_pk_succeeds(self):
-        response = self.client.post(self.url, self.data)
+        data = model_to_dict(ResidentFactory(user=UserFactory()))
+        Resident.objects.all().delete()
+        response = self.client.post(self.url, data)
         eq_(response.status_code, status.HTTP_201_CREATED)
 
         resident = Resident.objects.get(pk=response.data.get('id'))

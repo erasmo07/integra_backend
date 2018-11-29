@@ -61,8 +61,7 @@ class TestServiceRequestTestCase(APITestCase):
         self.factory = ServiceRequestFactory
         self.base_name = 'servicerequest'
         self.url = reverse('%s-list' % self.base_name)
-        self.user = UserFactory.build()
-        self.client.force_authenticate(user=self.user)
+        self.client.force_authenticate(user=UserFactory.build())
     
     def test_request_post_success(self):
         property = PropertyFactory(
@@ -83,18 +82,17 @@ class TestServiceRequestTestCase(APITestCase):
         data['date_service_request'] = model_to_dict(date_service_request)
         data['date_service_request']['day'] = [day.id]
 
+        self.client.force_authenticate(user=UserFactory())
         response = self.client.post(self.url, data, format='json')
 
         eq_(response.status_code, status.HTTP_201_CREATED)
         service = response.json()
         ok_(service.get('id'))
-        ok_(service.get('creation_date'))
         eq_(service.get('service'), service_request.service.pk)
-        eq_(service.get('state'), service_request.state.pk)
         eq_(service.get('note'), service_request.note)
         eq_(service.get('phone'), service_request.phone)
         eq_(service.get('email'), service_request.email)
-        eq_(service.get('ownership'), service_request.ownership)
+        eq_(service.get('property'), str(service_request.property.pk))
     
     @patch('integrabackend.solicitude.helpers.ERPAviso')
     @patch('integrabackend.solicitude.views.helpers.HelpDeskTicket')

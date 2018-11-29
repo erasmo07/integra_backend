@@ -79,7 +79,7 @@ def make_quotation(
     upload_quotation(service_request)
 
 
-def notify_valid_work(
+def notify_valid_quotation(
     service_request,
     subjects=enums.Subjects,
     email_class=EmailMessage):
@@ -99,12 +99,28 @@ def notify_valid_work(
     email.send()
 
 
+def notify_valid_work(
+    service_request,
+    subjects=enums.Subjects,
+    email_class=EmailMessage):
+    # SEND EMAIL TO CLIENT
+    subject = subjects.build_subject( 
+        subjects.valid_work,
+        service_request.ticket_id)
+    message = 'Here is the message for valid work'
+    recipient_list = [service_request.email]
+    email = email_class(
+        subject=subject, body=message,
+        to=recipient_list, cc=[settings.DEFAULT_SOPORT_EMAIL])
+    email.send()
+
+
 def client_valid_quotation(
     service_request,
     model_state=models.State,
-    model_quotation=models.Quotation,
     states=enums.StateEnums,
-    ticket_class=HelpDeskTicket):
+    ticket_class=HelpDeskTicket,
+    ticket_state=Status):
     """
     Function to notify the client for aprove or reject
     cotization of service.
@@ -113,7 +129,8 @@ def client_valid_quotation(
 
     # UPDATE TICKET STATE WAITING APPROVAL
     ticket = ticket_class(ticket_id=service_request.ticket_id)
-    status_ticket = Status.get_state_by_name(states.ticket.waiting_approval)
+    ticket_state_name = states.ticket.waiting_approval
+    status_ticket = ticket_state.get_state_by_name(ticket_state_name)
     ticket.change_state(status_ticket)
 
     # UPDATE SERVICE REQUES STATE APROVE QUOTATION
@@ -122,7 +139,7 @@ def client_valid_quotation(
     service_request.state = state
     service_request.save()
 
-    notify_valid_work(service_request)
+    notify_valid_quotation(service_request)
 
 
 def client_valid_work(
@@ -134,15 +151,6 @@ def client_valid_work(
     Function to notify the client for aprove or reject
     work realized.
     """
-    subject = subjects.build_subject(
-        subjects.valid_work,
-        service_request.ticket_id)
-    send_mail(
-        subject=subject,
-        message='Here is the message valid quotation',
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[service_request.email])
-
     # UPDATE SERVICE REQUES STATE APROVE WORK 
     state, _ = model_state.objects.get_or_create(
         name=states.service_request.waith_valid_work)
@@ -153,6 +161,8 @@ def client_valid_work(
     ticket = HelpDeskTicket(ticket_id=service_request.ticket_id)
     status_ticket = Status.get_state_by_name(states.ticket.waith_valid_work)
     ticket.change_state(status_ticket)
+    
+    notify_valid_work(service_request) 
 
 
 def aprove_quotation(

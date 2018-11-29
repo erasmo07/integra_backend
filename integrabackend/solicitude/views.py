@@ -79,14 +79,11 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         state_open, _ = State.objects.get_or_create(
             name=StateEnums.service_request.draft)
+
         serializer.save(
             user=self.request.user,
             state=state_open)
-        try:
-            tasks.create_service_request.delay(str(serializer.instance.id))
-        except Exception as error:
-            serializer.instance.delete()
-            raise Http500(detail=str(error))
+        tasks.create_service_request.delay(str(serializer.instance.id))
 
     @action(detail=True, methods=['POST'], url_path='approve-quotation')
     def aprove_quotation(self, request, pk=None):

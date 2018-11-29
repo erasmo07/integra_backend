@@ -10,6 +10,7 @@ class TestResidentSerializer(TestCase):
 
     def setUp(self):
         self.data = model_to_dict(ResidentFactory(user=UserFactory.create()))
+        ResidentSerializer.Meta.model.objects.all().delete()
 
     def test_serializer_with_empty_data(self):
         serializer = ResidentSerializer(data={})
@@ -27,4 +28,3 @@ class TestResidentSerializer(TestCase):
         eq_(resident.name, self.data.get('name'))
         eq_(resident.email, self.data.get('email'))
         eq_(resident.telephone, self.data.get('telephone'))
-        ok_(resident.is_active)
