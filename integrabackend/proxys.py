@@ -22,10 +22,10 @@ class ClientInfoViewSet(viewsets.ViewSet):
     
     def list(self, request, format=None):
         params = request.query_params.dict()
-        body = {"I_CLIENTE": params.get('client')}
         try:
-            client_info = ERPClient._client.post(ERPClient._info_url, body)
-            return Response(client_info) 
+            kwargs = {'client_number': params.get('client')}
+            erp_client = ERPClient(**kwargs)
+            return Response(erp_client.info()) 
         except Exception as error:
             response = Response({'message': str(error)}) 
             response.status_code = 404
