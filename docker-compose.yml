@@ -10,6 +10,51 @@ services:
       - 80:80
     depends_on:
       - web
+      - flower_monitor
+
+  redis:
+    image: redis
+    command: redis-server /usr/local/etc/redis/redis.conf
+    volumes:
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    ports:
+      - "6379:6379"
+
+  celery_worker:
+    build: .
+    command: "python manage.py celery  worker -l info"
+    environment:
+      - DATABASE_URL=mysql://root:@172.20.10.2/integra_backend
+    links:
+      - redis
+    volumes:
+      - .:/code
+    depends_on:
+      - redis
+  
+  celery_beat:
+    build: .
+    command: "python manage.py celery beat"
+    links:
+      - redis
+    volumes:
+      - .:/code
+    depends_on:
+      - redis
+  
+  flower_monitor:
+    build: .
+    command: "python manage.py celery flower 0.0.0.0:5555 --logging=info"
+    links:
+      - redis
+    volumes:
+      - .:/code
+    ports:
+      - "5555:5555"
+    expose:
+      - 5555
+    depends_on:
+      - redis
 
   web:
     restart: always
@@ -25,6 +70,9 @@ services:
       - 8000
     environment:
       - DATABASE_URL=mysql://root:@172.30.16.124/integra_backend
+    depends_on:
+      - celery_worker
+      - celery_beat
 
 volumes:
   static_volume:

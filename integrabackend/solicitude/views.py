@@ -14,7 +14,7 @@ from .serializers import (
     ServiceRequestSerializer, ServiceRequestDetailSerializer,
     DaySerializer)
 from .enums import StateEnums
-from . import helpers
+from . import helpers, tasks
 from partenon.ERP import ERPAviso
 from partenon.ERP.exceptions import NotHasOrder
 
@@ -83,7 +83,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
             user=self.request.user,
             state=state_open)
         try:
-            helpers.create_service_request(serializer.instance)
+            tasks.create_service_request.delay(str(serializer.instance.id))
         except Exception as error:
             serializer.instance.delete()
             raise Http500(detail=str(error))

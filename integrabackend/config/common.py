@@ -23,6 +23,7 @@ class Common(Configuration):
         'django_filters',            # for filtering rest endpoints
         'drf_yasg',                  # to documents all APIs
         'corsheaders',
+        'djcelery',
 
         # Your apps
         'integrabackend.users',
@@ -212,3 +213,11 @@ class Common(Configuration):
     }
 
     CORS_ORIGIN_ALLOW_ALL = True
+
+    # CELERY STUFF
+    BROKER_URL = 'redis://redis:6379'
+    CELERY_RESULT_BACKEND = 'redis://redis:6379'
+    CELERY_ACCEPT_CONTENT = ['application/json']
+    CELERY_TASK_SERIALIZER = 'json'
+    CELERY_RESULT_SERIALIZER = 'json'
+    CELERY_TIMEZONE = 'Africa/Nairobi'
