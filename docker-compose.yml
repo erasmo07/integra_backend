@@ -54,6 +54,9 @@ services:
       - 8000
     environment:
       - DATABASE_URL=mysql://root:@172.30.16.124/integra_backend
+    depends_on:
+      - celery_worker
+      - celery_beat
 
 volumes:
   static_volume:
