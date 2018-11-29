@@ -23,6 +23,7 @@ class Common(Configuration):
         'django_filters',            # for filtering rest endpoints
         'drf_yasg',                  # to documents all APIs
         'corsheaders',
+        'djcelery',
 
         # Your apps
         'integrabackend.users',
