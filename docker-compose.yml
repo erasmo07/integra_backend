@@ -18,6 +18,18 @@ services:
     ports:
       - "6379:6379"
 
+  celery_worker:
+    build: .
+    command: "python manage.py celery  worker -l info"
+    environment:
+      - DATABASE_URL=mysql://root:@172.20.10.2/integra_backend
+    links:
+      - redis
+    volumes:
+      - .:/code
+    depends_on:
+      - redis
+  
   web:
     restart: always
     image: web
