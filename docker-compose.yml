@@ -30,6 +30,16 @@ services:
     depends_on:
       - redis
   
+  celery_beat:
+    build: .
+    command: "python manage.py celery beat"
+    links:
+      - redis
+    volumes:
+      - .:/code
+    depends_on:
+      - redis
+  
   web:
     restart: always
     image: web
