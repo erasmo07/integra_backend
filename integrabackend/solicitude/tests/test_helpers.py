@@ -14,23 +14,26 @@ from .. import helpers
 
 faker = Faker()
 
+def create_service_request():
+    property = PropertyFactory(
+        property_type=PropertyTypeFactory.create())
+    date_service_request = DateServiceRequestFactory()
+    day_type = DayTypeFactory()
+    day = DayFactory(day_type=day_type)
+    date_service_request.day.add(day)
+    return ServiceRequestFactory(
+        service=ServiceFactory.create(),
+        state=StateFactory.create(),
+        user=UserFactory.create(), 
+        property=property,
+        date_service_request=date_service_request)
+
 
 class TestClientValidQuotation(TestCase):
 
     def setUp(self):
-        property = PropertyFactory(
-            property_type=PropertyTypeFactory.create())
-        date_service_request = DateServiceRequestFactory()
-        day_type = DayTypeFactory()
-        day = DayFactory(day_type=day_type)
-        date_service_request.day.add(day)
-        self.service_request = ServiceRequestFactory(
-            service=ServiceFactory.create(),
-            state=StateFactory.create(),
-            user=UserFactory.create(), 
-            property=property,
-            date_service_request=date_service_request)
-    
+        self.service_request = create_service_request()
+        
     @patch('integrabackend.solicitude.helpers.notify_valid_quotation')
     @patch('integrabackend.solicitude.helpers.make_quotation')
     @patch('integrabackend.solicitude.helpers.Status')
@@ -48,3 +51,34 @@ class TestClientValidQuotation(TestCase):
         self.assertEqual(self.service_request.state.name, expect_status)
 
         mock_notification.assert_called()
+    
+
+class TestCreateServiceRequest(TestCase):
+
+    def setUp(self):
+        self.service_request = create_service_request()
+    
+    def test_generic_user(self):
+        # GIVEN
+        helpdesk_class = MagicMock()
+        user = MagicMock()
+        ticket = MagicMock()
+        ticket.ticket_id = 1
+        user.ticket.create.return_value = ticket
+        user.create_user.return_value = user
+        helpdesk_class.topics.objects.get_by_name.return_value = ''
+        helpdesk_class.prioritys.objects.get_by_name.return_value = ''
+        helpdesk_class.user = user
+
+        # WHEN
+        helpers.create_service_request(
+            self.service_request,
+            helpdesk_class=helpdesk_class)
+        
+        # THEN
+        self.assertEqual(self.service_request.ticket_id, 1)
+        user.create_user.assert_called()
+        user.ticket.create.assert_called()
+        helpdesk_class.topics.objects.get_by_name.assert_called()
+        helpdesk_class.prioritys.objects.get_by_name.assert_called()
+        
