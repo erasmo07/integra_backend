@@ -103,6 +103,11 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
     def approve_work(self, request, pk=None):
         helpers.approve_work(self.get_object())
         return Response({'success': 'ok'}, status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['POST'], url_path='reject-work')
+    def reject_quotation(self, request, pk=None):
+        helpers.reject_work(self.get_object())
+        return Response({'success': 'ok'}, status.HTTP_200_OK)
 
 
 class AvisoViewSet(viewsets.ViewSet):

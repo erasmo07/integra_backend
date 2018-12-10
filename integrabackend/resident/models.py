@@ -52,6 +52,10 @@ class Property(models.Model):
     street = models.CharField(max_length=64)
     number = models.CharField(max_length=5)
 
+    @property
+    def direction(self):
+        return 'Prueba'
+
 
 class Project(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
