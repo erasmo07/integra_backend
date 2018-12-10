@@ -2,7 +2,8 @@ import base64
 from django.core.files.base import ContentFile
 from django.core.mail import EmailMessage
 from django.conf import settings
-from partenon.helpdesk import HelpDeskUser, Topics, Prioritys, Status, HelpDeskTicket
+from partenon.helpdesk import (
+    HelpDeskUser, Topics, Prioritys, Status, HelpDeskTicket, HelpDesk)
 from partenon.ERP import ERPAviso
 from . import enums, models
 
@@ -27,33 +28,38 @@ def create_service_request(instance):
 def process_to_create_aviso(
     service_request,
     model_state=models.State,
-    state_names=enums.StateEnums.service_request):
+    aviso_class=ERPAviso,
+    states=enums.StateEnums.service_request):
     """
     Function to create a new aviso on service-request
     """
     if service_request.aviso_id:
         raise ServiceRequestHasAviso(
             'Esta solicitud ya tiene un aviso')
-
-    erp_aviso = ERPAviso()
-    aviso = erp_aviso.create(
+    days = [day.name
+            for day in service_request.date_service_request.day.all()]
+    days_string = ', '.join(days) 
+    checking = str(service_request.date_service_request.checking)
+    checkout = str(service_request.date_service_request.checkout)
+    hours = "Hora" + ", ".join([checking, checkout])
+    line = "".join(["-" for _ in range(40)])
+    note = f"{line} \n {days_string} \n {hours}"
+    aviso = aviso_class().create(
         service_request.sap_customer,
-        "TITULO", "NOTA",
+        service_request.name, note,
         service_request.service.name,
         service_request.email,
         service_request.service.sap_code_service,
         require_quotation=service_request.require_quotation)
     if hasattr(aviso, 'aviso'):
         state, _ = model_state.objects.get_or_create(
-            name=state_names.notice_created)
+            name=states.notice_created)
         service_request.aviso_id = aviso.aviso
         service_request.state = state
         service_request.save()
 
 
-def upload_quotation(
-    service_request,
-    aviso_class=ERPAviso):
+def upload_quotation(service_request, aviso_class=ERPAviso):
 
     # CREATE COTATTION
     erp_aviso = aviso_class(**dict(aviso=service_request.aviso_id))
@@ -129,7 +135,7 @@ def client_valid_quotation(
 
     # UPDATE TICKET STATE WAITING APPROVAL
     ticket = ticket_class(ticket_id=service_request.ticket_id)
-    ticket_state_name = states.ticket.waiting_approval
+    ticket_state_name = states.ticket.waiting_approval_quotation
     status_ticket = ticket_state.get_state_by_name(ticket_state_name)
     ticket.change_state(status_ticket)
 
@@ -159,7 +165,7 @@ def client_valid_work(
 
     # UPDATE TICKET STATE WAITING APPROVAL
     ticket = HelpDeskTicket(ticket_id=service_request.ticket_id)
-    status_ticket = Status.get_state_by_name(states.ticket.waith_valid_work)
+    status_ticket = Status.get_state_by_name(states.ticket.waiting_validate_work)
     ticket.change_state(status_ticket)
     
     notify_valid_work(service_request) 
