@@ -9,7 +9,7 @@ from django.forms.models import model_to_dict
 from django.core import mail
 from django.conf import settings
 
-from partenon.helpdesk import HelpDeskTicket
+from partenon.helpdesk import HelpDeskTicket, HelpDesk
 from partenon.ERP import ERPAviso
 
 from .factories import (
@@ -443,3 +443,39 @@ class TestServiceRequestTestCase(APITestCase):
         # Validate ServiceRequest
         eq_(service_object.state.name,
             StateEnums.service_request.reject_work)
+    
+    def test_create_service_request_for_faveo(self):
+        data = self.service_request_data() 
+
+        user = UserFactory()
+        helpdesk_user = HelpDesk.user.create_user(
+            user.email, user.first_name, user.last_name)
+
+        priority = HelpDesk.prioritys.objects.get_by_name('Normal')
+        topic = HelpDesk.topics.objects.get_by_name(ServiceFactory().name)
+        ticket = helpdesk_user.ticket.create(
+        "Solicitud: Test de integracion",
+        data.get('note'), priority, topic)
+
+        data['user'] = user.id
+        data['ticket_id'] = ticket.ticket_id
+
+        # URL
+        url_detail = reverse("%s-list" % self.base_name)
+        url_faveo = url_detail + 'faveo/' 
+        
+        # Create service request
+        self.client.force_authenticate(user=UserFactory())
+        response = self.client.post(url_faveo, data, format='json')
+        eq_(response.status_code, status.HTTP_201_CREATED) 
+        service = response.json()
+
+        # Validation
+        ok_(service.get('id'))
+        eq_(service.get('note'), data.get('note'))
+        eq_(service.get('phone'), data.get('phone'))
+        eq_(service.get('email'), data.get('email'))
+        eq_(service.get('property'), data.get('property'))
+        eq_(service.get('ticket_id'), ticket.ticket_id)
+        eq_(service.get('service'), data.get('service'))
+        eq_(service.get('user'), str(user.id))

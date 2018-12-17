@@ -108,3 +108,10 @@ class ServiceRequestDetailSerializer(serializers.ModelSerializer):
             'property', 'date_service_request', 
             'require_quotation', 'state', 'quotation',
             'ticket_id', 'creation_date')
+
+
+class ServiceRequestFaveo(ServiceRequestSerializer):
+
+    class Meta:
+        model = ServiceRequest
+        fields = ServiceRequestSerializer.Meta.fields + ('ticket_id', 'user')
