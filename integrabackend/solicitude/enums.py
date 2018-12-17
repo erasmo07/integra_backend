@@ -18,18 +18,22 @@ class StateSolicitudeServiceEnums:
 
 
 class AvisoEnums:
-    aprove_quotation = 'coap'
-    reject_quotation = 'core'
-    requires_quote_approval = 'raco'
-    requires_acceptance_closing = 'race'
-    accepted_work = 'acep'
+    aprove_quotation = 'COAP'
+    reject_quotation = 'CORE'
+    requires_quote_approval = 'RACO'
+    requires_acceptance_closing = 'RACE'
+    accepted_work = 'ACEP'
+    reject_work = 'PREV'
+    initial_status = 'RPSC'
 
 
 class TicketStatusenums:
     aprove_quotation = 'Cotiz aprobada cli'
+    reject_quotation = 'Cotiz rechazada cli'
     reject_work = 'Trabajo rechaz cli'
     waiting_approval_quotation = 'Pend aprobar cotiz'
     waiting_validate_work = 'Pend aprobar trab'
+    closed = "Closed"
 
 
 class QuotationEnums:
@@ -48,10 +52,11 @@ class StateEnums:
 class Subjects:
     valid_quotation = "Aprovar o Rechazar cotizacion"
     valid_work = "Validar Trabajo realizado"
+    reject_work = 'El cliente rechazo el trabajo'
 
     @staticmethod
     def build_subject(text, ticket_id):
-        return "{0} [#N{1}]".format(text, ticket_id)
+        return "{} [#{}]".format(text, ticket_id)
 
 
 class Message:

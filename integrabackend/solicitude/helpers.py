@@ -48,11 +48,11 @@ def process_to_create_aviso(
     checking = str(service_request.date_service_request.checking)
     checkout = str(service_request.date_service_request.checkout)
     hours = "Hora" + ", ".join([checking, checkout])
-    line = "".join(["-" for _ in range(40)])
+    line = "".join(["-" for _ in range(132)])
     note = f"{line} \n {days_string} \n {hours}"
     aviso = aviso_class().create(
         service_request.sap_customer,
-        service_request.name, note,
+        service_request.service.name, note,
         service_request.service.name,
         service_request.email,
         service_request.service.sap_code_service,
@@ -96,12 +96,16 @@ def notify_valid_quotation(
     subjects=enums.Subjects,
     email_class=EmailMessage):
     # SEND EMAIL TO CLIENT
-    ticket = HelpDeskTicket(ticket_id=service_request.ticket_id)
+    ticket = HelpDeskTicket.get_specific_ticket(
+        service_request.ticket_id)
+
     subject = subjects.build_subject( 
         subjects.valid_quotation,
-        service_request.ticket_id)
+        ticket.ticket_number)
+
     message = 'Here is the message for valid work'
-    recipient_list = [service_request.email]
+    recipient_list = [service_request.user.email]
+
     email = email_class(
         subject=subject, body=message,
         to=recipient_list, cc=[settings.DEFAULT_SOPORT_EMAIL])
@@ -113,15 +117,16 @@ def notify_valid_quotation(
 
 
 def notify_valid_work(
-    service_request,
-    subjects=enums.Subjects,
-    email_class=EmailMessage):
-    # SEND EMAIL TO CLIENT
-    subject = subjects.build_subject( 
-        subjects.valid_work,
+    service_request, subjects=enums.Subjects, email_class=EmailMessage):
+
+    ticket = HelpDeskTicket.get_specific_ticket(
         service_request.ticket_id)
+
+    subject = subjects.build_subject(subjects.valid_work, ticket.ticket_number)
     message = 'Here is the message for valid work'
-    recipient_list = [service_request.email]
+    recipient_list = [service_request.user.email]
+
+    # SEND EMAIL TO CLIENT
     email = email_class(
         subject=subject, body=message,
         to=recipient_list, cc=[settings.DEFAULT_SOPORT_EMAIL])
@@ -235,8 +240,9 @@ def reject_quotation(
     states=enums.StateEnums):
     """ Process for reject quotation """
     # CLOSE TICKET
+    status = Status.get_state_by_name(states.ticket.reject_quotation)
     ticket = HelpDeskTicket(ticket_id=service_request.ticket_id)
-    ticket.close()
+    ticket.change_state(status)
 
     # UPDATE AVISO TO REJECT STATE
     ERPAviso.update(
@@ -287,10 +293,14 @@ def notify_responsable_rejection(
     aviso = erp_class(aviso=service_request.aviso_id) 
     if not aviso.responsable:
         return
-
-    subject = subjects.build_subject( 
-        subjects.valid_work,
+    
+    ticket = HelpDeskTicket.get_specific_ticket(
         service_request.ticket_id)
+
+    subject = subjects.build_subject(
+        subjects.reject_work, ticket.ticket_number)
+
+    aviso._sap_customer = service_request.sap_customer
     message = messages.build_reject_work(service_request, aviso)
     recipient_list = [aviso.responsable.correo]
     email = email_class(
@@ -298,23 +308,22 @@ def notify_responsable_rejection(
         cc=[settings.DEFAULT_SOPORT_EMAIL])
     email.send()
     
-    whatsap_client = whatsap_class() 
-    whatsap_client.send_message(18292044821, message)
+    # whatsap_client = whatsap_class() 
+    # whatsap_client.send_message(18292044821, message)
 
 
 def reject_work_on_erp(
     service_request,
-    states=enums.StateEnums,
+    states=enums.StateEnums.aviso,
     erp_class=ERPAviso):
 
     if not service_request.aviso_id:
         return
 
     # UPDATE AVISO TO REJECT STATE
-    erp_class.update(
-        service_request.aviso_id,
-        states.aviso.reject_work)
+    # erp_class.update(service_request.aviso_id, states.reject_work)
     
+
 def service_request_on_reject_work(
     service_request,
     model_state=models.State,

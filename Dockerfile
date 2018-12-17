@@ -6,11 +6,16 @@ ENV FAVEO_USERNAME=admin
 ENV FAVEO_PASSWORD=Nomelose123
 ENV FAVEO_BASE_URL=http://faveo.grupopuntacana.com:81/
 
-ENV FAVEO_DB_BASE_URL=http://172.30.16.124:5002/
+ENV FAVEO_DB_BASE_URL=http://87.4.82.38:5002/
 
 ENV SAP_USERNAME=dchot
 ENV SAP_PASSWORD=1234567
 ENV SAP_BASE_URL=http://athena.grupopuntacana.com:8000/
+ENV SAP_CLIENT=300
+
+ENV WABOXAPP_UID=18297613965
+ENV WABOXAPP_BASE_URL=https://www.waboxapp.com/
+ENV WABOXAPP_TOKEN=3f21d120491cb380c3d2aeb632a1d2885b8e7f625f6e4
 
 # Allows docker to cache installed dependencies between builds
 COPY ./requirements.txt requirements.txt
@@ -25,5 +30,6 @@ EXPOSE 8000
 
 # Migrates the database, uploads staticfiles, and runs the production server
 CMD ./manage.py migrate && \
+    ./manage.py test && \
     ./manage.py collectstatic --noinput && \
     newrelic-admin run-program gunicorn --bind 0.0.0.0:8000 --access-logfile - integrabackend.wsgi:application
