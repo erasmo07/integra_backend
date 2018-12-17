@@ -12,7 +12,7 @@ from .paginates import ServiceRequestPaginate
 from .serializers import (
     ServiceSerializer, StateSerializer,
     ServiceRequestSerializer, ServiceRequestDetailSerializer,
-    DaySerializer)
+    DaySerializer, ServiceRequestFaveo)
 from .enums import StateEnums
 from . import helpers, tasks
 from partenon.ERP import ERPAviso
@@ -85,6 +85,11 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
             user=self.request.user,
             state=state_open)
         tasks.create_service_request.delay(str(serializer.instance.id))
+    
+    def perform_create_faveo(self, serializer):
+        state_open, _ = State.objects.get_or_create(
+            name=StateEnums.service_request.draft)
+        serializer.save(state=state_open)
 
     @action(detail=True, methods=['POST'], url_path='approve-quotation')
     def aprove_quotation(self, request, pk=None):
@@ -109,6 +114,14 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
     def reject_work(self, request, pk=None):
         helpers.reject_work(self.get_object())
         return Response({'success': 'ok'}, status.HTTP_200_OK)
+    
+    @action(detail=False, methods=["POST"], url_path='faveo')
+    def create_faveo(self, request):
+        serializer = ServiceRequestFaveo(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create_faveo(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 
 class AvisoViewSet(viewsets.ViewSet):
