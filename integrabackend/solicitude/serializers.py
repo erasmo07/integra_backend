@@ -57,8 +57,7 @@ class DateServiceRequestSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = DateServiceRequested
-        fields = ('id', 'day', 'checking', 'checkout',)
-        read_only_fields = ('id', )
+        fields = ('day', 'checking', 'checkout',)
 
 
 class QuotationSerializer(serializers.ModelSerializer):
@@ -79,7 +78,7 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
         model = ServiceRequest
         fields = (
             'id', 'service', 'note', 'phone', 'email', 
-            'property', 'date_service_request', 
+            'property', 'date_service_request', 'sap_customer', 
             'require_quotation', 'state', 'quotation')
 
     def create(self, validated_data):
@@ -100,11 +99,12 @@ class ServiceRequestDetailSerializer(serializers.ModelSerializer):
     state = StateSerializer(read_only=True)
     quotation = QuotationSerializer(read_only=True)
     service = ServiceSerializer(read_only=True)
-    property = PropertySerializer()
+    property = PropertySerializer(read_only=True)
 
     class Meta:
         model = ServiceRequest
         fields = (
             'id', 'service', 'note', 'phone', 'email', 
             'property', 'date_service_request', 
-            'require_quotation', 'state', 'quotation')
+            'require_quotation', 'state', 'quotation',
+            'ticket_id', 'creation_date')

@@ -14,6 +14,7 @@ class User(AbstractUser):
         primary_key=True,
         default=uuid.uuid4,
         editable=False)
+    email =models.EmailField(unique=True)
 
     def __str__(self):
         return self.username

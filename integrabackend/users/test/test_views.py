@@ -38,7 +38,10 @@ class TestUserListTestCase(APITestCase):
         response = self.client.post(self.url, self.user_data)
         eq_(response.status_code, status.HTTP_201_CREATED)
 
-        params = {'username': response.data.get('username')}
+        params = {
+            'username': response.data.get('username'),
+            'email': response.data.get('email')
+        }
         response = self.client.get(self.url, params)
         eq_(response.status_code, status.HTTP_200_OK)
 

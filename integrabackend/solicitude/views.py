@@ -64,6 +64,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
     serializer_class = ServiceRequestSerializer
     pagination_class = ServiceRequestPaginate
     filter_backends = (DjangoFilterBackend,)
+    ordering = ('-creation_date',)
     filter_fields = ('ticket_id',)
 
     def get_queryset(self):
@@ -105,7 +106,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         return Response({'success': 'ok'}, status.HTTP_200_OK)
     
     @action(detail=True, methods=['POST'], url_path='reject-work')
-    def reject_quotation(self, request, pk=None):
+    def reject_work(self, request, pk=None):
         helpers.reject_work(self.get_object())
         return Response({'success': 'ok'}, status.HTTP_200_OK)
 
