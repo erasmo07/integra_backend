@@ -34,4 +34,4 @@ router.register(r'day', DayViewSet)
 router.register(r'aviso', AvisoViewSet, base_name='create_aviso')
 
 # PROXYS
-router.register(r'client-info', proxys.ClientInfoViewSet, base_name='updatetime')
+router.register(r'client-info', proxys.ClientInfoViewSet, base_name='client_info')

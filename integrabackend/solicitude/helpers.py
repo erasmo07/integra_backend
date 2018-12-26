@@ -291,7 +291,7 @@ def notify_responsable_rejection(
 
     # SEND EMAIL TO CLIENT
     aviso = erp_class(aviso=service_request.aviso_id) 
-    if not aviso.responsable:
+    if not hasattr(aviso.responsable, 'codigo'):
         return
     
     ticket = HelpDeskTicket.get_specific_ticket(
