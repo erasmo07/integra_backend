@@ -13,13 +13,12 @@ ENV SAP_PASSWORD=1234567
 ENV SAP_BASE_URL=http://athena.grupopuntacana.com:8000/
 ENV SAP_CLIENT=300
 
-ENV WABOXAPP_UID=18297613965
-ENV WABOXAPP_BASE_URL=https://www.waboxapp.com/
-ENV WABOXAPP_TOKEN=3f21d120491cb380c3d2aeb632a1d2885b8e7f625f6e4
+ENV HERMES_UID=18297613965
+ENV HERMES_BASE_URL=https://hermes:8000/
+ENV HERMES_TOKEN=3f21d120491cb380c3d2aeb632a1d2885b8e7f625f6e4
 
 # Allows docker to cache installed dependencies between builds
 COPY ./requirements.txt requirements.txt
-RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
 # Adds our application code to the image
