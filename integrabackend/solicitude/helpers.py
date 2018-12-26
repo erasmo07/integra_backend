@@ -5,7 +5,7 @@ from django.conf import settings
 from partenon.helpdesk import (
     HelpDeskUser, Topics, Prioritys, Status, HelpDeskTicket, HelpDesk)
 from partenon.ERP import ERPAviso
-from oraculo.gods import waboxapp
+from oraculo.gods import hermes 
 from . import enums, models
 
 
@@ -287,7 +287,7 @@ def notify_responsable_rejection(
     messages=enums.Message,
     email_class=EmailMessage,
     erp_class=ERPAviso,
-    whatsap_class=waboxapp.APIClient):
+    hermes_class=hermes.APIClient):
 
     # SEND EMAIL TO CLIENT
     aviso = erp_class(aviso=service_request.aviso_id) 
@@ -308,7 +308,7 @@ def notify_responsable_rejection(
         cc=[settings.DEFAULT_SOPORT_EMAIL])
     email.send()
     
-    # whatsap_client = whatsap_class() 
+    # whatsap_client = hermes_class() 
     # whatsap_client.send_message(18292044821, message)
 
 
