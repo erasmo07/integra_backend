@@ -42,6 +42,9 @@ class Person(models.Model):
 class PropertyType(models.Model):
     name = models.CharField(max_length=60)
 
+    def __str__(self):
+        return self.name
+
 
 class Property(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -54,7 +57,7 @@ class Property(models.Model):
 
     @property
     def direction(self):
-        return 'Prueba'
+        return f'{self.address} {self.street}, {self.property_type} {self.number}'
 
 
 class Project(models.Model):
