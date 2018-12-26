@@ -8,6 +8,7 @@ from django.urls import reverse
 from django.forms.models import model_to_dict
 from django.core import mail
 from django.conf import settings
+from factory import Sequence
 
 from partenon.helpdesk import HelpDeskTicket, HelpDesk
 from partenon.ERP import ERPAviso
@@ -18,7 +19,8 @@ from .factories import (
     QuotationFactory)
 from integrabackend.solicitude.enums import Subjects, StateEnums
 from ...users.test.factories import UserFactory
-from integrabackend.resident.test.factories import PropertyFactory, PropertyTypeFactory
+from integrabackend.resident.test.factories import (
+    PropertyFactory, PropertyTypeFactory, ResidentFactory)
 
 
 class TestServiceRequestTestCase(APITestCase):
@@ -445,26 +447,101 @@ class TestServiceRequestTestCase(APITestCase):
             StateEnums.service_request.reject_work)
     
     def test_create_service_request_for_faveo(self):
-        data = self.service_request_data() 
+        # Login
+        self.client.force_authenticate(user=UserFactory())
 
+        # Create user
         user = UserFactory()
+        resident = ResidentFactory(user=user, sap_customer=4259)
+        property_ = PropertyFactory(property_type=PropertyTypeFactory())
+        resident.properties.add(property_)
+
+        # Create user on Faveo
         helpdesk_user = HelpDesk.user.create_user(
             user.email, user.first_name, user.last_name)
-
-        priority = HelpDesk.prioritys.objects.get_by_name('Normal')
-        topic = HelpDesk.topics.objects.get_by_name(ServiceFactory().name)
-        ticket = helpdesk_user.ticket.create(
-        "Solicitud: Test de integracion",
-        data.get('note'), priority, topic)
-
-        data['user'] = user.id
-        data['ticket_id'] = ticket.ticket_id
-
-        # URL
-        url_detail = reverse("%s-list" % self.base_name)
-        url_faveo = url_detail + 'faveo/' 
         
+        # Create mutiple services
+        for i in range(10):
+            ServiceFactory(name=f'TEST {i}')
+        else:
+            last_service = ServiceFactory()
+
+        # Search service by name
+        service_url = reverse(
+            'service-detail', kwargs={'pk': last_service.id})
+        service_response = self.client.get(service_url)
+        eq_(service_response.status_code, status.HTTP_200_OK)
+        ok_('id' in service_response.json().keys())
+        ok_('name' in service_response.json().keys())
+        eq_(service_response.json().get('name'), last_service.name)
+
+        # Create ticket on Faveo
+        priority = HelpDesk.prioritys.objects.get_by_name('Normal')
+        topic = HelpDesk.topics.objects.get_by_name(
+            service_response.json().get('name'))
+        ticket = helpdesk_user.ticket.create(
+        "Solicitud: Test de integracion", 'Prueba de Faveo a Integra',
+        priority, topic)
+        ok_(hasattr(ticket, 'ticket_id'))
+
+        # Search User by email
+        user_url = reverse('user-list')
+        user_response = self.client.get(user_url, data={"email": user.email})
+        eq_(user_response.status_code, status.HTTP_200_OK)
+        eq_(len(user_response.json()), 1)
+        eq_(user_response.json()[0].get('email'), user.email)
+        eq_(user_response.json()[0].get('resident'), user.resident.id)
+
+        # Search Resident by ID
+        resident_pk = user_response.json()[0].get('resident')
+        url_resident = reverse(
+            'resident-detail', kwargs={'pk': resident_pk})
+        response_resident = self.client.get(url_resident)
+        eq_(response_resident.status_code, status.HTTP_200_OK)
+        ok_('properties' in response_resident.json().keys())
+        for property_ in response_resident.json().get('properties'):
+            ok_('id' in property_.keys())
+            ok_('direction' in property_.keys())
+
+        # Search client info
+        client_info_url = reverse("client_info-list")
+        client_info_sap_customer = response_resident.json().get('sap_customer')
+        client_info_response = self.client.get(
+            client_info_url, data={'client': client_info_sap_customer})
+        eq_(client_info_response.status_code, status.HTTP_200_OK)
+        ok_('telefono' in client_info_response.json().keys())
+        ok_('e_mail' in client_info_response.json().keys())
+
+        # Search Day service
+        day_type = DayTypeFactory()
+        day = DayFactory(day_type=day_type)
+        day_url = reverse('day-detail', kwargs={'pk': day.id})
+        day_response = self.client.get(day_url)
+        eq_(day_response.status_code, status.HTTP_200_OK)
+        ok_('id' in day_response.json().keys())
+
+        # Build data for create Service Request
+        day = list()
+        day.append(day_response.json().get('id'))
+        data = dict(
+            user=user_response.json()[0].get('id'),
+            service=service_response.json().get('id'),
+            note='Prueba de Faveo a Integra',
+            phone=client_info_response.json().get('telefono'),
+            email=client_info_response.json().get('e_mail'),
+            property=response_resident.json().get('properties')[0].get('id'),
+            date_service_request=dict(
+                day=day,
+                checking='12:00:00', checkout='12:00:00',
+            ),
+            sap_customer=response_resident.json().get('sap_customer'),
+            require_quotation=False,
+            ticket_id=ticket.ticket_id
+        )
+
+
         # Create service request
+        url_faveo = reverse("%s-list" % self.base_name) + 'faveo/' 
         self.client.force_authenticate(user=UserFactory())
         response = self.client.post(url_faveo, data, format='json')
         eq_(response.status_code, status.HTTP_201_CREATED) 

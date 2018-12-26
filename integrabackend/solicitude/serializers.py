@@ -107,7 +107,8 @@ class ServiceRequestDetailSerializer(serializers.ModelSerializer):
             'id', 'service', 'note', 'phone', 'email', 
             'property', 'date_service_request', 
             'require_quotation', 'state', 'quotation',
-            'ticket_id', 'creation_date')
+            'ticket_id', 'creation_date', 'sap_customer',
+            'aviso_id')
 
 
 class ServiceRequestFaveo(ServiceRequestSerializer):
