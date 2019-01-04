@@ -48,6 +48,7 @@ class PropertyType(models.Model):
 
 class Property(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    id_sap = models.CharField(max_length=10)
     name = models.CharField(max_length=64)
     property_type = models.ForeignKey(
         'resident.PropertyType', on_delete=models.PROTECT)
