@@ -1,3 +1,4 @@
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.response import Response
 from rest_framework import viewsets, mixins, status
 from rest_framework.decorators import action
@@ -14,6 +15,8 @@ class ResidentCreateViewSet(viewsets.ModelViewSet):
     """
     queryset = Resident.objects.all()
     serializer_class = ResidentSerializer
+    filter_backends = (DjangoFilterBackend,)
+    filter_fields = ('email',)
     
     @action(detail=True, methods=['GET', 'POST'], url_path='property')
     def property(self, request, pk=None):
@@ -24,10 +27,9 @@ class ResidentCreateViewSet(viewsets.ModelViewSet):
             return Response(serializer.data)
         
         if request._request.method == 'POST':
-            serializer = PropertySerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            resident.properties.add(serializer.instance)
+            properties_pks = request.data.getlist('properties')
+            properties = Property.objects.filter(pk__in=properties_pks)
+            resident.properties.add(*properties)
             serializer = PropertySerializer(resident.properties.all(), many=True)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         

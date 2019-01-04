@@ -14,7 +14,9 @@ class PropertySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Property
-        fields = "__all__"
+        fields = (
+            "id", "id_sap", "name", "address",
+            "property_type", "street", "number", 'direction')
         read_only_fields = ('id', 'direction')
 
 
