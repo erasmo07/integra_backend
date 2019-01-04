@@ -24,10 +24,9 @@ class ResidentCreateViewSet(viewsets.ModelViewSet):
             return Response(serializer.data)
         
         if request._request.method == 'POST':
-            serializer = PropertySerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            resident.properties.add(serializer.instance)
+            properties_pks = request.data.getlist('properties')
+            properties = Property.objects.filter(pk__in=properties_pks)
+            resident.properties.add(*properties)
             serializer = PropertySerializer(resident.properties.all(), many=True)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         

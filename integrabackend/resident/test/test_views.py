@@ -85,7 +85,7 @@ class TestResidentListTestCase(APITestCase):
         eq_(len(response.json().get('properties')), 0)
         
         property_object = PropertyFactory(property_type=PropertyTypeFactory()) 
-        property_data = model_to_dict(property_object)
+        property_data = {'properties': [str(property_object.id)]} 
 
         resident = Resident.objects.get(pk=response.data.get('id'))
         url = reverse('%s-detail' % self.base_name, kwargs={'pk': resident.id})
@@ -94,11 +94,11 @@ class TestResidentListTestCase(APITestCase):
 
         eq_(response.status_code, status.HTTP_201_CREATED)
         for _property in response.json():
-            eq_(property_data.get('id_sap'), _property.get('id_sap'))
-            eq_(property_data.get('name'), _property.get('name'))
-            eq_(property_data.get('address'), _property.get('address'))
-            eq_(property_data.get('street'), _property.get('street'))
-            eq_(property_data.get('number'), _property.get('number'))
+            eq_(property_object.id_sap, _property.get('id_sap'))
+            eq_(property_object.name, _property.get('name'))
+            eq_(property_object.address, _property.get('address'))
+            eq_(property_object.street, _property.get('street'))
+            eq_(property_object.number, _property.get('number'))
         
         url = reverse('%s-detail' % self.base_name, kwargs={'pk': resident.id})
         resident = self.client.get(url)
