@@ -1,3 +1,4 @@
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.response import Response
 from rest_framework import viewsets, mixins, status
 from rest_framework.decorators import action
@@ -14,6 +15,8 @@ class ResidentCreateViewSet(viewsets.ModelViewSet):
     """
     queryset = Resident.objects.all()
     serializer_class = ResidentSerializer
+    filter_backends = (DjangoFilterBackend,)
+    filter_fields = ('email',)
     
     @action(detail=True, methods=['GET', 'POST'], url_path='property')
     def property(self, request, pk=None):
