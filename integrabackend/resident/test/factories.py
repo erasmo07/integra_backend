@@ -48,12 +48,12 @@ class PropertyTypeFactory(factory.django.DjangoModelFactory):
 
 
 class PropertyFactory(factory.django.DjangoModelFactory):
+    id_sap = "".join([str(random.randint(1, 9)) for _ in range(10)]) 
     name = factory.Sequence(lambda n: f'testuser{n}')
     address = factory.Sequence(lambda n: f'testuser{n}')
     street = factory.Sequence(lambda n: f'testuser{n}')
-    number = factory.Sequence(lambda n: f'testuser{n}')
+    number = "".join([str(random.randint(1, 9)) for _ in range(5)]) 
 
     class Meta:
         model = 'resident.Property'
     
-
