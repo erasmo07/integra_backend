@@ -56,6 +56,54 @@ class TestResidentListTestCase(APITestCase):
         eq_(resident.name, response.json().get('name'))
         eq_(resident.email, response.json().get('email'))
         eq_(resident.telephone, response.json().get('telephone'))
+    
+    def test_get_request_return_properties(self):
+        data = model_to_dict(ResidentFactory(user=UserFactory()))
+        Resident.objects.all().delete()
+        response = self.client.post(self.url, data)
+        eq_(response.status_code, status.HTTP_201_CREATED)
+
+        resident = Resident.objects.get(pk=response.data.get('id'))
+        eq_(resident.name, data.get('name'))
+        eq_(resident.email, data.get('email'))
+        eq_(resident.telephone, data.get('telephone'))
+
+        _property = PropertyFactory(property_type=PropertyTypeFactory.create())
+        resident.properties.add(_property)
+        
+        url = reverse('%s-detail' % self.base_name, kwargs={'pk': resident.id})
+        response = self.client.get(url)
+
+        for _property in response.json().get('properties'):
+            ok_(resident.properties.get(pk=_property.get('id')))
+    
+    def test_post_request_add_property(self):
+        data = model_to_dict(ResidentFactory(user=UserFactory()))
+        Resident.objects.all().delete()
+        response = self.client.post(self.url, data)
+        eq_(response.status_code, status.HTTP_201_CREATED)
+        eq_(len(response.json().get('properties')), 0)
+        
+        property_object = PropertyFactory(property_type=PropertyTypeFactory()) 
+        property_data = model_to_dict(property_object)
+
+        resident = Resident.objects.get(pk=response.data.get('id'))
+        url = reverse('%s-detail' % self.base_name, kwargs={'pk': resident.id})
+        url_property = url + 'property/'
+        response = self.client.post(url_property, property_data)
+
+        eq_(response.status_code, status.HTTP_201_CREATED)
+        for _property in response.json():
+            eq_(property_data.get('id_sap'), _property.get('id_sap'))
+            eq_(property_data.get('name'), _property.get('name'))
+            eq_(property_data.get('address'), _property.get('address'))
+            eq_(property_data.get('street'), _property.get('street'))
+            eq_(property_data.get('number'), _property.get('number'))
+        
+        url = reverse('%s-detail' % self.base_name, kwargs={'pk': resident.id})
+        resident = self.client.get(url)
+        eq_(len(resident.json().get('properties')), 1)
+
 
 
 class TestPersonTestCase(APITestCase):

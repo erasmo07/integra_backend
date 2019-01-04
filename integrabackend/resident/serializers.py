@@ -14,8 +14,8 @@ class PropertySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Property
-        fields = ('id', 'direction')
-        read_only_fields = ('id', )
+        fields = "__all__"
+        read_only_fields = ('id', 'direction')
 
 
 class ResidentSerializer(serializers.ModelSerializer):
