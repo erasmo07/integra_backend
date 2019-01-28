@@ -7,6 +7,10 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 class Common(Configuration):
+    ROOT_PROJECT = os.path.dirname(
+        os.path.dirname(
+            os.path.dirname(
+                os.path.abspath(__file__))))
 
     INSTALLED_APPS = (
         'django.contrib.admin',
@@ -24,6 +28,7 @@ class Common(Configuration):
         'drf_yasg',                  # to documents all APIs
         'corsheaders',
         'djcelery',
+        'django_extensions',
 
         # Your apps
         'integrabackend.users',
