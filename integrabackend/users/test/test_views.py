@@ -7,6 +7,7 @@ from rest_framework import status
 from faker import Faker
 from ..models import User
 from .factories import UserFactory
+from ...resident.test.factories import ResidentFactory 
 
 fake = Faker()
 
@@ -68,3 +69,50 @@ class TestUserDetailTestCase(APITestCase):
 
         user = User.objects.get(pk=self.user.id)
         eq_(user.first_name, new_first_name)
+
+
+class TestUserTokenTestCase(APITestCase):
+    """
+    Test /api-token-auth
+    """
+
+    def setUp(self):
+        self.url = reverse('token')
+
+    def test_post_request_not_return_resident(self):
+        user = UserFactory()
+        user.set_password('1234567')
+        user.save()
+
+        data = dict(username=user.username, password='1234567')
+        response = self.client.post(self.url, data)
+        
+        eq_(response.status_code, status.HTTP_200_OK)
+        ok_('token' in response.json().keys())
+        ok_('resident' not in response.json().keys())
+
+    def test_post_request_not_return_resident(self):
+        user = UserFactory()
+        user.set_password('1234567')
+        user.save()
+
+        data = dict(username=user.username, password='1234567')
+        response = self.client.post(self.url, data)
+        
+        eq_(response.status_code, status.HTTP_200_OK)
+        ok_('token' in response.json().keys())
+        ok_('resident' not in response.json().keys())
+
+    def test_post_request_return_resident(self):
+        user = UserFactory()
+        user.set_password('1234567')
+        user.save()
+
+        ResidentFactory(user=user)
+
+        data = dict(username=user.username, password='1234567')
+        response = self.client.post(self.url, data)
+        
+        eq_(response.status_code, status.HTTP_200_OK)
+        ok_('token' in response.json().keys())
+        ok_('resident' in response.json().keys())
