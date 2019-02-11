@@ -12,6 +12,7 @@ class Resident(models.Model):
     name = models.CharField(max_length=120)
     email = models.EmailField()
     identification = models.CharField(max_length=20)
+    id_sap = models.CharField(max_length=50)
     is_active = models.BooleanField(default=False)
     telephone = models.CharField(max_length=12, null=True, blank=True)
     sap_customer = models.CharField(max_length=10)
