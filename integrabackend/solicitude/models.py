@@ -3,7 +3,7 @@ import calendar
 import datetime as dt
 from django.conf import settings
 from django.db import models
-from partenon.helpdesk import Topics
+from partenon.helpdesk import Topics, HelpDeskTicket
 
 day_name = list(calendar.day_name)
 CHOICE_DAY = [list(a) for a in zip(day_name, day_name)]
@@ -76,6 +76,14 @@ class ServiceRequest(models.Model):
     date_service_request = models.OneToOneField(
         'solicitude.DateServiceRequested',
         on_delete=models.CASCADE)
+    
+    @property
+    def ticket_number(self):
+        try:
+            ticket = HelpDeskTicket.get_specific_ticket(self.ticket_id)
+            return ticket.ticket_number
+        except Exception:
+            return ''
 
 
 class Quotation(models.Model):

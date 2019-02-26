@@ -78,9 +78,10 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
         model = ServiceRequest
         fields = (
             'id', 'service', 'note', 'phone', 'email', 
-            'property', 'date_service_request', 'sap_customer', 
-            'require_quotation', 'state', 'quotation', 'ticket_id')
-        read_only_fields = ('ticket_id', )
+            '_property', 'date_service_request', 'sap_customer', 
+            'require_quotation', 'state', 'quotation', 'ticket_id',
+            'ticket_number')
+        read_only_fields = ('ticket_id', 'ticket_number')
 
     def create(self, validated_data):
         date_service_request = validated_data.pop('date_service_request')
@@ -108,8 +109,9 @@ class ServiceRequestDetailSerializer(serializers.ModelSerializer):
             'id', 'service', 'note', 'phone', 'email', 
             'property', 'date_service_request', 
             'require_quotation', 'state', 'quotation',
-            'ticket_id', 'creation_date', 'sap_customer',
-            'aviso_id')
+            'ticket_id', 'ticket_number', 'creation_date',
+            'sap_customer', 'aviso_id')
+        read_only_fields = ('ticket_id', 'ticket_number')
 
 
 class ServiceRequestFaveo(ServiceRequestSerializer):
@@ -117,3 +119,4 @@ class ServiceRequestFaveo(ServiceRequestSerializer):
     class Meta:
         model = ServiceRequest
         fields = ServiceRequestSerializer.Meta.fields + ('ticket_id', 'user')
+

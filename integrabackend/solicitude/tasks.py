@@ -13,5 +13,6 @@ def create_service_request(service_request_id):
     """sends an email when feedback form is filled successfully"""
     logger.info("Buscando la solicitu de servicio #%s" % service_request_id)
     service_request = models.ServiceRequest.objects.get(pk=service_request_id)
+
     logger.info("Creando solicitud de servicio en sistemas externos")
     helpers.create_service_request(service_request)
