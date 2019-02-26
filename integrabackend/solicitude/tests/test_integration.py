@@ -39,7 +39,7 @@ class TestServiceRequestTestCase(APITestCase):
         self.url_aviso = reverse('create_aviso-list')
     
     def service_request_data(self):
-        property = PropertyFactory(
+        _property = PropertyFactory(
             property_type=PropertyTypeFactory.create())
         date_service_request = DateServiceRequestFactory()
         day_type = DayTypeFactory()
@@ -49,12 +49,12 @@ class TestServiceRequestTestCase(APITestCase):
             service=ServiceFactory.create(),
             state=StateFactory.create(),
             user=UserFactory.create(), 
-            property=property,
+            _property=_property,
             sap_customer=4259,
             date_service_request=date_service_request)
         data = model_to_dict(service_request)
         data.pop('user')
-        data['property'] = str(property.id)
+        data['_property'] = str(_property.id)
         data['date_service_request'] = model_to_dict(date_service_request)
         data['date_service_request']['day'] = [day.id]
         service_request.delete()
@@ -120,7 +120,8 @@ class TestServiceRequestTestCase(APITestCase):
         ok_(service.get('note'))
         ok_(service.get('phone'))
         ok_(service.get('email'))
-        ok_(service.get('property'))
+        ok_(service.get('_property'))
+        ok_('ticket_number' in service.keys())
 
         # Create aviso
         response_aviso = self.create_aviso(service.get('id'))
@@ -247,7 +248,7 @@ class TestServiceRequestTestCase(APITestCase):
         ok_(service.get('note'))
         ok_(service.get('phone'))
         ok_(service.get('email'))
-        ok_(service.get('property'))
+        ok_(service.get('_property'))
 
         # Create aviso
         response_aviso = self.create_aviso(service.get('id')) 
@@ -329,7 +330,7 @@ class TestServiceRequestTestCase(APITestCase):
         ok_(service.get('note'))
         ok_(service.get('phone'))
         ok_(service.get('email'))
-        ok_(service.get('property'))
+        ok_(service.get('_property'))
 
         # Create aviso
         response_aviso = self.create_aviso(service.get('id')) 
@@ -529,7 +530,7 @@ class TestServiceRequestTestCase(APITestCase):
             note='Prueba de Faveo a Integra',
             phone=client_info_response.json().get('telefono'),
             email=client_info_response.json().get('e_mail'),
-            property=response_resident.json().get('properties')[0].get('id'),
+            _property=response_resident.json().get('properties')[0].get('id'),
             date_service_request=dict(
                 day=day,
                 checking='12:00:00', checkout='12:00:00',
@@ -552,7 +553,7 @@ class TestServiceRequestTestCase(APITestCase):
         eq_(service.get('note'), data.get('note'))
         eq_(service.get('phone'), data.get('phone'))
         eq_(service.get('email'), data.get('email'))
-        eq_(service.get('property'), data.get('property'))
+        eq_(service.get('_property'), data.get('_property'))
         eq_(service.get('ticket_id'), ticket.ticket_id)
         eq_(service.get('service'), data.get('service'))
         eq_(service.get('user'), str(user.id))

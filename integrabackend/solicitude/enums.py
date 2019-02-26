@@ -70,6 +70,6 @@ class Message:
             f'Por favor comuníquese  con el cliente para validar las '\
             f'razones del rechazo al {aviso.client.telefono}\n\n'\
             f'Categoría de cliente: {aviso.client.clasification_name}.\n\n'\
-            f'Ubicación Técnica: {service_request.property.direction}.\n\n'\
+            f'Ubicación Técnica: {service_request._property.direction}.\n\n'\
             f'Gracias'
         return message

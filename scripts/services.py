@@ -8,7 +8,6 @@ from django.conf import settings
 
 def run():
     root_project = lambda *x: os.path.join(settings.ROOT_PROJECT, *x) # noqa
-    import ipdb; ipdb.set_trace()
     with open(root_project('services.txt')) as f:
         reader = f.readlines()
 

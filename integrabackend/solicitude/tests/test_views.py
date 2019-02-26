@@ -64,7 +64,7 @@ class TestServiceRequestTestCase(APITestCase):
         self.client.force_authenticate(user=UserFactory.build())
     
     def test_request_post_success(self):
-        property = PropertyFactory(
+        _property = PropertyFactory(
             property_type=PropertyTypeFactory.create())
         date_service_request = DateServiceRequestFactory()
         day_type = DayTypeFactory()
@@ -74,11 +74,11 @@ class TestServiceRequestTestCase(APITestCase):
             service=ServiceFactory.create(),
             state=StateFactory.create(),
             user=UserFactory.create(), 
-            property=property,
+            _property=_property,
             date_service_request=date_service_request)
         data = model_to_dict(service_request)
         data.pop('user')
-        data['property'] = str(property.id)
+        data['_property'] = str(_property.id)
         data['date_service_request'] = model_to_dict(date_service_request)
         data['date_service_request']['day'] = [day.id]
 
@@ -92,14 +92,14 @@ class TestServiceRequestTestCase(APITestCase):
         eq_(service.get('note'), service_request.note)
         eq_(service.get('phone'), service_request.phone)
         eq_(service.get('email'), service_request.email)
-        eq_(service.get('property'), str(service_request.property.pk))
+        eq_(service.get('_property'), str(service_request._property.pk))
     
     @patch('integrabackend.solicitude.helpers.ERPAviso')
     @patch('integrabackend.solicitude.views.helpers.HelpDeskTicket')
     @patch('integrabackend.solicitude.helpers.Status')
     def test_can_aprove_service_request(self, mock_status, mock_ticket, mock_aviso):
         # GIVEN
-        property = PropertyFactory(
+        _property = PropertyFactory(
             property_type=PropertyTypeFactory.create())
         date_service_request = DateServiceRequestFactory()
         date_service_request.day.add(
@@ -109,7 +109,7 @@ class TestServiceRequestTestCase(APITestCase):
             service=ServiceFactory.create(),
             state=StateFactory.create(),
             user=user, 
-            property=property,
+            _property=_property,
             date_service_request=date_service_request)
         QuotationFactory.create(
             service_request=service_request,
@@ -169,7 +169,7 @@ class TestAvisoTestCase(APITestCase):
     
     @patch('integrabackend.solicitude.views.ERPAviso')
     def test_request_get_success(self, mock_aviso):
-        property = PropertyFactory(
+        _property = PropertyFactory(
             property_type=PropertyTypeFactory.create())
         date_service_request = DateServiceRequestFactory()
         day_type = DayTypeFactory()
@@ -179,7 +179,7 @@ class TestAvisoTestCase(APITestCase):
             service=ServiceFactory.create(),
             state=StateFactory.create(),
             user=UserFactory.create(), 
-            property=property,
+            _property=_property,
             date_service_request=date_service_request,
             ticket_id=1, aviso_id=1)
         
@@ -196,7 +196,7 @@ class TestAvisoTestCase(APITestCase):
     
     @patch('integrabackend.solicitude.views.helpers')
     def test_request_patch_success(self, mock_helpers):
-        property = PropertyFactory(
+        _property = PropertyFactory(
             property_type=PropertyTypeFactory.create())
         date_service_request = DateServiceRequestFactory()
         day_type = DayTypeFactory()
@@ -206,7 +206,7 @@ class TestAvisoTestCase(APITestCase):
             service=ServiceFactory.create(),
             state=StateFactory.create(),
             user=UserFactory.create(), 
-            property=property,
+            _property=_property,
             date_service_request=date_service_request,
             ticket_id=1, aviso_id=1)
         

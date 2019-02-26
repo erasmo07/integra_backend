@@ -69,7 +69,7 @@ class ServiceRequest(models.Model):
     state = models.ForeignKey(
         'solicitude.State',
         on_delete=models.CASCADE)
-    property = models.ForeignKey(
+    _property = models.ForeignKey(
         'resident.Property',
         related_name='property',
         on_delete=models.PROTECT,)
