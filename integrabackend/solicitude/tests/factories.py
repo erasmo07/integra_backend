@@ -28,7 +28,7 @@ class ServiceRequestFactory(factory.django.DjangoModelFactory):
     
     id = factory.Faker('uuid4')
     note = factory.Sequence(lambda n: f'note{n}')
-    sap_customer = factory.Sequence(lambda n: f'note{n}')
+    sap_customer = "".join([str(random.randint(1, 9)) for _ in range(5)]) 
     ticket_id = factory.Sequence(lambda n: n)
     phone = factory.Sequence(lambda n: f'note{n}')
     email = factory.Sequence(lambda n: f'{n}@example.com')

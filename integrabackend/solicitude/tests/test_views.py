@@ -13,8 +13,8 @@ from .factories import (
     DayFactory, DateServiceRequestFactory, DayTypeFactory,
     QuotationFactory)
 from ..enums import StateEnums
-from ...users.test.factories import UserFactory
-from integrabackend.resident.test.factories import PropertyFactory, PropertyTypeFactory
+from ...users.test.factories import UserFactory, GroupFactory
+from ...resident.test.factories import PropertyFactory, PropertyTypeFactory
 
 
 faker = Faker()
@@ -70,11 +70,11 @@ class TestServiceRequestTestCase(APITestCase):
         day_type = DayTypeFactory()
         day = DayFactory(day_type=day_type)
         date_service_request.day.add(day)
+        user = UserFactory.create()
         service_request = ServiceRequestFactory(
             service=ServiceFactory.create(),
             state=StateFactory.create(),
-            user=UserFactory.create(), 
-            _property=_property,
+            user=user, _property=_property,
             date_service_request=date_service_request)
         data = model_to_dict(service_request)
         data.pop('user')
@@ -82,7 +82,7 @@ class TestServiceRequestTestCase(APITestCase):
         data['date_service_request'] = model_to_dict(date_service_request)
         data['date_service_request']['day'] = [day.id]
 
-        self.client.force_authenticate(user=UserFactory())
+        self.client.force_authenticate(user=user)
         response = self.client.post(self.url, data, format='json')
 
         eq_(response.status_code, status.HTTP_201_CREATED)
@@ -134,7 +134,56 @@ class TestServiceRequestTestCase(APITestCase):
         mock_status.get_state_by_name.assert_called()
         mock_ticket.assert_called()
         mock_object.change_state.assert_called()
+    
+    def test_filter_by_request_user(self):
+        # GIVEN
+        _property = PropertyFactory(
+            property_type=PropertyTypeFactory.create())
+        date_service_request = DateServiceRequestFactory()
+        date_service_request.day.add(
+            DayFactory(day_type=DayTypeFactory()))
+        user = UserFactory.create()
+        service_request = ServiceRequestFactory(
+            service=ServiceFactory.create(),
+            state=StateFactory.create(),
+            user=user, 
+            _property=_property,
+            date_service_request=date_service_request)
+        self.client.force_authenticate(user=user)
 
+        # WHEN
+        response = self.client.get(self.url)
+
+        # THEN
+        eq_(response.status_code, status.HTTP_200_OK)
+        eq_(response.json().get('count'), 1)
+    
+    def test_filter_by_request_user_aplication(self):
+        # GIVEN
+        for _ in range(5):
+            _property = PropertyFactory(
+                property_type=PropertyTypeFactory.create())
+            date_service_request = DateServiceRequestFactory()
+            date_service_request.day.add(
+                DayFactory(day_type=DayTypeFactory()))
+            user = UserFactory.create()
+            service_request = ServiceRequestFactory(
+                service=ServiceFactory.create(),
+                state=StateFactory.create(),
+                user=user, 
+                _property=_property,
+                date_service_request=date_service_request)
+        
+        user = UserFactory()
+        user.groups.add(GroupFactory(name='Aplicacion'))
+        self.client.force_authenticate(user=user)
+
+        # WHEN
+        response = self.client.get(self.url)
+
+        # THEN
+        eq_(response.status_code, status.HTTP_200_OK)
+        eq_(response.json().get('count'), 5)
 
 
 class TestAvisoTestCase(APITestCase):
