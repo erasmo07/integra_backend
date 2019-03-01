@@ -16,8 +16,9 @@ class ServiceRequestHasAviso(Exception):
 def create_service_request(instance, helpdesk_class=HelpDesk):
     """ Function Docstring """
     helpdesk_user = helpdesk_class.user.create_user(
-        instance.user.email, instance.user.first_name,
-        instance.user.last_name)
+        instance.user.email,
+        instance.user.first_name.replace(' ', ''),
+        instance.user.last_name.replace('-', 'O'))
 
     topic = helpdesk_class.topics.objects.get_by_name(
         instance.service.name)
