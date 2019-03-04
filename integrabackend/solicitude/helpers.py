@@ -109,7 +109,9 @@ def notify_valid_quotation(
 
     email = email_class(
         subject=subject, body=message,
-        to=recipient_list, cc=[settings.DEFAULT_SOPORT_EMAIL])
+        to=recipient_list, cc=[settings.DEFAULT_SOPORT_EMAIL],
+        reply_to=[settings.DEFAULT_SOPORT_EMAIL])
+
     email.attach(
         service_request.quotation.file.name,
         service_request.quotation.file.read(),
@@ -130,7 +132,9 @@ def notify_valid_work(
     # SEND EMAIL TO CLIENT
     email = email_class(
         subject=subject, body=message,
-        to=recipient_list, cc=[settings.DEFAULT_SOPORT_EMAIL])
+        to=recipient_list, cc=[settings.DEFAULT_SOPORT_EMAIL],
+        reply_to=[settings.DEFAULT_SOPORT_EMAIL])
+
     email.send()
 
 
@@ -306,7 +310,9 @@ def notify_responsable_rejection(
     recipient_list = [aviso.responsable.correo]
     email = email_class(
         subject=subject, body=message, to=recipient_list,
-        cc=[settings.DEFAULT_SOPORT_EMAIL])
+        cc=[settings.DEFAULT_SOPORT_EMAIL],
+        reply_to=[settings.DEFAULT_SOPORT_EMAIL])
+
     email.send()
     
     # whatsap_client = hermes_class() 

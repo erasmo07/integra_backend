@@ -168,6 +168,7 @@ class TestServiceRequestTestCase(APITestCase):
         eq_(email.subject, subject)
         ok_(service_object.user.email in email.to)
         ok_(settings.DEFAULT_SOPORT_EMAIL in email.cc)
+        ok_(settings.DEFAULT_SOPORT_EMAIL in email.reply_to)
 
         # Aprove quotation
         response_aprove_quotation = self.approve_quotation(service.get('id'))
@@ -213,6 +214,7 @@ class TestServiceRequestTestCase(APITestCase):
         eq_(email.subject, subject)
         ok_(service_object.user.email in email.to)
         ok_(settings.DEFAULT_SOPORT_EMAIL in email.cc)
+        ok_(settings.DEFAULT_SOPORT_EMAIL in email.reply_to)
 
         # Approve work
         response_aprove_quotation = self.approve_work(service_object.pk) 
@@ -291,6 +293,8 @@ class TestServiceRequestTestCase(APITestCase):
         eq_(email.subject, subject)
         ok_(service_object.user.email in email.to)
         ok_(settings.DEFAULT_SOPORT_EMAIL in email.cc)
+        ok_(settings.DEFAULT_SOPORT_EMAIL in email.reply_to)
+
 
         # Reject quotation
         response_reject_quotation = self.reject_quotation(service_object.pk) 
@@ -373,6 +377,7 @@ class TestServiceRequestTestCase(APITestCase):
         eq_(email.subject, subject)
         ok_(service_object.user.email in email.to)
         ok_(settings.DEFAULT_SOPORT_EMAIL in email.cc)
+        ok_(settings.DEFAULT_SOPORT_EMAIL in email.reply_to)
 
         # Aprove quotation
         response_aprove_quotation = self.approve_quotation(service_object.pk) 
@@ -418,6 +423,7 @@ class TestServiceRequestTestCase(APITestCase):
         eq_(email.subject, subject)
         ok_(service_object.user.email in email.to)
         ok_(settings.DEFAULT_SOPORT_EMAIL in email.cc)
+        ok_(settings.DEFAULT_SOPORT_EMAIL in email.reply_to)
 
         # Reject work
         response_aprove_quotation = self.reject_work(service_object.pk)
@@ -442,6 +448,7 @@ class TestServiceRequestTestCase(APITestCase):
         eq_(email.subject, subject)
         ok_(aviso.responsable.correo in email.to)
         ok_(settings.DEFAULT_SOPORT_EMAIL in email.cc)
+        ok_(settings.DEFAULT_SOPORT_EMAIL in email.reply_to)
 
         # Validate ServiceRequest
         eq_(service_object.state.name,
