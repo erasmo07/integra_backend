@@ -3,10 +3,10 @@ from rest_framework.response import Response
 from rest_framework import viewsets, mixins, status
 from rest_framework.decorators import action
 
-from .models import Resident, Person, Property
+from .models import Resident, Person, Property, PropertyType
 from .serializers import (
     ResidentSerializer, PersonSerializer,
-    PropertySerializer)
+    PropertySerializer, PropertyTypeSerializer)
 
 
 class ResidentCreateViewSet(viewsets.ModelViewSet):
@@ -51,8 +51,14 @@ class PropertyViewSet(viewsets.ModelViewSet):
     filter_backends = (DjangoFilterBackend,)
     filter_fields = ('id_sap',)
 
-    """
     def get_queryset(self, *args, **kwargs):
-        queryset = super(PropertyViewSet, self).get_queryset(**kwargs)
-        return queryset.filter(resident__user=self.request.user)
-    """
+        all_property = super(PropertyViewSet, self).get_queryset(**kwargs)
+        property_user = all_property.filter(resident__user=self.request.user)
+
+        is_aplication = self.request.user.is_aplication
+        return all_property if is_aplication else property_user 
+
+
+class PropertyTypeViewSet(viewsets.ModelViewSet):
+    queryset = PropertyType.objects.all()
+    serializer_class = PropertyTypeSerializer
