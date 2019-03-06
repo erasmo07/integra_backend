@@ -38,7 +38,7 @@ class TicketStatusenums:
 
 class QuotationEnums:
     pending = 'Pendinte'
-    approved = 'Aprovada'
+    approved = 'Aprobada'
     reject = 'Rechazada'
 
 
@@ -50,7 +50,7 @@ class StateEnums:
 
 
 class Subjects:
-    valid_quotation = "Aprovar o Rechazar cotizacion"
+    valid_quotation = "Aprobar o Rechazar cotizacion"
     valid_work = "Validar Trabajo realizado"
     reject_work = 'El cliente rechazo el trabajo'
 

@@ -59,7 +59,7 @@ class Property(models.Model):
 
     @property
     def direction(self):
-        return f'{self.address} {self.street}, {self.property_type} {self.number}'
+        return f'{self.address}'
 
 
 class Project(models.Model):

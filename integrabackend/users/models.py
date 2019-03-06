@@ -23,8 +23,8 @@ class User(AbstractUser):
     @property
     def is_aplication(self):
         name_group = 'Aplicacion'
-        has_group = self.groups.filter(name=name_group)
-        return True if has_group.exists() else False
+        is_aplication = self.groups.filter(name=name_group).exists()
+        return True if is_aplication else False
 
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)

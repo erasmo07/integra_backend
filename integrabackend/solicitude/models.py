@@ -22,7 +22,7 @@ class Service(models.Model):
         primary_key=True,
         default=uuid.uuid4,
         editable=False)
-    name = models.CharField(max_length=90)
+    name = models.CharField(max_length=255)
     generates_invoice = models.BooleanField(default=False)
     requires_approval = models.BooleanField(default=False)
     sap_code_service = models.CharField(max_length=50)

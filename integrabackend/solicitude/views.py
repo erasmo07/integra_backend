@@ -30,7 +30,7 @@ def get_value_or_404(data, key_value, message):
 
 
 # Create your views here.
-class ServiceViewSet(viewsets.ReadOnlyModelViewSet):
+class ServiceViewSet(viewsets.ModelViewSet):
     """
     List type service
     """
