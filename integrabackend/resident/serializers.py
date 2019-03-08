@@ -28,7 +28,7 @@ class ResidentSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'name', 'email',
             'telephone', 'sap_customer', 'user', 'properties', 'id_sap')
-        read_only_fields = ('id', 'sap_customer',)
+        read_only_fields = ('id',)
 
 
 class PersonSerializer(serializers.ModelSerializer):

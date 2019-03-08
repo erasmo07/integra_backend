@@ -19,6 +19,7 @@ class ServiceFactory(factory.django.DjangoModelFactory):
 
     id = factory.Faker('uuid4')
     name = "Desbloqueo de Usuario"
+    sap_code_service = 'S4'
 
 
 class ServiceRequestFactory(factory.django.DjangoModelFactory):

@@ -1,4 +1,5 @@
 from django.db.models import Q
+from django.template.loader import get_template
 
 
 class StateSolicitudeServiceEnums:
@@ -73,3 +74,7 @@ class Message:
             f'Ubicación Técnica: {service_request._property.direction}.\n\n'\
             f'Gracias'
         return message
+
+    def build_valid_quotation(service_request):
+        email_template = get_template('emails/valid_quotation.html')
+        return email_template.render({'customer_name': service_request.user.first_name})

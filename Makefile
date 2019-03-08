@@ -14,4 +14,7 @@ server:
 	docker-compose up
 
 superuser:
-	docker-compose run web python manage.py createsuperuser
+	docker-compose run --rm web python manage.py createsuperuser
+
+service:
+	docker-compose run --rm web python manage.py runscript services

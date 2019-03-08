@@ -104,7 +104,7 @@ def notify_valid_quotation(
         subjects.valid_quotation,
         ticket.ticket_number)
 
-    message = 'Here is the message for valid work'
+    message = enums.Message.build_valid_quotation(service_request)
     recipient_list = [service_request.user.email]
 
     email = email_class(

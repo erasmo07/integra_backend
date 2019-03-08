@@ -9,7 +9,7 @@ from ...users.test.factories import UserFactory
 class TestResidentSerializer(TestCase):
 
     def setUp(self):
-        self.data = model_to_dict(ResidentFactory(user=UserFactory.create()))
+        self.data = model_to_dict(ResidentFactory(user=UserFactory()))
         ResidentSerializer.Meta.model.objects.all().delete()
 
     def test_serializer_with_empty_data(self):
