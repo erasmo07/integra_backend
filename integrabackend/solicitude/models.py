@@ -3,7 +3,7 @@ import calendar
 import datetime as dt
 from django.conf import settings
 from django.db import models
-from partenon.helpdesk import Topics
+from partenon.helpdesk import Topics, HelpDeskTicket
 
 day_name = list(calendar.day_name)
 CHOICE_DAY = [list(a) for a in zip(day_name, day_name)]
@@ -22,7 +22,7 @@ class Service(models.Model):
         primary_key=True,
         default=uuid.uuid4,
         editable=False)
-    name = models.CharField(max_length=60, choices=CHOICE_SERVICE)
+    name = models.CharField(max_length=255)
     generates_invoice = models.BooleanField(default=False)
     requires_approval = models.BooleanField(default=False)
     sap_code_service = models.CharField(max_length=50)
@@ -69,13 +69,21 @@ class ServiceRequest(models.Model):
     state = models.ForeignKey(
         'solicitude.State',
         on_delete=models.CASCADE)
-    property = models.ForeignKey(
+    _property = models.ForeignKey(
         'resident.Property',
         related_name='property',
         on_delete=models.PROTECT,)
     date_service_request = models.OneToOneField(
         'solicitude.DateServiceRequested',
         on_delete=models.CASCADE)
+    
+    @property
+    def ticket_number(self):
+        try:
+            ticket = HelpDeskTicket.get_specific_ticket(self.ticket_id)
+            return ticket.ticket_number
+        except Exception:
+            return ''
 
 
 class Quotation(models.Model):

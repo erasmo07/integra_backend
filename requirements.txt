@@ -4,6 +4,7 @@ Django==2.1.1
 django-configurations==2.1
 gunicorn==19.9.0
 newrelic==4.4.0.103
+django-extensions
 
 # For the persistence stores
 dj-database-url==0.5.0
@@ -26,7 +27,8 @@ django-cors-headers==2.4.0
 celery==3.1.18
 redis==2.10.3
 django-celery==3.2.2
-flower
+tornado==4.5.3
+flower==0.9.2
 
 # Developer Tools
 ipdb==0.11

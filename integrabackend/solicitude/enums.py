@@ -1,4 +1,5 @@
 from django.db.models import Q
+from django.template.loader import get_template
 
 
 class StateSolicitudeServiceEnums:
@@ -38,7 +39,7 @@ class TicketStatusenums:
 
 class QuotationEnums:
     pending = 'Pendinte'
-    approved = 'Aprovada'
+    approved = 'Aprobada'
     reject = 'Rechazada'
 
 
@@ -50,7 +51,7 @@ class StateEnums:
 
 
 class Subjects:
-    valid_quotation = "Aprovar o Rechazar cotizacion"
+    valid_quotation = "Aprobar o Rechazar cotizacion"
     valid_work = "Validar Trabajo realizado"
     reject_work = 'El cliente rechazo el trabajo'
 
@@ -70,6 +71,10 @@ class Message:
             f'Por favor comuníquese  con el cliente para validar las '\
             f'razones del rechazo al {aviso.client.telefono}\n\n'\
             f'Categoría de cliente: {aviso.client.clasification_name}.\n\n'\
-            f'Ubicación Técnica: {service_request.property.direction}.\n\n'\
+            f'Ubicación Técnica: {service_request._property.direction}.\n\n'\
             f'Gracias'
         return message
+
+    def build_valid_quotation(service_request):
+        email_template = get_template('emails/valid_quotation.html')
+        return email_template.render({'customer_name': service_request.user.first_name})

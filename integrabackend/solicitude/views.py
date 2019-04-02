@@ -30,7 +30,7 @@ def get_value_or_404(data, key_value, message):
 
 
 # Create your views here.
-class ServiceViewSet(viewsets.ReadOnlyModelViewSet):
+class ServiceViewSet(viewsets.ModelViewSet):
     """
     List type service
     """
@@ -69,6 +69,8 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = super(ServiceRequestViewSet, self).get_queryset()
+        if self.request.user.is_aplication:
+            return queryset
         return queryset.filter(user=self.request.user)
     
     def get_serializer_class(self):

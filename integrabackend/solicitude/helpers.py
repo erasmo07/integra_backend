@@ -16,8 +16,9 @@ class ServiceRequestHasAviso(Exception):
 def create_service_request(instance, helpdesk_class=HelpDesk):
     """ Function Docstring """
     helpdesk_user = helpdesk_class.user.create_user(
-        instance.user.email, instance.user.first_name,
-        instance.user.last_name)
+        instance.user.email,
+        instance.user.first_name.replace(' ', ''),
+        instance.user.last_name.replace('-', 'O'))
 
     topic = helpdesk_class.topics.objects.get_by_name(
         instance.service.name)
@@ -103,12 +104,14 @@ def notify_valid_quotation(
         subjects.valid_quotation,
         ticket.ticket_number)
 
-    message = 'Here is the message for valid work'
+    message = enums.Message.build_valid_quotation(service_request)
     recipient_list = [service_request.user.email]
 
     email = email_class(
         subject=subject, body=message,
-        to=recipient_list, cc=[settings.DEFAULT_SOPORT_EMAIL])
+        to=recipient_list, cc=[settings.DEFAULT_SOPORT_EMAIL],
+        reply_to=[settings.DEFAULT_SOPORT_EMAIL])
+
     email.attach(
         service_request.quotation.file.name,
         service_request.quotation.file.read(),
@@ -129,7 +132,9 @@ def notify_valid_work(
     # SEND EMAIL TO CLIENT
     email = email_class(
         subject=subject, body=message,
-        to=recipient_list, cc=[settings.DEFAULT_SOPORT_EMAIL])
+        to=recipient_list, cc=[settings.DEFAULT_SOPORT_EMAIL],
+        reply_to=[settings.DEFAULT_SOPORT_EMAIL])
+
     email.send()
 
 
@@ -305,7 +310,9 @@ def notify_responsable_rejection(
     recipient_list = [aviso.responsable.correo]
     email = email_class(
         subject=subject, body=message, to=recipient_list,
-        cc=[settings.DEFAULT_SOPORT_EMAIL])
+        cc=[settings.DEFAULT_SOPORT_EMAIL],
+        reply_to=[settings.DEFAULT_SOPORT_EMAIL])
+
     email.send()
     
     # whatsap_client = hermes_class() 

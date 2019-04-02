@@ -17,6 +17,8 @@ class ResidentFactory(factory.django.DjangoModelFactory):
     email = factory.Faker('email')
     telephone = 'telephone'
     is_active = True
+    id_sap = "".join([str(random.randint(1, 9)) for _ in range(50)])
+    sap_customer = "".join([str(random.randint(1, 9)) for _ in range(10)])
 
 
 class TypeIdentificationFactory(factory.django.DjangoModelFactory):

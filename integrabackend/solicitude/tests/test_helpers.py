@@ -15,7 +15,7 @@ from .. import helpers
 faker = Faker()
 
 def create_service_request():
-    property = PropertyFactory(
+    _property = PropertyFactory(
         property_type=PropertyTypeFactory.create())
     date_service_request = DateServiceRequestFactory()
     day_type = DayTypeFactory()
@@ -25,7 +25,7 @@ def create_service_request():
         service=ServiceFactory.create(),
         state=StateFactory.create(),
         user=UserFactory.create(), 
-        property=property,
+        _property=_property,
         date_service_request=date_service_request)
 
 
@@ -64,19 +64,22 @@ class TestCreateServiceRequest(TestCase):
         user = MagicMock()
         ticket = MagicMock()
         ticket.ticket_id = 1
+        ticket.ticket_number = 'N1'
         user.ticket.create.return_value = ticket
+        user.ticket.get_specific_ticket.return_value = ticket 
         user.create_user.return_value = user
         helpdesk_class.topics.objects.get_by_name.return_value = ''
         helpdesk_class.prioritys.objects.get_by_name.return_value = ''
         helpdesk_class.user = user
 
         # WHEN
-        helpers.create_service_request(
+        instance = helpers.create_service_request(
             self.service_request,
             helpdesk_class=helpdesk_class)
         
         # THEN
-        self.assertEqual(self.service_request.ticket_id, 1)
+        self.assertEqual(instance.ticket_id, 1)
+
         user.create_user.assert_called()
         user.ticket.create.assert_called()
         helpdesk_class.topics.objects.get_by_name.assert_called()

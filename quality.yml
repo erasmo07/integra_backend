@@ -1,0 +1,83 @@
+version: '2'
+
+services:
+  nginx:
+    build: ./nginx
+    volumes:
+      - static_volume:/code/static
+      - media_volume:/code/media
+    ports:
+      - 80:80
+    depends_on:
+      - web
+      - flower_monitor
+
+  redis:
+    image: redis
+    command: redis-server /usr/local/etc/redis/redis.conf
+    volumes:
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    ports:
+      - "6379:6379"
+
+  celery_worker:
+    image: integrabackend_web
+    command: "python manage.py celery  worker -l info"
+    environment:
+      - DATABASE_URL=mysql://integrabk:integrabk123@87.4.5.140/integrabk
+    links:
+      - redis
+    volumes:
+      - .:/code
+    depends_on:
+      - redis
+  
+  celery_beat:
+    image: integrabackend_web
+    command: "python manage.py celery beat"
+    environment:
+      - DATABASE_URL=mysql://integrabk:integrabk123@87.4.5.140/integrabk
+    links:
+      - redis
+    volumes:
+      - .:/code
+    depends_on:
+      - redis
+  
+  flower_monitor:
+    image: integrabackend_web
+    command: "python manage.py celery flower 0.0.0.0:5555 --logging=info"
+    environment:
+      - DATABASE_URL=mysql://integrabk:integrabk123@87.4.5.140/integrabk
+    links:
+      - redis
+    volumes:
+      - .:/code
+    ports:
+      - "5555:5555"
+    expose:
+      - 5555
+    depends_on:
+      - redis
+
+  web:
+    restart: always
+    image: integrabackend_web
+    build: ./
+    volumes:
+      - ./:/code
+      - static_volume:/code/static
+      - media_volume:/code/media
+    ports:
+      - "8000:8000"
+    expose:
+      - 8000
+    environment:
+      - DATABASE_URL=mysql://integrabk:integrabk123@87.4.5.141/integrabk
+    depends_on:
+      - celery_worker
+      - celery_beat
+
+volumes:
+  static_volume:
+  media_volume:

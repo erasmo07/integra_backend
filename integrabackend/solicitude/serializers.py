@@ -13,7 +13,7 @@ class ServiceSerializer(serializers.ModelSerializer):
         model = Service
         fields = (
             'id', 'name', 'scheduled',
-            'generates_invoice', 'requires_approval')
+            'generates_invoice', 'requires_approval', 'sap_code_service')
         read_only_fields = ('id', )
 
 
@@ -78,9 +78,10 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
         model = ServiceRequest
         fields = (
             'id', 'service', 'note', 'phone', 'email', 
-            'property', 'date_service_request', 'sap_customer', 
-            'require_quotation', 'state', 'quotation', 'ticket_id')
-        read_only_fields = ('ticket_id', )
+            '_property', 'date_service_request', 'sap_customer', 
+            'require_quotation', 'state', 'quotation', 'ticket_id',
+            'ticket_number')
+        read_only_fields = ('ticket_id', 'ticket_number')
 
     def create(self, validated_data):
         date_service_request = validated_data.pop('date_service_request')
@@ -100,16 +101,17 @@ class ServiceRequestDetailSerializer(serializers.ModelSerializer):
     state = StateSerializer(read_only=True)
     quotation = QuotationSerializer(read_only=True)
     service = ServiceSerializer(read_only=True)
-    property = PropertySerializer(read_only=True)
+    _property = PropertySerializer(read_only=True)
 
     class Meta:
         model = ServiceRequest
         fields = (
             'id', 'service', 'note', 'phone', 'email', 
-            'property', 'date_service_request', 
+            '_property', 'date_service_request', 
             'require_quotation', 'state', 'quotation',
-            'ticket_id', 'creation_date', 'sap_customer',
-            'aviso_id')
+            'ticket_id', 'ticket_number', 'creation_date',
+            'sap_customer', 'aviso_id')
+        read_only_fields = ('ticket_id', 'ticket_number')
 
 
 class ServiceRequestFaveo(ServiceRequestSerializer):
@@ -117,3 +119,4 @@ class ServiceRequestFaveo(ServiceRequestSerializer):
     class Meta:
         model = ServiceRequest
         fields = ServiceRequestSerializer.Meta.fields + ('ticket_id', 'user')
+

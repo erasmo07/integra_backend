@@ -3,6 +3,7 @@ from django.db import models
 from django.conf import settings
 from django.dispatch import receiver
 from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import Group
 from django.utils.encoding import python_2_unicode_compatible
 from django.db.models.signals import post_save
 from rest_framework.authtoken.models import Token
@@ -18,6 +19,12 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.username
+    
+    @property
+    def is_aplication(self):
+        name_group = 'Aplicacion'
+        is_aplication = self.groups.filter(name=name_group).exists()
+        return True if is_aplication else False
 
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)

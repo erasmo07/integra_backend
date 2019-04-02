@@ -13,8 +13,8 @@ from .factories import (
     DayFactory, DateServiceRequestFactory, DayTypeFactory,
     QuotationFactory)
 from ..enums import StateEnums
-from ...users.test.factories import UserFactory
-from integrabackend.resident.test.factories import PropertyFactory, PropertyTypeFactory
+from ...users.test.factories import UserFactory, GroupFactory
+from ...resident.test.factories import PropertyFactory, PropertyTypeFactory
 
 
 faker = Faker()
@@ -64,25 +64,25 @@ class TestServiceRequestTestCase(APITestCase):
         self.client.force_authenticate(user=UserFactory.build())
     
     def test_request_post_success(self):
-        property = PropertyFactory(
+        _property = PropertyFactory(
             property_type=PropertyTypeFactory.create())
         date_service_request = DateServiceRequestFactory()
         day_type = DayTypeFactory()
         day = DayFactory(day_type=day_type)
         date_service_request.day.add(day)
+        user = UserFactory.create()
         service_request = ServiceRequestFactory(
             service=ServiceFactory.create(),
             state=StateFactory.create(),
-            user=UserFactory.create(), 
-            property=property,
+            user=user, _property=_property,
             date_service_request=date_service_request)
         data = model_to_dict(service_request)
         data.pop('user')
-        data['property'] = str(property.id)
+        data['_property'] = str(_property.id)
         data['date_service_request'] = model_to_dict(date_service_request)
         data['date_service_request']['day'] = [day.id]
 
-        self.client.force_authenticate(user=UserFactory())
+        self.client.force_authenticate(user=user)
         response = self.client.post(self.url, data, format='json')
 
         eq_(response.status_code, status.HTTP_201_CREATED)
@@ -92,14 +92,14 @@ class TestServiceRequestTestCase(APITestCase):
         eq_(service.get('note'), service_request.note)
         eq_(service.get('phone'), service_request.phone)
         eq_(service.get('email'), service_request.email)
-        eq_(service.get('property'), str(service_request.property.pk))
+        eq_(service.get('_property'), str(service_request._property.pk))
     
     @patch('integrabackend.solicitude.helpers.ERPAviso')
     @patch('integrabackend.solicitude.views.helpers.HelpDeskTicket')
     @patch('integrabackend.solicitude.helpers.Status')
     def test_can_aprove_service_request(self, mock_status, mock_ticket, mock_aviso):
         # GIVEN
-        property = PropertyFactory(
+        _property = PropertyFactory(
             property_type=PropertyTypeFactory.create())
         date_service_request = DateServiceRequestFactory()
         date_service_request.day.add(
@@ -109,7 +109,7 @@ class TestServiceRequestTestCase(APITestCase):
             service=ServiceFactory.create(),
             state=StateFactory.create(),
             user=user, 
-            property=property,
+            _property=_property,
             date_service_request=date_service_request)
         QuotationFactory.create(
             service_request=service_request,
@@ -134,7 +134,56 @@ class TestServiceRequestTestCase(APITestCase):
         mock_status.get_state_by_name.assert_called()
         mock_ticket.assert_called()
         mock_object.change_state.assert_called()
+    
+    def test_filter_by_request_user(self):
+        # GIVEN
+        _property = PropertyFactory(
+            property_type=PropertyTypeFactory.create())
+        date_service_request = DateServiceRequestFactory()
+        date_service_request.day.add(
+            DayFactory(day_type=DayTypeFactory()))
+        user = UserFactory.create()
+        service_request = ServiceRequestFactory(
+            service=ServiceFactory.create(),
+            state=StateFactory.create(),
+            user=user, 
+            _property=_property,
+            date_service_request=date_service_request)
+        self.client.force_authenticate(user=user)
 
+        # WHEN
+        response = self.client.get(self.url)
+
+        # THEN
+        eq_(response.status_code, status.HTTP_200_OK)
+        eq_(response.json().get('count'), 1)
+    
+    def test_filter_by_request_user_aplication(self):
+        # GIVEN
+        for _ in range(5):
+            _property = PropertyFactory(
+                property_type=PropertyTypeFactory.create())
+            date_service_request = DateServiceRequestFactory()
+            date_service_request.day.add(
+                DayFactory(day_type=DayTypeFactory()))
+            user = UserFactory.create()
+            service_request = ServiceRequestFactory(
+                service=ServiceFactory.create(),
+                state=StateFactory.create(),
+                user=user, 
+                _property=_property,
+                date_service_request=date_service_request)
+        
+        user = UserFactory()
+        user.groups.add(GroupFactory(name='Aplicacion'))
+        self.client.force_authenticate(user=user)
+
+        # WHEN
+        response = self.client.get(self.url)
+
+        # THEN
+        eq_(response.status_code, status.HTTP_200_OK)
+        eq_(response.json().get('count'), 5)
 
 
 class TestAvisoTestCase(APITestCase):
@@ -169,7 +218,7 @@ class TestAvisoTestCase(APITestCase):
     
     @patch('integrabackend.solicitude.views.ERPAviso')
     def test_request_get_success(self, mock_aviso):
-        property = PropertyFactory(
+        _property = PropertyFactory(
             property_type=PropertyTypeFactory.create())
         date_service_request = DateServiceRequestFactory()
         day_type = DayTypeFactory()
@@ -179,7 +228,7 @@ class TestAvisoTestCase(APITestCase):
             service=ServiceFactory.create(),
             state=StateFactory.create(),
             user=UserFactory.create(), 
-            property=property,
+            _property=_property,
             date_service_request=date_service_request,
             ticket_id=1, aviso_id=1)
         
@@ -196,7 +245,7 @@ class TestAvisoTestCase(APITestCase):
     
     @patch('integrabackend.solicitude.views.helpers')
     def test_request_patch_success(self, mock_helpers):
-        property = PropertyFactory(
+        _property = PropertyFactory(
             property_type=PropertyTypeFactory.create())
         date_service_request = DateServiceRequestFactory()
         day_type = DayTypeFactory()
@@ -206,7 +255,7 @@ class TestAvisoTestCase(APITestCase):
             service=ServiceFactory.create(),
             state=StateFactory.create(),
             user=UserFactory.create(), 
-            property=property,
+            _property=_property,
             date_service_request=date_service_request,
             ticket_id=1, aviso_id=1)
         

@@ -7,6 +7,10 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 class Common(Configuration):
+    ROOT_PROJECT = os.path.dirname(
+        os.path.dirname(
+            os.path.dirname(
+                os.path.abspath(__file__))))
 
     INSTALLED_APPS = (
         'django.contrib.admin',
@@ -24,6 +28,7 @@ class Common(Configuration):
         'drf_yasg',                  # to documents all APIs
         'corsheaders',
         'djcelery',
+        'django_extensions',
 
         # Your apps
         'integrabackend.users',
@@ -83,7 +88,7 @@ class Common(Configuration):
     # Static files (CSS, JavaScript, Images)
     # https://docs.djangoproject.com/en/2.0/howto/static-files/
     STATIC_ROOT = os.path.normpath(join(os.path.dirname(BASE_DIR), 'static'))
-    STATICFILES_DIRS = []
+    STATICFILES_DIRS = [os.path.normpath(join(os.path.dirname(BASE_DIR), 'templates'))]
     STATIC_URL = '/static/'
     STATICFILES_FINDERS = (
         'django.contrib.staticfiles.finders.FileSystemFinder',

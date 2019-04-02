@@ -6,13 +6,13 @@ from django.views.generic.base import RedirectView
 from rest_framework.authtoken import views
 from .schema_view import schema_view
 from .routers import router
-from .token import CustomObtainAuthToken
+from .users.token import CustomObtainAuthToken
 
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/v1/', include(router.urls)),
-    path('api-token-auth/', CustomObtainAuthToken.as_view()),
+    path('api-token-auth/', CustomObtainAuthToken.as_view(), name='token'),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 
     path('swagger<format>.json|.yaml', schema_view.without_ui(cache_timeout=0), name='schema-json'),
