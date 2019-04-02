@@ -1,5 +1,6 @@
 import os
 from .common import Common
+from corsheaders.defaults import default_headers
 
 
 class Production(Common):
@@ -14,6 +15,7 @@ class Production(Common):
     # https://docs.djangoproject.com/en/2.0/howto/static-files/
     # http://django-storages.readthedocs.org/en/latest/index.html
     INSTALLED_APPS += ('storages',)
+    """
     DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
     STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
     AWS_ACCESS_KEY_ID = os.getenv('DJANGO_AWS_ACCESS_KEY_ID')
@@ -30,3 +32,5 @@ class Production(Common):
     AWS_HEADERS = {
         'Cache-Control': 'max-age=86400, s-maxage=86400, must-revalidate',
     }
+    """
+    CORS_ALLOW_HEADERS = default_headers + ('x-csrf-token',)

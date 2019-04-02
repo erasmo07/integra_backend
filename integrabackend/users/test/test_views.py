@@ -7,6 +7,7 @@ from rest_framework import status
 from faker import Faker
 from ..models import User
 from .factories import UserFactory
+from ...resident.test.factories import ResidentFactory 
 
 fake = Faker()
 
@@ -17,8 +18,10 @@ class TestUserListTestCase(APITestCase):
     """
 
     def setUp(self):
+        self.user = UserFactory()
         self.url = reverse('user-list')
         self.user_data = model_to_dict(UserFactory.build())
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.user.auth_token}')
 
     def test_post_request_with_no_data_fails(self):
         response = self.client.post(self.url, {})
@@ -31,6 +34,17 @@ class TestUserListTestCase(APITestCase):
         user = User.objects.get(pk=response.data.get('id'))
         eq_(user.username, self.user_data.get('username'))
         ok_(check_password(self.user_data.get('password'), user.password))
+    
+    def test_get_requet_with_filter_values(self):
+        response = self.client.post(self.url, self.user_data)
+        eq_(response.status_code, status.HTTP_201_CREATED)
+
+        params = {
+            'username': response.data.get('username'),
+            'email': response.data.get('email')
+        }
+        response = self.client.get(self.url, params)
+        eq_(response.status_code, status.HTTP_200_OK)
 
 
 class TestUserDetailTestCase(APITestCase):
@@ -50,8 +64,55 @@ class TestUserDetailTestCase(APITestCase):
     def test_put_request_updates_a_user(self):
         new_first_name = fake.first_name()
         payload = {'first_name': new_first_name}
-        response = self.client.put(self.url, payload)
+        response = self.client.patch(self.url, payload)
         eq_(response.status_code, status.HTTP_200_OK)
 
         user = User.objects.get(pk=self.user.id)
         eq_(user.first_name, new_first_name)
+
+
+class TestUserTokenTestCase(APITestCase):
+    """
+    Test /api-token-auth
+    """
+
+    def setUp(self):
+        self.url = reverse('token')
+
+    def test_post_request_not_return_resident(self):
+        user = UserFactory()
+        user.set_password('1234567')
+        user.save()
+
+        data = dict(username=user.username, password='1234567')
+        response = self.client.post(self.url, data)
+        
+        eq_(response.status_code, status.HTTP_200_OK)
+        ok_('token' in response.json().keys())
+        ok_('resident' not in response.json().keys())
+
+    def test_post_request_not_return_resident(self):
+        user = UserFactory()
+        user.set_password('1234567')
+        user.save()
+
+        data = dict(username=user.username, password='1234567')
+        response = self.client.post(self.url, data)
+        
+        eq_(response.status_code, status.HTTP_200_OK)
+        ok_('token' in response.json().keys())
+        ok_('resident' not in response.json().keys())
+
+    def test_post_request_return_resident(self):
+        user = UserFactory()
+        user.set_password('1234567')
+        user.save()
+
+        ResidentFactory(user=user)
+
+        data = dict(username=user.username, password='1234567')
+        response = self.client.post(self.url, data)
+        
+        eq_(response.status_code, status.HTTP_200_OK)
+        ok_('token' in response.json().keys())
+        ok_('resident' in response.json().keys())

@@ -2,12 +2,13 @@
 pytz==2018.5
 Django==2.1.1
 django-configurations==2.1
-gunicorn==19.8.1
+gunicorn==19.9.0
 newrelic==4.4.0.103
+django-extensions
 
 # For the persistence stores
-psycopg2-binary==2.7.5
 dj-database-url==0.5.0
+mysql
 
 # Model Tools
 django-model-utils==3.1.2
@@ -17,6 +18,17 @@ django_unique_upload==0.2.1
 djangorestframework==3.8.2
 Markdown==2.6.11
 django-filter==2.0.0
+drf_yasg==1.11.0
+flex==6.13.2
+swagger-spec-validator==2.4.1
+django-cors-headers==2.4.0
+
+# Celery
+celery==3.1.18
+redis==2.10.3
+django-celery==3.2.2
+tornado==4.5.3
+flower==0.9.2
 
 # Developer Tools
 ipdb==0.11
@@ -34,3 +46,7 @@ coverage==4.5.1
 # Static and Media Storage
 django-storages==1.7.1
 boto3==1.9.4
+
+# Internal library
+-e git+https://erasmo_montes@bitbucket.org/erasmo_montes/partenon.git#egg=partenon
+-e git+https://erasmo_montes@bitbucket.org/erasmo_montes/oraculo.git#egg=oraculo

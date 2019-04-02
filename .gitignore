@@ -102,6 +102,16 @@ venv.bak/
 
 # django staticfiles
 /static
+/media
+
+# django migrations
+integrabackend/*/migrations
 
 # mypy
 .mypy_cache/
+
+# migrations
+integrabackend/*/migrations/*
+
+# VSCODE
+.vscode/*

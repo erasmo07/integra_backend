@@ -21,30 +21,36 @@ services:
       - "6379:6379"
 
   celery_worker:
-    build: .
+    image: integrabackend_web
     command: "python manage.py celery  worker -l info"
     environment:
-      - DATABASE_URL=mysql://root:@172.20.10.2/integra_backend
+      - DATABASE_URL=mysql://integrabk:integrabk123@87.4.5.108/integra_backend
     links:
       - redis
     volumes:
       - .:/code
     depends_on:
+      - web
       - redis
   
   celery_beat:
-    build: .
+    image: integrabackend_web
     command: "python manage.py celery beat"
+    environment:
+      - DATABASE_URL=mysql://integrabk:integrabk123@87.4.5.108/integra_backend
     links:
       - redis
     volumes:
       - .:/code
     depends_on:
+      - web
       - redis
   
   flower_monitor:
-    build: .
+    image: integrabackend_web
     command: "python manage.py celery flower 0.0.0.0:5555 --logging=info"
+    environment:
+      - DATABASE_URL=mysql://integrabk:integrabk123@87.4.5.108/integra_backend
     links:
       - redis
     volumes:
@@ -54,11 +60,12 @@ services:
     expose:
       - 5555
     depends_on:
+      - web
       - redis
 
   web:
     restart: always
-    image: web
+    image: integrabackend_web
     build: ./
     volumes:
       - ./:/code
@@ -69,10 +76,7 @@ services:
     expose:
       - 8000
     environment:
-      - DATABASE_URL=mysql://root:@172.30.16.124/integra_backend
-    depends_on:
-      - celery_worker
-      - celery_beat
+      - DATABASE_URL=mysql://integrabk:integrabk123@87.4.5.108/integra_backend
 
 volumes:
   static_volume:
