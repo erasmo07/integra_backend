@@ -22,10 +22,15 @@ def create_service_request(instance, helpdesk_class=HelpDesk):
 
     topic = helpdesk_class.topics.objects.get_by_name(
         instance.service.name)
+
     priority = helpdesk_class.prioritys.objects.get_by_name('Normal')
+
+    department_name = instance._property.project.department.name
+    department = helpdesk_class.departments.objects.get_by_name(department_name)
+
     ticket = helpdesk_user.ticket.create(
         f"Solicitud: {instance.service.name}",
-        instance.note, priority, topic)
+        instance.note, priority, topic, department)
 
     instance.ticket_id = ticket.ticket_id
     instance.save()

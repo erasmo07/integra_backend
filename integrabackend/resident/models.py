@@ -56,10 +56,25 @@ class Property(models.Model):
     address = models.CharField(max_length=128)
     street = models.CharField(max_length=64)
     number = models.CharField(max_length=5)
+    project = models.ForeignKey(
+        "resident.Project", on_delete=models.CASCADE, null=True)
 
     @property
     def direction(self):
         return f'{self.address}'
+
+
+class Department(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False)
+    name = models.CharField(max_length=64)
+    email = models.EmailField()
+    fave_id = models.IntegerField()
+
+    def __str__(self):
+        return self.name
 
 
 class Project(models.Model):
@@ -67,6 +82,17 @@ class Project(models.Model):
     id_sap = models.CharField(max_length=10)
     name = models.CharField(max_length=64)
     area = models.ForeignKey('resident.Area', on_delete=models.PROTECT)
+    department = models.ForeignKey(
+        "resident.Department", on_delete=models.DO_NOTHING, null=True)
+
+    def __str__(self):
+        return self.name
+
+
+class ProjectService(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    project = models.ForeignKey("resident.Project", on_delete=models.CASCADE)
+    services = models.ManyToManyField("solicitude.Service")
 
 
 class Area(models.Model):
