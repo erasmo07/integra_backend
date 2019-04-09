@@ -20,7 +20,8 @@ from .factories import (
 from integrabackend.solicitude.enums import Subjects, StateEnums
 from ...users.test.factories import UserFactory
 from integrabackend.resident.test.factories import (
-    PropertyFactory, PropertyTypeFactory, ResidentFactory)
+    PropertyFactory, PropertyTypeFactory, ResidentFactory, ProjectFactory,
+    DepartmentFactory, AreaFactory, OrganizationFactory)
 
 
 class TestServiceRequestTestCase(APITestCase):
@@ -39,8 +40,13 @@ class TestServiceRequestTestCase(APITestCase):
         self.url_aviso = reverse('create_aviso-list')
     
     def service_request_data(self):
+        project = ProjectFactory(
+            department=DepartmentFactory(),
+            area=AreaFactory(organization=OrganizationFactory()))
         _property = PropertyFactory(
-            property_type=PropertyTypeFactory.create())
+            property_type=PropertyTypeFactory.create(),
+            project=project)
+        
         date_service_request = DateServiceRequestFactory()
         day_type = DayTypeFactory()
         day = DayFactory(day_type=day_type)
@@ -52,6 +58,7 @@ class TestServiceRequestTestCase(APITestCase):
             _property=_property,
             sap_customer=4259,
             date_service_request=date_service_request)
+
         data = model_to_dict(service_request)
         data.pop('user')
         data['_property'] = str(_property.id)
@@ -487,9 +494,10 @@ class TestServiceRequestTestCase(APITestCase):
         priority = HelpDesk.prioritys.objects.get_by_name('Normal')
         topic = HelpDesk.topics.objects.get_by_name(
             service_response.json().get('name'))
+        department = HelpDesk.departments.objects.get_by_name('Informatica y Comunicaciones')
         ticket = helpdesk_user.ticket.create(
         "Solicitud: Test de integracion", 'Prueba de Faveo a Integra',
-        priority, topic)
+        priority, topic, department)
         ok_(hasattr(ticket, 'ticket_id'))
 
         # Search User by email

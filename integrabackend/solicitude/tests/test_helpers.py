@@ -8,15 +8,22 @@ from .factories import (
     ServiceFactory, ServiceRequestFactory, StateFactory,
     DayFactory, DateServiceRequestFactory, DayTypeFactory)
 from ...users.test.factories import UserFactory
-from integrabackend.resident.test.factories import PropertyFactory, PropertyTypeFactory
+from integrabackend.resident.test.factories import (
+    PropertyFactory, PropertyTypeFactory, DepartmentFactory,
+    AreaFactory, ProjectFactory, OrganizationFactory)
 from .. import helpers
 
 
 faker = Faker()
 
 def create_service_request():
+    project = ProjectFactory(
+        department=DepartmentFactory(),
+        area=AreaFactory(organization=OrganizationFactory()))
     _property = PropertyFactory(
-        property_type=PropertyTypeFactory.create())
+        property_type=PropertyTypeFactory.create(),
+        project=project)
+   
     date_service_request = DateServiceRequestFactory()
     day_type = DayTypeFactory()
     day = DayFactory(day_type=day_type)
