@@ -37,6 +37,14 @@ class ServiceViewSet(viewsets.ModelViewSet):
     queryset = Service.objects.all()
     serializer_class = ServiceSerializer
 
+    def get_queryset(self):
+        _property = self.request.query_params.get('property', None)
+        if _property:
+            return super(ServiceViewSet, self).get_queryset().filter(
+                projectservice__project__property__pk=_property)
+        return super(ServiceViewSet, self).get_queryset()
+    
+
 
 class StateSolicitudeServiceViewSet(viewsets.ReadOnlyModelViewSet):
     """

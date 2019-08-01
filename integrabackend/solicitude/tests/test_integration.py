@@ -2,6 +2,7 @@ import time
 from nose.tools import eq_, ok_
 
 from rest_framework.test import APITestCase
+from django.test import override_settings
 from rest_framework import status
 
 from django.urls import reverse
@@ -20,7 +21,9 @@ from .factories import (
 from integrabackend.solicitude.enums import Subjects, StateEnums
 from ...users.test.factories import UserFactory
 from integrabackend.resident.test.factories import (
-    PropertyFactory, PropertyTypeFactory, ResidentFactory)
+    PropertyFactory, PropertyTypeFactory, ResidentFactory, ProjectFactory,
+    DepartmentFactory, AreaFactory, OrganizationFactory)
+from unittest import skip
 
 
 class TestServiceRequestTestCase(APITestCase):
@@ -29,18 +32,23 @@ class TestServiceRequestTestCase(APITestCase):
     """
 
     def setUp(self):
-        from django.conf import settings
-        settings.CELERY_ALWAYS_EAGER = True
+        # from django.conf import settings
+        # settings.CELERY_ALWAYS_EAGER = True
 
-        self.model = ServiceRequestFactory._meta.model 
+        self.model = ServiceRequestFactory._meta.model
         self.factory = ServiceRequestFactory
         self.base_name = 'servicerequest'
         self.url = reverse('%s-list' % self.base_name)
         self.url_aviso = reverse('create_aviso-list')
-    
+
     def service_request_data(self):
+        project = ProjectFactory(
+            department=DepartmentFactory(),
+            area=AreaFactory(organization=OrganizationFactory()))
         _property = PropertyFactory(
-            property_type=PropertyTypeFactory.create())
+            property_type=PropertyTypeFactory.create(),
+            project=project)
+
         date_service_request = DateServiceRequestFactory()
         day_type = DayTypeFactory()
         day = DayFactory(day_type=day_type)
@@ -48,10 +56,11 @@ class TestServiceRequestTestCase(APITestCase):
         service_request = ServiceRequestFactory(
             service=ServiceFactory.create(),
             state=StateFactory.create(),
-            user=UserFactory.create(), 
+            user=UserFactory.create(),
             _property=_property,
             sap_customer=4259,
             date_service_request=date_service_request)
+
         data = model_to_dict(service_request)
         data.pop('user')
         data['_property'] = str(_property.id)
@@ -60,58 +69,60 @@ class TestServiceRequestTestCase(APITestCase):
         service_request.delete()
 
         return data
-    
+
     def create_aviso(self, service_request_id):
         service_object = self.model.objects.get(pk=service_request_id)
 
         params = {'ticket_id': service_object.ticket_id}
         response = self.client.post(self.url_aviso, params)
-        return response 
-    
+        return response
+
     def approve_quotation(self, service_request_id):
         url_detail = reverse(
             "%s-detail" % self.base_name,
             kwargs=dict(pk=service_request_id))
-        url_approve = url_detail + 'approve-quotation/' 
+        url_approve = url_detail + 'approve-quotation/'
         return self.client.post(url_approve, {})
-    
+
     def modify_aviso_to_race(self, aviso_id):
         state_data = {'state': StateEnums.aviso.requires_acceptance_closing}
-        url = reverse('create_aviso-detail', kwargs={'pk': aviso_id}) 
+        url = reverse('create_aviso-detail', kwargs={'pk': aviso_id})
         return self.client.put(url, state_data)
-    
+
     def modify_aviso_to_raco(self, aviso_id):
         state_data = {'state': StateEnums.aviso.requires_quote_approval}
-        url = reverse('create_aviso-detail', kwargs={'pk': aviso_id}) 
+        url = reverse('create_aviso-detail', kwargs={'pk': aviso_id})
         return self.client.put(url, state_data)
-    
+
     def approve_work(self, service_request_id):
         url_detail = reverse(
             "%s-detail" % self.base_name,
             kwargs=dict(pk=service_request_id))
-        url_approve = url_detail + 'approve-work/' 
+        url_approve = url_detail + 'approve-work/'
         return self.client.post(url_approve, {})
-    
+
     def reject_quotation(self, service_request_id):
         url_detail = reverse(
             "%s-detail" % self.base_name,
             kwargs=dict(pk=service_request_id))
-        url_reject = url_detail + 'reject-quotation/' 
+        url_reject = url_detail + 'reject-quotation/'
         return self.client.post(url_reject, {})
-    
+
     def reject_work(self, service_request_id):
         url_detail = reverse(
             "%s-detail" % self.base_name,
             kwargs=dict(pk=service_request_id))
-        url_approve = url_detail + 'reject-work/' 
+        url_approve = url_detail + 'reject-work/'
         return self.client.post(url_approve, {})
 
+    @override_settings(CELERY_ALWAYS_EAGER = True)
+    @skip('Avoid rate limit.')
     def test_good_path(self):
         # Create service request
         self.client.force_authenticate(user=UserFactory())
         data = self.service_request_data()
         response = self.client.post(self.url, data, format='json')
-        eq_(response.status_code, status.HTTP_201_CREATED) 
+        eq_(response.status_code, status.HTTP_201_CREATED)
 
         # Validate service_request
         service = response.json()
@@ -134,20 +145,20 @@ class TestServiceRequestTestCase(APITestCase):
         aviso_info = ERPAviso().info(service_object.aviso_id)
         eq_(aviso_info.get('estado_aviso'), StateEnums.aviso.initial_status)
 
-        service_object.aviso_id = 514958 
+        service_object.aviso_id = 521659
         service_object.save()
 
         # Modify aviso to RACO
         state_data = {'state': StateEnums.aviso.requires_quote_approval}
         url = reverse(
             'create_aviso-detail',
-            kwargs={'pk': service_object.aviso_id}) 
-        response_aviso_to_raco = self.client.put(url, state_data) 
+            kwargs={'pk': service_object.aviso_id})
+        response_aviso_to_raco = self.client.put(url, state_data)
 
         # Validate response for change status
         eq_(response_aviso_to_raco.status_code, status.HTTP_200_OK)
         service_object = self.model.objects.get(pk=service.get('id'))
-        
+
         # Validate quotation
         ok_(service_object.quotation)
         ok_(service_object.quotation.file.__bool__())
@@ -160,7 +171,7 @@ class TestServiceRequestTestCase(APITestCase):
         # Validate ServiceRequest
         eq_(service_object.state.name,
             StateEnums.service_request.waith_valid_quotation)
-        
+
         # Validate Email
         email = mail.outbox[0]
         subject = Subjects.build_subject(
@@ -187,11 +198,11 @@ class TestServiceRequestTestCase(APITestCase):
 
         # Validate Quotation
         eq_(service_object.quotation.state.name, StateEnums.quotation.approved)
-        
+
         # Validate ServiceRequest
         eq_(service_object.state.name,
             StateEnums.service_request.approve_quotation)
-        
+
         # Modify aviso to RACE
         response_aviso_to_race = self.modify_aviso_to_race(service_object.aviso_id)
 
@@ -202,7 +213,7 @@ class TestServiceRequestTestCase(APITestCase):
         # Validate change ticket state
         ticket = HelpDeskTicket.get_specific_ticket(service_object.ticket_id)
         eq_(ticket.state.name, StateEnums.ticket.waiting_validate_work)
-        
+
         # Validate ServiceRequest
         eq_(service_object.state.name,
             StateEnums.service_request.waith_valid_work)
@@ -217,31 +228,33 @@ class TestServiceRequestTestCase(APITestCase):
         ok_(settings.DEFAULT_SOPORT_EMAIL in email.reply_to)
 
         # Approve work
-        response_aprove_quotation = self.approve_work(service_object.pk) 
+        response_aprove_quotation = self.approve_work(service_object.pk)
 
         # Validate response for change status
         eq_(response_aviso_to_race.status_code, status.HTTP_200_OK)
         service_object = self.model.objects.get(pk=service.get('id'))
-        
+
         # Validate ServiceRequest
         eq_(service_object.state.name,
             StateEnums.service_request.approved)
-        
+
         # Validate change ticket state
         ticket = HelpDeskTicket.get_specific_ticket(service_object.ticket_id)
         eq_(ticket.state.name, StateEnums.ticket.closed)
-        
+
         # Validate change status aviso
         aviso_info = ERPAviso().info(service_object.aviso_id)
         eq_(aviso_info.get('estado_aviso'), StateEnums.aviso.accepted_work)
-    
+
+    @override_settings(CELERY_ALWAYS_EAGER = True)
+    @skip('Avoid rate limit.')
     def test_client_reject_quotation(self):
         data = self.service_request_data()
 
         # Create service request
         self.client.force_authenticate(user=UserFactory())
         response = self.client.post(self.url, data, format='json')
-        eq_(response.status_code, status.HTTP_201_CREATED) 
+        eq_(response.status_code, status.HTTP_201_CREATED)
 
         service = response.json()
 
@@ -253,8 +266,8 @@ class TestServiceRequestTestCase(APITestCase):
         ok_(service.get('_property'))
 
         # Create aviso
-        response_aviso = self.create_aviso(service.get('id')) 
-        
+        response_aviso = self.create_aviso(service.get('id'))
+
         eq_(response_aviso.status_code, status.HTTP_201_CREATED)
         service_object = self.model.objects.get(pk=service.get('id'))
         ok_(service_object.aviso_id is not None)
@@ -263,16 +276,16 @@ class TestServiceRequestTestCase(APITestCase):
         aviso_info = ERPAviso().info(service_object.aviso_id)
         eq_(aviso_info.get('estado_aviso'), StateEnums.aviso.initial_status)
 
-        service_object.aviso_id = 514958 
+        service_object.aviso_id = 521659
         service_object.save()
 
         # Modify aviso to RACO
-        response_aviso_to_raco = self.modify_aviso_to_raco(service_object.aviso_id) 
+        response_aviso_to_raco = self.modify_aviso_to_raco(service_object.aviso_id)
 
         # Validate response for change status
         eq_(response_aviso_to_raco.status_code, status.HTTP_200_OK)
         service_object = self.model.objects.get(pk=service.get('id'))
-        
+
         # Validate quotation
         ok_(service_object.quotation)
         ok_(service_object.quotation.file.__bool__())
@@ -285,7 +298,7 @@ class TestServiceRequestTestCase(APITestCase):
         # Validate ServiceRequest
         eq_(service_object.state.name,
             StateEnums.service_request.waith_valid_quotation)
-        
+
         # Validate Email
         email = mail.outbox[0]
         subject = Subjects.build_subject(
@@ -297,7 +310,7 @@ class TestServiceRequestTestCase(APITestCase):
 
 
         # Reject quotation
-        response_reject_quotation = self.reject_quotation(service_object.pk) 
+        response_reject_quotation = self.reject_quotation(service_object.pk)
 
         # Validate response
         eq_(response_reject_quotation.status_code, status.HTTP_200_OK)
@@ -313,19 +326,20 @@ class TestServiceRequestTestCase(APITestCase):
 
         # Validate Quotation
         eq_(service_object.quotation.state.name, StateEnums.quotation.reject)
-        
+
         # Validate ServiceRequest
         eq_(service_object.state.name,
             StateEnums.service_request.reject_quotation)
 
-
+    @override_settings(CELERY_ALWAYS_EAGER = True)
+    @skip('Avoid rate limit.')
     def test_client_reject_work(self):
-        data = self.service_request_data() 
+        data = self.service_request_data()
 
         # Create service request
         self.client.force_authenticate(user=UserFactory())
         response = self.client.post(self.url, data, format='json')
-        eq_(response.status_code, status.HTTP_201_CREATED) 
+        eq_(response.status_code, status.HTTP_201_CREATED)
 
         service = response.json()
 
@@ -337,8 +351,8 @@ class TestServiceRequestTestCase(APITestCase):
         ok_(service.get('_property'))
 
         # Create aviso
-        response_aviso = self.create_aviso(service.get('id')) 
-        
+        response_aviso = self.create_aviso(service.get('id'))
+
         eq_(response_aviso.status_code, status.HTTP_201_CREATED)
         service_object = self.model.objects.get(pk=service.get('id'))
         ok_(service_object.aviso_id is not None)
@@ -347,7 +361,7 @@ class TestServiceRequestTestCase(APITestCase):
         aviso_info = ERPAviso().info(service_object.aviso_id)
         eq_(aviso_info.get('estado_aviso'), StateEnums.aviso.initial_status)
 
-        service_object.aviso_id = 514958 
+        service_object.aviso_id = 521659
         service_object.save()
 
         # Modify aviso to RACO
@@ -356,7 +370,7 @@ class TestServiceRequestTestCase(APITestCase):
         # Validate response for change status
         eq_(response_aviso_to_raco.status_code, status.HTTP_200_OK)
         service_object = self.model.objects.get(pk=service.get('id'))
-        
+
         # Validate quotation
         ok_(service_object.quotation)
         ok_(service_object.quotation.file.__bool__())
@@ -369,7 +383,7 @@ class TestServiceRequestTestCase(APITestCase):
         # Validate ServiceRequest
         eq_(service_object.state.name,
             StateEnums.service_request.waith_valid_quotation)
-        
+
         # Validate Email
         email = mail.outbox[0]
         subject = Subjects.build_subject(
@@ -380,7 +394,7 @@ class TestServiceRequestTestCase(APITestCase):
         ok_(settings.DEFAULT_SOPORT_EMAIL in email.reply_to)
 
         # Aprove quotation
-        response_aprove_quotation = self.approve_quotation(service_object.pk) 
+        response_aprove_quotation = self.approve_quotation(service_object.pk)
 
         # Validate response
         eq_(response_aprove_quotation.status_code, status.HTTP_200_OK)
@@ -396,11 +410,11 @@ class TestServiceRequestTestCase(APITestCase):
 
         # Validate Quotation
         eq_(service_object.quotation.state.name, StateEnums.quotation.approved)
-        
+
         # Validate ServiceRequest
         eq_(service_object.state.name,
             StateEnums.service_request.approve_quotation)
-        
+
         # Modify aviso to RACE
         response_aviso_to_race = self.modify_aviso_to_race(service_object.aviso_id)
 
@@ -411,7 +425,7 @@ class TestServiceRequestTestCase(APITestCase):
         # Validate change ticket state
         ticket = HelpDeskTicket.get_specific_ticket(service_object.ticket_id)
         eq_(ticket.state.name, StateEnums.ticket.waiting_validate_work)
-        
+
         # Validate ServiceRequest
         eq_(service_object.state.name,
             StateEnums.service_request.waith_valid_work)
@@ -431,11 +445,11 @@ class TestServiceRequestTestCase(APITestCase):
         # Validate response for change status
         eq_(response_aviso_to_race.status_code, status.HTTP_200_OK)
         service_object = self.model.objects.get(pk=service.get('id'))
-        
+
         # Validate change ticket state
         ticket = HelpDeskTicket.get_specific_ticket(service_object.ticket_id)
         eq_(ticket.state.name, StateEnums.ticket.reject_work)
-        
+
         # Validate change status aviso
         # aviso_info = ERPAviso().info(service_object.aviso_id)
         # eq_(aviso_info.get('estado_aviso'), StateEnums.aviso.reject_work)
@@ -444,7 +458,7 @@ class TestServiceRequestTestCase(APITestCase):
         email = mail.outbox[2]
         subject = Subjects.build_subject(
             Subjects.reject_work, ticket.ticket_number)
-        aviso = ERPAviso(aviso=service_object.aviso_id) 
+        aviso = ERPAviso(aviso=service_object.aviso_id)
         eq_(email.subject, subject)
         ok_(aviso.responsable.correo in email.to)
         ok_(settings.DEFAULT_SOPORT_EMAIL in email.cc)
@@ -453,7 +467,9 @@ class TestServiceRequestTestCase(APITestCase):
         # Validate ServiceRequest
         eq_(service_object.state.name,
             StateEnums.service_request.reject_work)
-    
+
+    @override_settings(CELERY_ALWAYS_EAGER = True)
+    @skip('Avoid rate limit.')
     def test_create_service_request_for_faveo(self):
         # Login
         self.client.force_authenticate(user=UserFactory())
@@ -467,7 +483,7 @@ class TestServiceRequestTestCase(APITestCase):
         # Create user on Faveo
         helpdesk_user = HelpDesk.user.create_user(
             user.email, user.first_name, user.last_name)
-        
+
         # Create mutiple services
         for i in range(10):
             ServiceFactory(name=f'TEST {i}')
@@ -487,9 +503,10 @@ class TestServiceRequestTestCase(APITestCase):
         priority = HelpDesk.prioritys.objects.get_by_name('Normal')
         topic = HelpDesk.topics.objects.get_by_name(
             service_response.json().get('name'))
+        department = HelpDesk.departments.objects.get_by_name('Informatica y Comunicaciones')
         ticket = helpdesk_user.ticket.create(
         "Solicitud: Test de integracion", 'Prueba de Faveo a Integra',
-        priority, topic)
+        priority, topic, department)
         ok_(hasattr(ticket, 'ticket_id'))
 
         # Search User by email
@@ -549,10 +566,10 @@ class TestServiceRequestTestCase(APITestCase):
 
 
         # Create service request
-        url_faveo = reverse("%s-list" % self.base_name) + 'faveo/' 
+        url_faveo = reverse("%s-list" % self.base_name) + 'faveo/'
         self.client.force_authenticate(user=UserFactory())
         response = self.client.post(url_faveo, data, format='json')
-        eq_(response.status_code, status.HTTP_201_CREATED) 
+        eq_(response.status_code, status.HTTP_201_CREATED)
         service = response.json()
 
         # Validation
