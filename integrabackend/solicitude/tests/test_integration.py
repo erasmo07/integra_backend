@@ -23,7 +23,7 @@ from ...users.test.factories import UserFactory
 from integrabackend.resident.test.factories import (
     PropertyFactory, PropertyTypeFactory, ResidentFactory, ProjectFactory,
     DepartmentFactory, AreaFactory, OrganizationFactory)
-from unittest import skip
+from nose.tools import nottest
 
 
 class TestServiceRequestTestCase(APITestCase):
@@ -115,6 +115,7 @@ class TestServiceRequestTestCase(APITestCase):
         url_approve = url_detail + 'reject-work/'
         return self.client.post(url_approve, {})
 
+    @nottest
     @override_settings(CELERY_ALWAYS_EAGER = True)
     def test_good_path(self):
         # Create service request
@@ -245,6 +246,7 @@ class TestServiceRequestTestCase(APITestCase):
         aviso_info = ERPAviso().info(service_object.aviso_id)
         eq_(aviso_info.get('estado_aviso'), StateEnums.aviso.accepted_work)
 
+    @nottest
     @override_settings(CELERY_ALWAYS_EAGER = True)
     def test_client_reject_quotation(self):
         data = self.service_request_data()
@@ -329,7 +331,7 @@ class TestServiceRequestTestCase(APITestCase):
         eq_(service_object.state.name,
             StateEnums.service_request.reject_quotation)
 
-
+    @nottest
     @override_settings(CELERY_ALWAYS_EAGER = True)
     def test_client_reject_work(self):
         data = self.service_request_data()
@@ -465,6 +467,7 @@ class TestServiceRequestTestCase(APITestCase):
         # Validate ServiceRequest
         eq_(service_object.state.name,
             StateEnums.service_request.reject_work)
+    @nottest
 
     @override_settings(CELERY_ALWAYS_EAGER = True)
     def test_create_service_request_for_faveo(self):
