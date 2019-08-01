@@ -9,6 +9,9 @@ dev:
 test: 
 	docker-compose run --rm web python manage.py test
 
+test_integracion: 
+	docker-compose run --rm web python manage.py test integrabackend.solicitude.tests.test_integration.TestServiceRequestTestCase
+
 migrations: 
 	docker-compose run --rm web python manage.py makemigrations 
 	docker-compose run --rm web python manage.py migrate 
