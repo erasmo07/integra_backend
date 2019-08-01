@@ -3,6 +3,9 @@ help:
 	@echo "  migrations        	run makemigrations and migrate"
 	@echo "  runserver        	run a develop server"
 
+dev:
+	docker-compose run -p 8000:8000 --rm web python manage.py runserver 0.0.0.0:8000
+
 test: 
 	docker-compose run --rm web python manage.py test
 
