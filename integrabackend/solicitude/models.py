@@ -34,6 +34,9 @@ class Service(models.Model):
     def __unicode__(self):
         return self.nane
 
+    class Meta:
+        ordering = ('name',)
+
 
 class State(models.Model):
     id = models.UUIDField(

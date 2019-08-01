@@ -24,7 +24,7 @@ services:
     build: .
     command: "python manage.py celery  worker -l info"
     environment:
-      - DATABASE_URL=mysql://root:@172.20.10.2/integra_backend
+      - DATABASE_URL=mysql://integra_backend:@172.30.16.181/integra_backend
     links:
       - redis
     volumes:
@@ -69,7 +69,7 @@ services:
     expose:
       - 8000
     environment:
-      - DATABASE_URL=mysql://root:@172.30.16.124/integra_backend
+      - DATABASE_URL=mysql://integra_backend:@172.30.16.181/integra_backend
     depends_on:
       - celery_worker
       - celery_beat

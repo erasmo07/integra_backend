@@ -4,13 +4,14 @@ ENV DJANGO_SECRET_KEY=local
 
 ENV FAVEO_USERNAME=admin
 ENV FAVEO_PASSWORD=Nomelose123
-ENV FAVEO_BASE_URL=http://faveo.grupopuntacana.com:81/
+ENV FAVEO_BASE_URL=http://faveotest.grupopuntacana.com/
 
-ENV FAVEO_DB_BASE_URL=http://87.4.5.140:5002/
+ENV FAVEO_DB_BASE_URL=http://172.30.16.181:5002/
 
 ENV SAP_USERNAME=dchot
 ENV SAP_PASSWORD=1234567
 ENV SAP_BASE_URL=http://athena.grupopuntacana.com:8000/
+ENV SAP_AUTHENTICATION_URL=/api_portal_clie/info_aviso?sap-client=300
 ENV SAP_CLIENT=300
 
 ENV HERMES_UID=18297613965
@@ -30,4 +31,4 @@ EXPOSE 8000
 # Migrates the database, uploads staticfiles, and runs the production server
 CMD ./manage.py migrate && \
     ./manage.py collectstatic --noinput && \
-    newrelic-admin run-program gunicorn --bind 0.0.0.0:8000 --access-logfile - integrabackend.wsgi:application
+    newrelic-admin run-program gunicorn --workers 4 --bind 0.0.0.0:8000 --timeout=120 --access-logfile - integrabackend.wsgi:application
