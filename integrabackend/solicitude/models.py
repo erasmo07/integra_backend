@@ -40,6 +40,9 @@ class Service(models.Model):
     def __unicode__(self):
         return self.nane
 
+    class Meta:
+        ordering = ('name',)
+
 
 class State(models.Model):
     id = models.UUIDField(
@@ -129,6 +132,10 @@ class Day(models.Model):
     day_type = models.ForeignKey(
         'solicitude.DayType',
         on_delete=models.PROTECT)
+    order = models.IntegerField(blank=True, null=True)
+
+    class Meta:
+        ordering = ('order',)
 
 
 class DayType(models.Model):
