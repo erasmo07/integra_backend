@@ -10,7 +10,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from .models import Service, ServiceRequest, State, Day
 from .paginates import ServiceRequestPaginate
 from .serializers import (
-    ServiceSerializer, StateSerializer,
+    ServiceSerializer, ServiceEnSerializer, StateSerializer,
     ServiceRequestSerializer, ServiceRequestDetailSerializer,
     DaySerializer, ServiceRequestFaveo)
 from .enums import StateEnums
@@ -35,7 +35,11 @@ class ServiceViewSet(viewsets.ModelViewSet):
     List type service
     """
     queryset = Service.objects.all()
-    serializer_class = ServiceSerializer
+
+    def get_serializer_class(self):
+        serializer_language = dict(en=ServiceEnSerializer)
+        language = self.request.META.get('HTTP_ACCEPT_LANGUAGE') 
+        return serializer_language.get(language, ServiceSerializer)
 
     def get_queryset(self):
         _property = self.request.query_params.get('property', None)

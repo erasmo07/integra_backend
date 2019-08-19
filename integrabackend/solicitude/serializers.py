@@ -11,10 +11,15 @@ class ServiceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Service
-        fields = (
-            'id', 'name', 'scheduled',
-            'generates_invoice', 'requires_approval', 'sap_code_service')
         read_only_fields = ('id', )
+        exclude = ['en_name']
+
+
+class ServiceEnSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(source='en_name')
+    
+    class Meta(ServiceSerializer.Meta):
+        pass
 
 
 class StateSerializer(serializers.ModelSerializer):
