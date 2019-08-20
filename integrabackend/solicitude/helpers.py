@@ -13,6 +13,18 @@ class ServiceRequestHasAviso(Exception):
     pass
 
 
+def generate_note(service_request):
+    days = [day.name
+            for day in service_request.date_service_request.day.all()]
+    days_string = ', '.join(days) 
+    checking = str(service_request.date_service_request.checking)
+    checkout = str(service_request.date_service_request.checkout)
+    hours = "Hora " + ", ".join([checking, checkout])
+    header = "<b>El servicio se debe entregar los dias: </b>"
+    note = f"{header} \n {days_string} \n {hours}"
+    return note
+
+
 def create_service_request(instance, helpdesk_class=HelpDesk):
     """ Function Docstring """
     helpdesk_user = helpdesk_class.user.create_user(
@@ -30,7 +42,8 @@ def create_service_request(instance, helpdesk_class=HelpDesk):
 
     ticket = helpdesk_user.ticket.create(
         f"Solicitud: {instance.service.name}",
-        instance.note, priority, topic, department)
+        f"{instance.note} \n\n\n {generate_note(instance)}",
+        priority, topic, department)
 
     instance.ticket_id = ticket.ticket_id
     instance.save()
