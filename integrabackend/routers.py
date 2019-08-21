@@ -36,3 +36,4 @@ router.register(r'aviso', AvisoViewSet, base_name='create_aviso')
 
 # PROXYS
 router.register(r'client-info', proxys.ClientInfoViewSet, base_name='client_info')
+router.register(r'search-client', proxys.SearchClientViewSet, base_name='search_client')
