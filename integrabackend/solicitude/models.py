@@ -24,6 +24,8 @@ class Service(models.Model):
         editable=False)
 
     name = models.CharField(max_length=255)
+    generate_aviso = models.BooleanField(
+        "Generar automaticamente aviso", default=False)
     generates_invoice = models.BooleanField(default=False)
     requires_approval = models.BooleanField(default=False)
     sap_code_service = models.CharField(max_length=50)

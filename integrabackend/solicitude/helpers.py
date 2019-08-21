@@ -34,6 +34,9 @@ def create_service_request(instance, helpdesk_class=HelpDesk):
 
     instance.ticket_id = ticket.ticket_id
     instance.save()
+
+    if instance.service.generate_aviso:
+        process_to_create_aviso(instance)
     return instance
 
 
