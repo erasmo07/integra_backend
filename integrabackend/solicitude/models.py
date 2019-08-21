@@ -22,11 +22,17 @@ class Service(models.Model):
         primary_key=True,
         default=uuid.uuid4,
         editable=False)
+
     name = models.CharField(max_length=255)
     generates_invoice = models.BooleanField(default=False)
     requires_approval = models.BooleanField(default=False)
     sap_code_service = models.CharField(max_length=50)
     scheduled = models.BooleanField(default=True)
+
+    # Translation - ENGLISH
+    en_name = models.CharField(
+        "Name in english",
+        max_length=255, null=True, blank=True)
 
     def __str__(self):
         return self.name
