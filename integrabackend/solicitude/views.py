@@ -140,6 +140,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
 
 class AvisoViewSet(viewsets.ViewSet):
     model = ServiceRequest
+    states = StateEnums.aviso
 
     def create(self, request):
         ticket_id = get_value_or_404(
@@ -167,17 +168,23 @@ class AvisoViewSet(viewsets.ViewSet):
                 status.HTTP_404_NOT_FOUND)
 
     def update(self, request, pk=None):
-        state = get_value_or_404(request.data, 'state', 'Not set state')
-        if state == StateEnums.aviso.requires_quote_approval:
-            service_request = get_object_or_404(self.model, aviso_id=pk)
+        service_request = get_object_or_404(self.model, aviso_id=pk)
+
+        if 'client' in request.data:
             try:
-                helpers.client_valid_quotation(service_request)
-            except NotHasOrder as error:
-                return Response(
-                    {'error': str(error)},
-                    status.HTTP_404_NOT_FOUND)
-        
-        if state == StateEnums.aviso.requires_acceptance_closing:
-            service_request = get_object_or_404(self.model, aviso_id=pk)
-            helpers.client_valid_work(service_request)
-        return Response({'success': 'ok'}, status.HTTP_200_OK)
+                client = request.data.get('client')
+                helpers.change_aviso_client(pk, client)
+                return Response({'success': 'ok'}, status.HTTP_200_OK)
+            except Exception as exception:
+                body = {'error': str(exception)}
+                return Response(body, status.HTTP_404_NOT_FOUND)
+
+        action = {
+            self.states.requires_quote_approval: helpers.client_valid_quotation,
+            self.states.requires_acceptance_closing: helpers.client_valid_work}
+        state = get_value_or_404(request.data, 'state', 'Not set state')
+        try:
+            action.get(state)(service_request)
+            return Response({'success': 'ok'}, status.HTTP_200_OK)
+        except NotHasOrder as error:
+            return Response({'error': str(error)}, status.HTTP_404_NOT_FOUND)

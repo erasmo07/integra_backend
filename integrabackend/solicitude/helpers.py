@@ -362,3 +362,7 @@ def reject_work(
 
     for function in functions_deps:
         function(service_request)
+
+
+def change_aviso_client(aviso, client_code, aviso_class=ERPAviso):
+    return aviso_class.update_client(aviso, client_code)
