@@ -177,7 +177,7 @@ class AvisoViewSet(viewsets.ViewSet):
                 return Response({'success': 'ok'}, status.HTTP_200_OK)
             except Exception as exception:
                 body = {'error': str(exception)}
-                return Response(body, status.HTTP_404_NOT_FOUND)
+                return Response(body, status.HTTP_400_BAD_REQUEST)
 
         action = {
             self.states.requires_quote_approval: helpers.client_valid_quotation,
