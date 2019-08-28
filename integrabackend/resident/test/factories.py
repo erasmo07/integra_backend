@@ -49,17 +49,6 @@ class PropertyTypeFactory(factory.django.DjangoModelFactory):
         model = 'resident.PropertyType'
 
 
-class PropertyFactory(factory.django.DjangoModelFactory):
-    id_sap = "".join([str(random.randint(1, 9)) for _ in range(10)]) 
-    name = factory.Sequence(lambda n: f'testuser{n}')
-    address = factory.Sequence(lambda n: f'testuser{n}')
-    street = factory.Sequence(lambda n: f'testuser{n}')
-    number = "".join([str(random.randint(1, 9)) for _ in range(5)]) 
-
-    class Meta:
-        model = 'resident.Property'
-
-
 class OrganizationFactory(factory.django.DjangoModelFactory):
     name = factory.Sequence(lambda n: f'testuser{n}')
     email = factory.Faker('email')
@@ -72,17 +61,11 @@ class OrganizationFactory(factory.django.DjangoModelFactory):
 class AreaFactory(factory.django.DjangoModelFactory):
     id_sap = "".join([str(random.randint(1, 9)) for _ in range(10)]) 
     name = factory.Sequence(lambda n: f'testuser{n}')
+    organization = factory.SubFactory(OrganizationFactory)
     
     class Meta:
         model = 'resident.Area'
 
-
-class ProjectFactory(factory.django.DjangoModelFactory):
-    id_sap = "".join([str(random.randint(1, 9)) for _ in range(10)]) 
-    name = factory.Sequence(lambda n: f'testuser{n}')
-    
-    class Meta:
-        model = 'resident.Project'
 
 class DepartmentFactory(factory.django.DjangoModelFactory):
     email = factory.Faker('email')
@@ -93,7 +76,30 @@ class DepartmentFactory(factory.django.DjangoModelFactory):
         model = 'resident.Department'
 
 
+class ProjectFactory(factory.django.DjangoModelFactory):
+    id_sap = "".join([str(random.randint(1, 9)) for _ in range(10)]) 
+    name = factory.Sequence(lambda n: f'testuser{n}')
+    area = factory.SubFactory(AreaFactory)
+    department = factory.SubFactory(DepartmentFactory)
+    
+    class Meta:
+        model = 'resident.Project'
+
+
 class ProjectServiceFactory(factory.django.DjangoModelFactory):
 
     class Meta:
         model = 'resident.ProjectService'
+
+
+class PropertyFactory(factory.django.DjangoModelFactory):
+    id_sap = "".join([str(random.randint(1, 9)) for _ in range(10)]) 
+    name = factory.Sequence(lambda n: f'testuser{n}')
+    address = factory.Sequence(lambda n: f'testuser{n}')
+    street = factory.Sequence(lambda n: f'testuser{n}')
+    number = "".join([str(random.randint(1, 9)) for _ in range(5)]) 
+    property_type = factory.SubFactory(PropertyTypeFactory) 
+    project = factory.SubFactory(ProjectFactory)
+
+    class Meta:
+        model = 'resident.Property'

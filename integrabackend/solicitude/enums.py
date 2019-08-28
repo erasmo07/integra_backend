@@ -12,6 +12,7 @@ class StateSolicitudeServiceEnums:
     reject_quotation = 'Cotizacion rechazada'
     reject_work = "Trabajo Rechazado"
     approved = 'Cerrado'
+    closed = 'Cerrado'
 
     @property
     def limit_choice(self):
@@ -29,6 +30,7 @@ class AvisoEnums:
 
 
 class TicketStatusenums:
+    open = 'Abierto'
     aprove_quotation = 'Cotiz aprobada cli'
     reject_quotation = 'Cotiz rechazada cli'
     reject_work = 'Trabajo rechaz cli'
