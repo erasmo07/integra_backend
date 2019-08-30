@@ -30,8 +30,8 @@ class FaveoWebHookView(viewsets.ViewSet):
         ticket.change_state(ticket_state_close)
 
         user = self.helpdesk_user_class.get('aplicaciones@puntacana.com')
-        note = f"No se puede cerrar este ticket '\
-                'sin antes cerrar el aviso número {service_request.aviso_id}"
+        note = 'No se puede cerrar este ticket '\
+               'sin antes cerrar el aviso número {}'.format(service_request.aviso_id)
         ticket.add_note(note, user)
 
     def closed_service_request(self, service_request):
