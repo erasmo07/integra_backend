@@ -30,7 +30,7 @@ class AvisoEnums:
 
 
 class TicketStatusenums:
-    open = 'Abierto'
+    open = 'Open'
     aprove_quotation = 'Cotiz aprobada cli'
     reject_quotation = 'Cotiz rechazada cli'
     reject_work = 'Trabajo rechaz cli'
