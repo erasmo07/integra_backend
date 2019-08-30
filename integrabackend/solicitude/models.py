@@ -96,6 +96,15 @@ class ServiceRequest(models.Model):
         except Exception:
             return ''
 
+    @property
+    def ticket(self):
+        if not self.ticket_id:
+            return
+        try:
+            return HelpDeskTicket.get_specific_ticket(self.ticket_id)
+        except Exception:
+            return
+
 
 class Quotation(models.Model):
     id = models.UUIDField(

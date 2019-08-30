@@ -7,6 +7,7 @@ from .solicitude.views import (
     ServiceViewSet, StateSolicitudeServiceViewSet,
     ServiceRequestViewSet, DayViewSet, AvisoViewSet)
 from . import proxys
+from .webhook import views as webhooks 
 
 
 router = DefaultRouter()
@@ -37,3 +38,7 @@ router.register(r'aviso', AvisoViewSet, base_name='create_aviso')
 # PROXYS
 router.register(r'client-info', proxys.ClientInfoViewSet, base_name='client_info')
 router.register(r'search-client', proxys.SearchClientViewSet, base_name='search_client')
+
+# WEBHOOK
+router.register(
+    r'faveo-webhook', webhooks.FaveoWebHookView, base_name="faveo_webhook")
