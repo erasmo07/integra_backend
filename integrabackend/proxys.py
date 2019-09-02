@@ -63,3 +63,20 @@ class SearchClientViewSet(viewsets.ViewSet):
             response = Response({'message': str(error)}) 
             response.status_code = 404
             return response
+
+
+class ClientHasCreditViewSet(viewsets.ViewSet):
+    filter_backends = (SearchClientFilter, )
+    
+    def list(self, request, format=None):
+        params = request.query_params.dict()
+        try:
+            kwargs = {
+                'client_code': params.get('code')
+            }
+            erp_client = ERPClient(**kwargs)
+            return Response(erp_client.has_credit()) 
+        except Exception as error:
+            response = Response({'message': str(error)}) 
+            response.status_code = 400
+            return response
