@@ -42,11 +42,11 @@ class ServiceRequestTest(APITestCase):
     @tag('integration')
     def test_create_service_request_resident_has_credit(self):
         """ Permision class check for the resident has credit, based
-        on the sap_customer, '2935' has credit """
+        on the sap_customer, '4259' has credit """
         # Arrange
         user = UserFactory.create()
         ResidentFactory(
-            user=user, sap_customer=2935)
+            user=user, sap_customer=4259)
         service_request = self.get_service_request(
             user, self._property, self.date_service_request)
         data = model_to_dict(service_request)

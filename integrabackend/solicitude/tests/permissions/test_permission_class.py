@@ -23,7 +23,7 @@ class HasCreditPermissionTest(TestCase):
     @tag('integration')
     def test_permission_class_returns_true_if_resident_has_credit(self):
         # Arrange
-        request = self.get_request(2935)
+        request = self.get_request(4259)
 
         # Act and Assert
         self.assertTrue(self.permission.has_permission(request, self.view))
@@ -43,7 +43,7 @@ class HasCreditPermissionTest(TestCase):
         mock_has_credit.return_value = {
             "puede_consumir": True
         }
-        request = self.get_request(2935)
+        request = self.get_request(4259)
 
         # Act and Assert
         self.assertTrue(self.permission.has_permission(request, self.view))
@@ -55,7 +55,7 @@ class HasCreditPermissionTest(TestCase):
         mock_has_credit.return_value = {
             "puede_consumir": False
         }
-        request = self.get_request(2935)
+        request = self.get_request(4259)
 
         # Act and Assert
         self.assertFalse(self.permission.has_permission(request, self.view))
