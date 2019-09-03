@@ -7,6 +7,9 @@ class HasCreditPermission(permissions.BasePermission):
     message = 'Your credit status do not allow you to create new service requests.'
 
     def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
         try:
             resident = request.user.resident
             kwargs = {
