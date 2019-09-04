@@ -5,6 +5,7 @@ from django.forms.models import model_to_dict
 from django.core import mail
 from faker import Faker
 from rest_framework import status
+from django.test import TestCase
 from rest_framework.test import APITestCase
 from nose.tools import eq_, ok_
 
@@ -14,7 +15,10 @@ from .factories import (
     QuotationFactory)
 from ..enums import StateEnums
 from ...users.test.factories import UserFactory, GroupFactory
-from ...resident.test.factories import PropertyFactory, PropertyTypeFactory
+from ...resident.test.factories import (
+    ResidentFactory, PropertyFactory, PropertyTypeFactory)
+from django.test import tag
+from ..permissions import HasCreditPermission
 
 
 faker = Faker()
@@ -267,3 +271,41 @@ class TestAvisoTestCase(APITestCase):
 
         eq_(response.status_code, status.HTTP_200_OK)
         ok_(response.json().get('success'))
+
+
+class HasCreditPermissionTest(TestCase):
+
+    def setUp(self):
+        self.permission = HasCreditPermission()
+        self.view = MagicMock()
+
+    def get_request(self, sap_customer):
+        user = UserFactory.create()
+        ResidentFactory(
+            user=user, sap_customer=sap_customer)
+        request = MagicMock(user=user)
+        return request
+
+    @tag('unit')
+    @patch('partenon.ERP.ERPClient.has_credit')
+    def test_permission_class_returns_true_if_resident_has_credit_unit(self, mock_has_credit):
+        # Arrange
+        mock_has_credit.return_value = {
+            "puede_consumir": True
+        }
+        request = self.get_request(4259)
+
+        # Act and Assert
+        self.assertTrue(self.permission.has_permission(request, self.view))
+
+    @tag('unit')
+    @patch('partenon.ERP.ERPClient.has_credit')
+    def test_permission_class_returns_false_if_resident_has_no_credit_unit(self, mock_has_credit):
+        # Arrange
+        mock_has_credit.return_value = {
+            "puede_consumir": False
+        }
+        request = self.get_request(4259)
+
+        # Act and Assert
+        self.assertFalse(self.permission.has_permission(request, self.view))

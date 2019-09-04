@@ -1,6 +1,7 @@
 import time
 from nose.tools import eq_, ok_
 
+from django.test import TestCase
 from rest_framework.test import APITestCase
 from django.test import override_settings
 from rest_framework import status
@@ -24,6 +25,9 @@ from integrabackend.resident.test.factories import (
     PropertyFactory, PropertyTypeFactory, ResidentFactory, ProjectFactory,
     DepartmentFactory, AreaFactory, OrganizationFactory)
 from unittest import skip
+from django.test import tag
+from mock import patch, MagicMock
+from ..permissions import HasCreditPermission
 
 
 class TestServiceRequestTestCase(APITestCase):
@@ -581,3 +585,159 @@ class TestServiceRequestTestCase(APITestCase):
         eq_(service.get('ticket_id'), ticket.ticket_id)
         eq_(service.get('service'), data.get('service'))
         eq_(service.get('user'), str(user.id))
+
+
+class ServiceRequestTest(APITestCase):
+
+    def setUp(self):
+        self.model = ServiceRequestFactory._meta.model
+        self.factory = ServiceRequestFactory
+        self.base_name = 'servicerequest'
+        self.url = reverse('%s-list' % self.base_name)
+        self.client.force_authenticate(user=UserFactory.build())
+
+        self._property = PropertyFactory(
+            property_type=PropertyTypeFactory.create())
+        self.date_service_request = DateServiceRequestFactory()
+        self.day_type = DayTypeFactory()
+        self.day = DayFactory(day_type=self.day_type)
+
+    def tearDown(self):
+        pass
+
+    def get_service_request(self, user, _property, date_service_request):
+        service_request = ServiceRequestFactory(
+            service=ServiceFactory.create(),
+            state=StateFactory.create(),
+            user=user, _property=_property,
+            date_service_request=date_service_request)
+        return service_request
+
+    @tag('integration')
+    def test_create_service_request_resident_has_credit(self):
+        """ Permision class check for the resident has credit, based
+        on the sap_customer, '4259' has credit """
+        # Arrange
+        user = UserFactory.create()
+        ResidentFactory(
+            user=user, sap_customer=4259)
+        service_request = self.get_service_request(
+            user, self._property, self.date_service_request)
+        data = model_to_dict(service_request)
+        data.pop('user')
+        data['_property'] = str(self._property.id)
+        data['date_service_request'] = model_to_dict(self.date_service_request)
+        data['date_service_request']['day'] = [self.day.id]
+        self.client.force_authenticate(user=user)
+
+        # Act
+        response = self.client.post(self.url, data, format='json')
+
+        # Assert
+        eq_(response.status_code, status.HTTP_201_CREATED)
+        service = response.json()
+        ok_(service.get('id'))
+        eq_(service.get('service'), service_request.service.pk)
+        eq_(service.get('note'), service_request.note)
+        eq_(service.get('phone'), service_request.phone)
+        eq_(service.get('email'), service_request.email)
+        eq_(service.get('_property'), str(service_request._property.pk))
+
+    @tag('integration')
+    def test_create_service_request_resident_has_not_credit(self):
+        """ Permision class check for the resident has credit, based
+        on the sap_customer, '4635' has credit """
+        # Arrange
+        user = UserFactory.create()
+        ResidentFactory(
+            user=user, sap_customer=4635)
+        service_request = self.get_service_request(
+            user, self._property, self.date_service_request)
+        data = model_to_dict(service_request)
+        data.pop('user')
+        data['_property'] = str(self._property.id)
+        data['date_service_request'] = model_to_dict(self.date_service_request)
+        data['date_service_request']['day'] = [self.day.id]
+        self.client.force_authenticate(user=user)
+
+        # Act
+        response = self.client.post(self.url, data, format='json')
+
+        # Assert
+        eq_(response.status_code, status.HTTP_403_FORBIDDEN)
+        error = response.json()
+        eq_(error.get('detail'),
+            'Your credit status do not allow you to '
+            'create new service requests.')
+
+
+class ResidentHasCreditTest(APITestCase):
+
+    def setUp(self):
+        self.base_name = 'client_has_credit'
+        self.url = reverse('%s-list' % self.base_name)
+
+        self.client.force_authenticate(user=UserFactory.build())
+
+    def tearDown(self):
+        pass
+
+    @tag('integration')
+    def test_check_a_resident_has_credit(self):
+        # Arrange
+        url = self.url + '?code=4259'
+        expected = {
+            "puede_consumir": True
+        }
+
+        # Act
+        response = self.client.get(url)
+
+        # Assert
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json(), expected)
+
+    @tag('integration')
+    def test_check_a_resident_has_not_credit(self):
+        # Arrange
+        url = self.url + '?code=4635'
+        expected = {
+            "puede_consumir": False
+        }
+
+        # Act
+        response = self.client.get(url)
+
+        # Assert
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json(), expected)
+
+
+class HasCreditPermissionTest(TestCase):
+
+    def setUp(self):
+        self.permission = HasCreditPermission()
+        self.view = MagicMock()
+
+    def get_request(self, sap_customer):
+        user = UserFactory.create()
+        ResidentFactory(
+            user=user, sap_customer=sap_customer)
+        request = MagicMock(user=user)
+        return request
+
+    @tag('integration')
+    def test_permission_class_returns_true_if_resident_has_credit(self):
+        # Arrange
+        request = self.get_request(4259)
+
+        # Act and Assert
+        self.assertTrue(self.permission.has_permission(request, self.view))
+
+    @tag('integration')
+    def test_permission_class_returns_false_if_resident_has_not_credit(self):
+        # Arrange
+        request = self.get_request(4635)
+
+        # Act and Assert
+        self.assertFalse(self.permission.has_permission(request, self.view))
