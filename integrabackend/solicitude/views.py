@@ -17,6 +17,7 @@ from .enums import StateEnums
 from . import helpers, tasks
 from partenon.ERP import ERPAviso
 from partenon.ERP.exceptions import NotHasOrder
+from .permissions import HasCreditPermission
 
 
 class Http500(APIException):
@@ -78,6 +79,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
     filter_backends = (DjangoFilterBackend,)
     ordering = ('-creation_date',)
     filter_fields = ('ticket_id',)
+    permission_classes = (HasCreditPermission, )
 
     def get_queryset(self):
         queryset = super(ServiceRequestViewSet, self).get_queryset()
