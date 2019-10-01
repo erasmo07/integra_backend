@@ -6,8 +6,8 @@ from .invitation.views import InvitationViewSet, TypeInvitationViewSet
 from .solicitude.views import (
     ServiceViewSet, StateSolicitudeServiceViewSet,
     ServiceRequestViewSet, DayViewSet, AvisoViewSet)
-from . import proxys
-from .webhook import views as webhooks 
+from .proxys import views as proxys
+from .webhook import views as webhooks
 
 
 router = DefaultRouter()
@@ -36,12 +36,12 @@ router.register(r'day', DayViewSet)
 router.register(r'aviso', AvisoViewSet, base_name='create_aviso')
 
 # PROXYS
-router.register(r'client-info', proxys.ClientInfoViewSet, base_name='client_info')
 router.register(r'search-client', proxys.SearchClientViewSet, base_name='search_client')
-router.register(
-    r'client-has-credit',
-    proxys.ClientHasCreditViewSet,
-    base_name='client_has_credit')
+router.register(r'client-info', proxys.ClientInfoViewSet, base_name='client_info')
+router.register(r'client-has-credit', proxys.ClientHasCreditViewSet, base_name='client_has_credit')
+router.register(r'client-emails', proxys.ClientAddEmailViewSet, base_name='client-email')
+
+router.register(r'sap/resident', proxys.ERPResidentsViewSet, base_name='residents')
 
 # WEBHOOK
 router.register(

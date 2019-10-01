@@ -1,24 +1,12 @@
-import coreapi
-import coreschema
 from rest_framework import viewsets
 from rest_framework.response import Response
-from rest_framework.filters import BaseFilterBackend 
-from partenon.ERP import ERPClient
-
-
-class ClientInfoFilter(BaseFilterBackend):
-    
-    def get_schema_fields(self, view):
-        client = coreapi.Field(
-            name='client',
-            location='query',
-            required=True,
-            type='number')
-        return [client]
+from integrabackend.solicitude.views import get_value_or_404
+from integrabackend.proxys import filters
+from partenon.ERP import ERPClient, ERPResidents
 
 
 class ClientInfoViewSet(viewsets.ViewSet):
-    filter_backends = (ClientInfoFilter, )
+    filter_backends = (filters.ClientInfoFilter, )
     
     def list(self, request, format=None):
         params = request.query_params.dict()
@@ -32,24 +20,8 @@ class ClientInfoViewSet(viewsets.ViewSet):
             return response
 
 
-class SearchClientFilter(BaseFilterBackend):
-    
-    def get_schema_fields(self, view):
-        client = coreapi.Field(
-            name='code',
-            location='query',
-            required=True,
-            type='number')
-        name = coreapi.Field(
-            name='name',
-            location='query',
-            required=True,
-            type='string')
-        return [client, name]
-
-
 class SearchClientViewSet(viewsets.ViewSet):
-    filter_backends = (SearchClientFilter, )
+    filter_backends = (filters.SearchClientFilter, )
     
     def list(self, request, format=None):
         params = request.query_params.dict()
@@ -66,17 +38,40 @@ class SearchClientViewSet(viewsets.ViewSet):
 
 
 class ClientHasCreditViewSet(viewsets.ViewSet):
-    filter_backends = (SearchClientFilter, )
+    filter_backends = (filters.SearchClientFilter, )
     
     def list(self, request, format=None):
         params = request.query_params.dict()
         try:
-            kwargs = {
-                'client_code': params.get('code')
-            }
+            kwargs = {'client_code': params.get('code')}
             erp_client = ERPClient(**kwargs)
             return Response(erp_client.has_credit()) 
         except Exception as error:
             response = Response({'message': str(error)}) 
             response.status_code = 400
             return response
+
+
+class ClientAddEmailViewSet(viewsets.ViewSet):
+
+    def create(self, request, *args, **kwargs):
+        email = get_value_or_404(
+            self.request.data,'email', 'Not send email')
+        client_code = get_value_or_404(
+            self.request.data, 'client_code', 'Not send client_code')
+
+        erp_client = ERPClient(**{'code': client_code})
+        return Response(erp_client.add_email(email)) 
+
+
+class ERPResidentsViewSet(viewsets.ViewSet):
+    filter_backends = (filters.ERPResidentsFilter, )
+    erp_entity_class = ERPResidents
+
+    def list(self, request, format=None):
+        params = request.query_params.dict()
+        kwargs = {
+            "client_sap": params.get('client_sap'),
+            "name": params.get('name')}
+        erp_resident = self.erp_entity_class(**kwargs)
+        return Response(erp_resident.search())
