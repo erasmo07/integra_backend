@@ -49,5 +49,5 @@ boto3==1.9.4
 whitenoise==4.1.2
 
 # Internal library
--e git+https://erasmo_montes@bitbucket.org/erasmo_montes/partenon.git#egg=partenon
--e git+https://erasmo_montes@bitbucket.org/erasmo_montes/oraculo.git#egg=oraculo
+-e git+https://erasmo_montes@bitbucket.org/grupopuntacana/partenon.git#egg=partenon
+-e git+https://erasmo_montes@bitbucket.org/grupopuntacana/oraculo.git#egg=oraculo
