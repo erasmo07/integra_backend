@@ -46,3 +46,8 @@ router.register(r'sap/resident', proxys.ERPResidentsViewSet, base_name='resident
 # WEBHOOK
 router.register(
     r'faveo-webhook', webhooks.FaveoWebHookView, base_name="faveo_webhook")
+
+router.register(
+    r'faveo/ticket/close/',
+    webhooks.FaveoTicketClose,
+    base_name="faveo_ticket_close")
