@@ -21,7 +21,7 @@ class SearchClientFilter(BaseFilterBackend):
         name = coreapi.Field(
             name='name', location='query',
             required=True, type='string')
-        return [client, name, client_sap]
+        return [client, name]
 
 
 class ERPResidentsFilter(BaseFilterBackend):
@@ -34,3 +34,12 @@ class ERPResidentsFilter(BaseFilterBackend):
             name='client_sap',location='query',
             required=True,type='string')
         return [name, client_sap]
+
+
+class ERPResidentsPrincipalEmailFilter(BaseFilterBackend):
+    
+    def get_schema_fields(self, view):
+        email = coreapi.Field(
+            name='email',location='query',
+            required=True, type='string')
+        return [email]

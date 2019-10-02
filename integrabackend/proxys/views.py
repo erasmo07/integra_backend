@@ -75,3 +75,13 @@ class ERPResidentsViewSet(viewsets.ViewSet):
             "name": params.get('name')}
         erp_resident = self.erp_entity_class(**kwargs)
         return Response(erp_resident.search())
+
+
+class ERPResidentsPrincipalEmailViewSet(viewsets.ViewSet):
+    filter_backends = (filters.ERPResidentsPrincipalEmailFilter, )
+    erp_class = ERPResidents
+
+    def list(self, request, format=None):
+        email = request.query_params.dict().get('email')
+        return Response(
+            self.erp_class.get_principal_email(email))
