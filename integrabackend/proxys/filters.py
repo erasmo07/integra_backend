@@ -32,7 +32,7 @@ class ERPResidentsFilter(BaseFilterBackend):
             required=True, type='string')
         client_sap = coreapi.Field(
             name='client_sap',location='query',
-            required=True,type='string')
+            required=True, type='string')
         return [name, client_sap]
 
 

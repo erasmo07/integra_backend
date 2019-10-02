@@ -1,8 +1,10 @@
 from rest_framework import viewsets
 from rest_framework.response import Response
+from rest_framework import status
 from integrabackend.solicitude.views import get_value_or_404
 from integrabackend.proxys import filters
 from partenon.ERP import ERPClient, ERPResidents
+from oraculo.gods.exceptions import NotFound
 
 
 class ClientInfoViewSet(viewsets.ViewSet):
@@ -60,7 +62,7 @@ class ClientAddEmailViewSet(viewsets.ViewSet):
         client_code = get_value_or_404(
             self.request.data, 'client_code', 'Not send client_code')
 
-        erp_client = ERPClient(**{'code': client_code})
+        erp_client = ERPClient(**{'client_code': client_code})
         return Response(erp_client.add_email(email)) 
 
 
@@ -73,8 +75,11 @@ class ERPResidentsViewSet(viewsets.ViewSet):
         kwargs = {
             "client_sap": params.get('client_sap'),
             "name": params.get('name')}
-        erp_resident = self.erp_entity_class(**kwargs)
-        return Response(erp_resident.search())
+        try:
+            erp_resident = self.erp_entity_class(**kwargs)
+            return Response(erp_resident.search())
+        except NotFound as exception:
+            return Response({}, status.HTTP_404_NOT_FOUND)
 
 
 class ERPResidentsPrincipalEmailViewSet(viewsets.ViewSet):
@@ -82,6 +87,10 @@ class ERPResidentsPrincipalEmailViewSet(viewsets.ViewSet):
     erp_class = ERPResidents
 
     def list(self, request, format=None):
-        email = request.query_params.dict().get('email')
-        return Response(
-            self.erp_class.get_principal_email(email))
+        email = get_value_or_404(
+            request.query_params.dict(), 'email', 'Not send email') 
+        try:
+            response = self.erp_class.get_principal_email(email)
+            return Response(response, status.HTTP_200_OK)
+        except NotFound:
+            return Response({}, status.HTTP_404_NOT_FOUND)
