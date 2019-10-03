@@ -12,9 +12,9 @@ from partenon.helpdesk.helpdesk import Status as StatusTickets
 
 class FaveoTicketClose(viewsets.ViewSet):
     status_ticket = enums.StateEnums.ticket
-    helpdesk_ticket_class = HelpDeskTicket
-    helpdesk_status_class = HelpDesk.status 
-    helpdesk_user_class = HelpDesk.user
+    ticket_class = HelpDeskTicket
+    status_class = HelpDesk.status 
+    user_class = HelpDesk.user
 
     def create(self, request, *args, **kwargs):
         ticket_id = get_value_or_404(
@@ -22,11 +22,11 @@ class FaveoTicketClose(viewsets.ViewSet):
         reason = get_value_or_404(
             request.data, 'reason', 'Not send reason to close')
 
-        status_close = StatusTickets.get_by_name(
+        status_close = self.status_class.get_state_by_name(
             self.status_ticket.closed)
-        user = self.helpdesk_user_class.get('aplicaciones@puntacana.com')
+        user = self.user_class.get('aplicaciones@puntacana.com')
 
-        ticket = self.helpdesk_ticket_class.get_specific_ticket(ticket_id)
+        ticket = self.ticket_class.get_specific_ticket(ticket_id)
         ticket.add_note(reason, user)
         ticket.change_state(status_close)
 

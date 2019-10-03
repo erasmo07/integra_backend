@@ -75,6 +75,6 @@ router.register(
     base_name="faveo_webhook")
 
 router.register(
-    r'faveo/ticket/close/',
+    r'faveo/ticket/close',
     webhooks.FaveoTicketClose,
     base_name="faveo_ticket_close")
