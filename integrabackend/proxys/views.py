@@ -1,10 +1,11 @@
+import json
 from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework import status
 from integrabackend.solicitude.views import get_value_or_404
 from integrabackend.proxys import filters
 from partenon.ERP import ERPClient, ERPResidents
-from oraculo.gods.exceptions import NotFound
+from oraculo.gods.exceptions import NotFound, BadRequest
 
 
 class ClientInfoViewSet(viewsets.ViewSet):
@@ -62,8 +63,12 @@ class ClientAddEmailViewSet(viewsets.ViewSet):
         client_code = get_value_or_404(
             self.request.data, 'client_code', 'Not send client_code')
 
-        erp_client = ERPClient(**{'client_code': client_code})
-        return Response(erp_client.add_email(email)) 
+        try:
+            erp_client = ERPClient(**{'client_code': client_code})
+            return Response(erp_client.add_email(email)) 
+        except BadRequest as exception:
+            message = json.loads(exception.args[0])
+            return Response(message, status.HTTP_400_BAD_REQUEST)
 
 
 class ERPResidentsViewSet(viewsets.ViewSet):
