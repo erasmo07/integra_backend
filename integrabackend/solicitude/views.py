@@ -7,6 +7,7 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.exceptions import APIException
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters
 from .models import Service, ServiceRequest, State, Day
 from .paginates import ServiceRequestPaginate
 from .serializers import (
@@ -76,9 +77,9 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
     queryset = ServiceRequest.objects.all()
     serializer_class = ServiceRequestSerializer
     pagination_class = ServiceRequestPaginate
-    filter_backends = (DjangoFilterBackend,)
-    ordering = ('-creation_date',)
-    filter_fields = ('ticket_id',)
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filter_fields = ['ticket_id',]
+    ordering_fields = ['ticket_id', 'service', 'state', 'creation_date']
     permission_classes = (HasCreditPermission, )
 
     def get_queryset(self):
