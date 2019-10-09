@@ -64,6 +64,11 @@ router.register(
     base_name='residents')
 
 router.register(
+    r'faveo/ticket',
+    proxys.FaveoTicketDetailViewSet,
+    base_name='faveo_ticket')
+
+router.register(
     r'sap/resident/principal-email',
     proxys.ERPResidentsPrincipalEmailViewSet,
     base_name='principal_emails')

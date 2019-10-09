@@ -6,26 +6,27 @@ from integrabackend.solicitude.views import get_value_or_404
 from integrabackend.proxys import filters
 from partenon.ERP import ERPClient, ERPResidents
 from oraculo.gods.exceptions import NotFound, BadRequest
+from oraculo.gods.faveo import APIClient as APIClientFaveo
 
 
 class ClientInfoViewSet(viewsets.ViewSet):
     filter_backends = (filters.ClientInfoFilter, )
-    
+
     def list(self, request, format=None):
         params = request.query_params.dict()
         try:
             kwargs = {'client_number': params.get('client')}
             erp_client = ERPClient(**kwargs)
-            return Response(erp_client.info()) 
+            return Response(erp_client.info())
         except Exception as error:
-            response = Response({'message': str(error)}) 
+            response = Response({'message': str(error)})
             response.status_code = 404
             return response
 
 
 class SearchClientViewSet(viewsets.ViewSet):
     filter_backends = (filters.SearchClientFilter, )
-    
+
     def list(self, request, format=None):
         params = request.query_params.dict()
         try:
@@ -33,24 +34,24 @@ class SearchClientViewSet(viewsets.ViewSet):
                 'client_code': params.get('code'),
                 'client_name': params.get('name')}
             erp_client = ERPClient(**kwargs)
-            return Response(erp_client.search()) 
+            return Response(erp_client.search())
         except Exception as error:
-            response = Response({'message': str(error)}) 
+            response = Response({'message': str(error)})
             response.status_code = 404
             return response
 
 
 class ClientHasCreditViewSet(viewsets.ViewSet):
     filter_backends = (filters.SearchClientFilter, )
-    
+
     def list(self, request, format=None):
         params = request.query_params.dict()
         try:
             kwargs = {'client_code': params.get('code')}
             erp_client = ERPClient(**kwargs)
-            return Response(erp_client.has_credit()) 
+            return Response(erp_client.has_credit())
         except Exception as error:
-            response = Response({'message': str(error)}) 
+            response = Response({'message': str(error)})
             response.status_code = 400
             return response
 
@@ -59,13 +60,13 @@ class ClientAddEmailViewSet(viewsets.ViewSet):
 
     def create(self, request, *args, **kwargs):
         email = get_value_or_404(
-            self.request.data,'email', 'Not send email')
+            self.request.data, 'email', 'Not send email')
         client_code = get_value_or_404(
             self.request.data, 'client_code', 'Not send client_code')
 
         try:
             erp_client = ERPClient(**{'client_code': client_code})
-            return Response(erp_client.add_email(email)) 
+            return Response(erp_client.add_email(email))
         except BadRequest as exception:
             message = json.loads(exception.args[0])
             return Response(message, status.HTTP_400_BAD_REQUEST)
@@ -93,9 +94,21 @@ class ERPResidentsPrincipalEmailViewSet(viewsets.ViewSet):
 
     def list(self, request, format=None):
         email = get_value_or_404(
-            request.query_params.dict(), 'email', 'Not send email') 
+            request.query_params.dict(), 'email', 'Not send email')
         try:
             response = self.erp_class.get_principal_email(email)
             return Response(response, status.HTTP_200_OK)
         except NotFound:
             return Response({}, status.HTTP_404_NOT_FOUND)
+
+
+class FaveoTicketDetailViewSet(viewsets.ViewSet):
+    api_client = APIClientFaveo
+    url = 'api/v1/helpdesk/ticket'
+
+    def list(self, request):
+        return Response({})
+
+    def retrieve(self, request, pk=None):
+        client = self.api_client()
+        return Response(client.get(self.url, params={'id': pk}))
