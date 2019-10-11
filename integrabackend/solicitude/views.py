@@ -107,6 +107,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         state_open, _ = State.objects.get_or_create(
             name=StateEnums.service_request.draft)
         serializer.save(state=state_open)
+        tasks.create_service_request.delay(str(serializer.instance.id))
 
     @action(detail=True, methods=['POST'], url_path='approve-quotation')
     def aprove_quotation(self, request, pk=None):
