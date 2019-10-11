@@ -3,6 +3,7 @@ ENV PYTHONUNBUFFERED 1
 ENV DJANGO_SECRET_KEY=local
 
 ENV FAVEO_USERNAME=admin
+ENV FAVEO_ADMIN_EMAIL=aplicaciones@puntacana.com
 ENV FAVEO_PASSWORD=Nomelose123
 ENV FAVEO_BASE_URL=http://faveotest.grupopuntacana.com/
 

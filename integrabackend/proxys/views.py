@@ -1,9 +1,11 @@
 import json
-from rest_framework import viewsets
+import os
+from rest_framework import viewsets, status
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework.decorators import action
 from integrabackend.solicitude.views import get_value_or_404
 from integrabackend.proxys import filters
+from partenon.helpdesk import HelpDesk
 from partenon.ERP import ERPClient, ERPResidents
 from oraculo.gods.exceptions import NotFound, BadRequest
 from oraculo.gods.faveo import APIClient as APIClientFaveo
@@ -104,11 +106,24 @@ class ERPResidentsPrincipalEmailViewSet(viewsets.ViewSet):
 
 class FaveoTicketDetailViewSet(viewsets.ViewSet):
     api_client = APIClientFaveo
-    url = 'api/v1/helpdesk/ticket'
+    helpdesk_class = HelpDesk
+    proxy_url = 'api/v1/helpdesk/ticket'
+    admin_email = os.environ.get('FAVEO_ADMIN_EMAIL', None)
 
     def list(self, request):
         return Response({})
 
     def retrieve(self, request, pk=None):
         client = self.api_client()
-        return Response(client.get(self.url, params={'id': pk}))
+        return Response(client.get(self.proxy_url, params={'id': pk}))
+    
+    @action(detail=True, methods=['POST'], url_path='thread')
+    def add_internal_note(self, request, pk=None):
+        note = get_value_or_404(self.request.data, 'note', 'note is required') 
+        ticket = HelpDesk.ticket.get_specific_ticket(pk)
+        admin_user = HelpDesk.user.get(self.admin_email)
+        try:
+            return Response(ticket.add_note(note, admin_user))
+        except Exception as exception:
+            message = json.loads(exception.args[0])
+            return Response(message, status.HTTP_400_BAD_REQUEST)
