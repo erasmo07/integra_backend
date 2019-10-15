@@ -40,13 +40,14 @@ def create_service_request(instance, helpdesk_class=HelpDesk):
     department_name = instance._property.project.department.name
     department = helpdesk_class.departments.objects.get_by_name(department_name)
 
-    ticket = helpdesk_user.ticket.create(
-        f"Solicitud: {instance.service.name}",
-        f"{instance.note} \n\n\n {generate_note(instance)}",
-        priority, topic, department)
+    if not instance.ticket_id:
+        ticket = helpdesk_user.ticket.create(
+            f"Solicitud: {instance.service.name}",
+            f"{instance.note} \n\n\n {generate_note(instance)}",
+            priority, topic, department)
 
-    instance.ticket_id = ticket.ticket_id
-    instance.save()
+        instance.ticket_id = ticket.ticket_id
+        instance.save()
 
     if instance.service.generate_aviso:
         process_to_create_aviso(instance)
