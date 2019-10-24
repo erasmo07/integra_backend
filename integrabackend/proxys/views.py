@@ -4,6 +4,7 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from integrabackend.solicitude.views import get_value_or_404
+from integrabackend.solicitude import enums
 from integrabackend.proxys import filters
 from partenon.helpdesk import HelpDesk
 from partenon.ERP import ERPClient, ERPResidents
@@ -109,6 +110,7 @@ class FaveoTicketDetailViewSet(viewsets.ViewSet):
     helpdesk_class = HelpDesk
     proxy_url = 'api/v1/helpdesk/ticket'
     admin_email = os.environ.get('FAVEO_ADMIN_EMAIL', None)
+    status_ticket = enums.StateEnums.ticket
 
     def list(self, request):
         return Response({})
@@ -127,3 +129,18 @@ class FaveoTicketDetailViewSet(viewsets.ViewSet):
         except Exception as exception:
             message = json.loads(exception.args[0])
             return Response(message, status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=True, methods=['POST'], url_path='close')
+    def close(self, request, pk=None):
+        reason = get_value_or_404(
+            request.data, 'reason', 'Not send reason to close')
+
+        status_close = self.helpdesk_class.status.get_state_by_name(
+            self.status_ticket.closed)
+        user = self.helpdesk_class.user.get('aplicaciones@puntacana.com')
+
+        ticket = self.helpdesk_class.ticket.get_specific_ticket(pk)
+        ticket.add_note(reason, user)
+        ticket.change_state(status_close)
+
+        return Response({"success": 'ok'}, status.HTTP_200_OK)

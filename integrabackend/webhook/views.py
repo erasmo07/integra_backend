@@ -10,29 +10,6 @@ from partenon.helpdesk import HelpDesk, HelpDeskTicket
 from partenon.helpdesk.helpdesk import Status as StatusTickets
 
 
-class FaveoTicketClose(viewsets.ViewSet):
-    status_ticket = enums.StateEnums.ticket
-    ticket_class = HelpDeskTicket
-    status_class = HelpDesk.status 
-    user_class = HelpDesk.user
-
-    def create(self, request, *args, **kwargs):
-        ticket_id = get_value_or_404(
-            request.data, 'ticket_id', 'Not send ticket id')
-        reason = get_value_or_404(
-            request.data, 'reason', 'Not send reason to close')
-
-        status_close = self.status_class.get_state_by_name(
-            self.status_ticket.closed)
-        user = self.user_class.get('aplicaciones@puntacana.com')
-
-        ticket = self.ticket_class.get_specific_ticket(ticket_id)
-        ticket.add_note(reason, user)
-        ticket.change_state(status_close)
-
-        return Response({"success": 'ok'}, status.HTTP_200_OK)
-
-
 class FaveoWebHookView(viewsets.ViewSet):
     model = ServiceRequest
     status = enums.StateEnums.service_request
