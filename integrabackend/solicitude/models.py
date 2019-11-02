@@ -90,6 +90,9 @@ class ServiceRequest(models.Model):
         'solicitude.DateServiceRequested',
         on_delete=models.CASCADE)
     
+    class Meta:
+        ordering = ('-creation_date',)
+    
     @property
     def ticket_number(self):
         try:
