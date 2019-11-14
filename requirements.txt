@@ -22,6 +22,7 @@ drf_yasg==1.11.0
 flex==6.13.2
 swagger-spec-validator==2.4.1
 django-cors-headers==2.4.0
+xmltodict==0.12.0
 
 # Celery
 celery==3.1.18
@@ -51,3 +52,4 @@ whitenoise==4.1.2
 # Internal library
 -e git+https://erasmo_montes@bitbucket.org/grupopuntacana/partenon.git#egg=partenon
 -e git+https://erasmo_montes@bitbucket.org/grupopuntacana/oraculo.git#egg=oraculo
+

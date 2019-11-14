@@ -79,6 +79,12 @@ router.register(
     base_name='sita_departure_flight'
 )
 
+router.register(
+    r'sita/get-flight',
+    proxys.SitaFlightViewSet,
+    base_name='get_flight'
+)
+
 # WEBHOOK
 router.register(
     r'faveo-webhook',

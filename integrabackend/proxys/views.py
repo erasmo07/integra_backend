@@ -1,5 +1,7 @@
 import json
 import os
+import requests
+import xmltodict
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -119,10 +121,10 @@ class FaveoTicketDetailViewSet(viewsets.ViewSet):
     def retrieve(self, request, pk=None):
         client = self.api_client()
         return Response(client.get(self.proxy_url, params={'id': pk}))
-    
+
     @action(detail=True, methods=['POST'], url_path='thread')
     def add_internal_note(self, request, pk=None):
-        note = get_value_or_404(self.request.data, 'note', 'note is required') 
+        note = get_value_or_404(self.request.data, 'note', 'note is required')
         ticket = HelpDesk.ticket.get_specific_ticket(pk)
         admin_user = HelpDesk.user.get(self.admin_email)
         try:
@@ -130,7 +132,7 @@ class FaveoTicketDetailViewSet(viewsets.ViewSet):
         except Exception as exception:
             message = json.loads(exception.args[0])
             return Response(message, status.HTTP_400_BAD_REQUEST)
-    
+
     @action(detail=True, methods=['POST'], url_path='close')
     def close(self, request, pk=None):
         reason = get_value_or_404(
@@ -153,12 +155,62 @@ class SitaDBDepartureFlightViewSet(viewsets.ViewSet):
 
     def list(self, request):
         client = self.api_client()
-        params = params=request.query_params.dict()
+        params = params = request.query_params.dict()
         if not params:
             return Response({})
         return Response(client.get(self.proxy_url, params=params))
-    
+
     def retrieve(self, request, pk=None):
         client = self.api_client()
         url = "%s%s/" % (self.proxy_url, pk)
         return Response(client.get(url))
+
+
+class SitaFlightViewSet(viewsets.ViewSet):
+    url = os.environ.get('SITAAMS_URL')
+    token = os.environ.get('SITAAMS_TOKEN')
+    _headers = {
+        'Content-type': 'text/xml',
+        'SOAPAction': os.environ.get("SITAAMS_ACTION")
+    }
+    
+
+    def get_body(self, from_, to):
+        return '''
+            <soap:Envelope
+                xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
+                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+                <soap:Body>
+                    <GetFlights xmlns="http://www.sita.aero/ams6-xml-api-webservice">
+                    <sessionToken>{}</sessionToken>
+                    <from>{}</from>
+                    <to>{}</to>
+                    <airport>PUJ</airport>
+                    </GetFlights>
+                </soap:Body>
+            </soap:Envelope>
+        '''.format(self.token, from_, to)
+
+    def get_flight(self, data):
+        keys = [
+            's:Envelope', 's:Body', 'GetFlightsResponse',
+            'GetFlightsResult', 'WebServiceResult',
+            'ApiResponse', 'Data', 'Flights', 'Flight']
+        for key in keys:
+            data = data.get(key, {})
+        return data
+
+    def list(self, request):
+        from_ = get_value_or_404(
+            request.query_params.dict(),
+            'from',
+            'Not send from on query params')
+        to = get_value_or_404(
+            request.query_params.dict(),
+            'to',
+            'Not send to on query params'
+        )
+        body = self.get_body(from_, to)
+        response = requests.post(self.url, data=body, headers=self._headers)
+        return Response(self.get_flight(xmltodict.parse(response.content)))

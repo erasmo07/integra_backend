@@ -5,9 +5,13 @@ ENV DJANGO_SECRET_KEY=local
 ENV FAVEO_USERNAME=admin
 ENV FAVEO_ADMIN_EMAIL=aplicaciones@puntacana.com
 ENV FAVEO_PASSWORD=Nomelose123
-ENV FAVEO_BASE_URL=http://faveotest.grupopuntacana.com/
+ENV FAVEO_BASE_URL=http://faveo.grupopuntacana.com/
 
-ENV FAVEO_DB_BASE_URL=http://172.30.16.181:5002/
+ENV FAVEO_DB_BASE_URL=http://172.30.101.48:5002/
+ENV SITA_DB_BASE_URL=http://172.30.101.48:5000/
+ENV SITAAMS_URL=http://172.30.20.12/SITAAMSIntegrationService/v2/SITAAMSIntegrationService
+ENV SITAAMS_ACTION=http://www.sita.aero/ams6-xml-api-webservice/IAMSIntegrationService/GetFlights
+ENV SITAAMS_TOKEN=6aed03fa-93f1-4733-b71d-a25935e318df
 
 ENV SAP_USERNAME=dchot
 ENV SAP_PASSWORD=1234567
