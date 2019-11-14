@@ -73,6 +73,12 @@ router.register(
     proxys.ERPResidentsPrincipalEmailViewSet,
     base_name='principal_emails')
 
+router.register(
+    r'sita-db/departure-flight',
+    proxys.SitaDBDepartureFlightViewSet,
+    base_name='sita_departure_flight'
+)
+
 # WEBHOOK
 router.register(
     r'faveo-webhook',

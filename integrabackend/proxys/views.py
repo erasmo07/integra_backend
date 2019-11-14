@@ -10,6 +10,7 @@ from partenon.helpdesk import HelpDesk
 from partenon.ERP import ERPClient, ERPResidents
 from oraculo.gods.exceptions import NotFound, BadRequest
 from oraculo.gods.faveo import APIClient as APIClientFaveo
+from oraculo.gods.sita_db import APIClient as APIClientSitaDB
 
 
 class ClientInfoViewSet(viewsets.ViewSet):
@@ -144,3 +145,20 @@ class FaveoTicketDetailViewSet(viewsets.ViewSet):
         ticket.change_state(status_close)
 
         return Response({"success": 'ok'}, status.HTTP_200_OK)
+
+
+class SitaDBDepartureFlightViewSet(viewsets.ViewSet):
+    api_client = APIClientSitaDB
+    proxy_url = 'api/v1/departure-flight/'
+
+    def list(self, request):
+        client = self.api_client()
+        params = params=request.query_params.dict()
+        if not params:
+            return Response({})
+        return Response(client.get(self.proxy_url, params=params))
+    
+    def retrieve(self, request, pk=None):
+        client = self.api_client()
+        url = "%s%s/" % (self.proxy_url, pk)
+        return Response(client.get(url))
