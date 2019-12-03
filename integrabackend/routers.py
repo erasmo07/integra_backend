@@ -63,6 +63,13 @@ router.register(
     proxys.ERPResidentsViewSet,
     base_name='residents')
 
+
+router.register(
+    r'sap/client',
+    proxys.ERPClientViewSet,
+    base_name='client')
+
+
 router.register(
     r'faveo/ticket',
     proxys.FaveoTicketDetailViewSet,

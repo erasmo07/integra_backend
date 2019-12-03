@@ -214,3 +214,21 @@ class SitaFlightViewSet(viewsets.ViewSet):
         body = self.get_body(from_, to)
         response = requests.post(self.url, data=body, headers=self._headers)
         return Response(self.get_flight(xmltodict.parse(response.content)))
+
+
+class ERPClientViewSet(viewsets.ViewSet):
+    erp_client_class = ERPClient
+
+    @action(detail=True, methods=['GET'], url_path='invoices')
+    def invoice(self, request, pk=None, format=None):
+        try:
+            erp_client = self.erp_client_class(**dict(client_code=pk))
+            
+            params = request.query_params.dict()
+            merchant = params.get('merchant') if 'merchant' in params else ''
+            language = params.get('language') if 'language' in params else 'ES'
+
+            invoices = erp_client.invoices(merchant=merchant, language=language)
+            return Response([invoice._base for invoice in invoices])
+        except NotFound as exception:
+            return Response({}, status.HTTP_404_NOT_FOUND)

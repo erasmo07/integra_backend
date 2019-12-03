@@ -27,7 +27,7 @@ class Http500(APIException):
 
 def get_value_or_404(data, key_value, message):
     if not data.get(key_value):
-        raise Http404(message)
+        raise APIException(message, code=404)
     return data.get(key_value)
 
 
