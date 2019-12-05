@@ -248,3 +248,24 @@ class ERPClientViewSet(viewsets.ViewSet):
             return Response({'binary': invoice_pdf.data})
         except NotFound as exception:
             return Response({}, status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=['GET'], url_path='advance-payment')
+    def advance_payment(self, request, pk=None, format=None):
+        try:
+            params = request.query_params.dict()
+
+            merchant = get_value_or_404(
+                params, 'merchant', 'Not send merchant'
+            )
+            
+            erp_client = self.erp_client_class(**dict(client_code=pk))
+            language = params.get('language', 'ES')
+
+            advance_payments = erp_client.advance_payment(
+                merchant=merchant, language=language)
+            return Response(
+                [advance_payment._base
+                for advance_payment in advance_payments]
+            )
+        except NotFound as exception:
+            return Response({}, status.HTTP_404_NOT_FOUND)
