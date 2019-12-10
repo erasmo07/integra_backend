@@ -35,6 +35,7 @@ class Common(Configuration):
         'integrabackend.resident',
         'integrabackend.invitation',
         'integrabackend.solicitude',
+        'integrabackend.payment',
 
     )
 

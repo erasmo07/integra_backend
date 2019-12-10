@@ -1,4 +1,5 @@
 from rest_framework.routers import DefaultRouter
+from .payment import views as payment_views
 from .users.views import UserViewSet
 from .resident.views import (
     ResidentCreateViewSet, PersonViewSet, PropertyViewSet, PropertyTypeViewSet)
@@ -36,6 +37,13 @@ router.register(r'service-request', ServiceRequestViewSet)
 router.register(r'day', DayViewSet)
 router.register(
     r'aviso', AvisoViewSet, base_name='create_aviso')
+
+
+# APP - Payment
+router.register(
+    r'payment-attempt',
+    payment_views.PaymentAttemptViewSet,
+    base_name='payment_attempt')
 
 # PROXYS
 router.register(
