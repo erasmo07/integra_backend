@@ -1,18 +1,20 @@
 import json
 import os
+
 import requests
-import xmltodict
-from rest_framework import viewsets, status
-from rest_framework.response import Response
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from integrabackend.solicitude.views import get_value_or_404
-from integrabackend.solicitude import enums
+from rest_framework.response import Response
+
+import xmltodict
 from integrabackend.proxys import filters
-from partenon.helpdesk import HelpDesk
-from partenon.ERP import ERPClient, ERPResidents
-from oraculo.gods.exceptions import NotFound, BadRequest
+from integrabackend.solicitude import enums
+from integrabackend.solicitude.views import get_value_or_404
+from oraculo.gods.exceptions import BadRequest, NotFound
 from oraculo.gods.faveo import APIClient as APIClientFaveo
 from oraculo.gods.sita_db import APIClient as APIClientSitaDB
+from partenon.ERP import ERPClient, ERPResidents
+from partenon.helpdesk import HelpDesk
 
 
 class ClientInfoViewSet(viewsets.ViewSet):

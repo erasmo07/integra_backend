@@ -4,9 +4,8 @@ from django.contrib.contenttypes.fields import GenericRelation, GenericForeignKe
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 
-# Create your models here.
 
-class StatusDocument(models.Model):
+class Status(models.Model):
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid4,
@@ -14,19 +13,47 @@ class StatusDocument(models.Model):
     )
     name = models.CharField(max_length=50)
 
+    class Meta:
+        abstract = True
+    
     def __unicode__(self):
         """Unicode representation of StatusDocument."""
         return self.name
 
 
+class StatusDocument(Status):
+    pass
+
+
+class StatusCreditcard(Status):
+    pass
+
+
+class CreditCard(models.Model):
+    id = models.UUIDField(
+        primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=50)
+    token = models.CharField(max_length=100)
+    status = models.ForeignKey(
+        "payment.StatusCreditCard", on_delete=models.CASCADE)
+    owner = models.ForeignKey(
+        "users.User",
+        on_delete=models.CASCADE, related_name='credit_card')
+    brand = models.CharField('Brand', max_length=10)
+    data_vault_expiration = models.CharField(
+        'DataVaultExpiration', max_length=6)
+
+
 class ResponsePaymentAttempt(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    payment_attempt = models.ForeignKey("payment.PaymentAttempt", on_delete=models.DO_NOTHING, null=True)
+    payment_attempt = models.OneToOneField(
+        "payment.PaymentAttempt",
+        on_delete=models.DO_NOTHING,
+        related_name='response')
     date = models.DateTimeField('Create DateTime', auto_now_add=True)
-    response_code = models.CharField('Response Code', max_length=3)
+    response_code = models.CharField('Response Code', max_length=10)
     authorization_code = models.CharField('Authorization Code', max_length=10)
     order_id = models.CharField('Order ID', max_length=10)
-    brand = models.CharField('Brand', max_length=10)
 
 
 class PaymentAttempt(models.Model):
@@ -43,6 +70,22 @@ class PaymentAttempt(models.Model):
     transaction = models.IntegerField()
     user = models.ForeignKey("users.User", on_delete=models.DO_NOTHING, null=True)
 
+    @property
+    def total_invoice_amount(self):
+        return self.invoices.values(
+            'amount_dop'
+        ).aggregate(
+            total_amount=models.Sum('amount_dop')
+        ).get('total_amount')
+    
+    @property
+    def total_invoice_tax(self):
+        return self.invoices.values(
+            'tax'
+        ).aggregate(
+            total_tax=models.Sum('tax')
+        ).get('total_tax')
+
     def save(self, *args, **kwargs):
         last = PaymentAttempt.objects.order_by('transaction').last()
         if not last:
@@ -58,7 +101,7 @@ class PaymentDocument(models.Model):
         default=uuid.uuid4,
         editable=False
     )
-    amount = models.DecimalField(max_digits=5, decimal_places=2)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
     description = models.TextField()
 
     payment_attempt = models.ForeignKey(
@@ -70,7 +113,6 @@ class PaymentDocument(models.Model):
     status = models.ForeignKey(
         "payment.StatusDocument",
         on_delete=models.DO_NOTHING,
-        null=True
     )
 
     class Meta:
@@ -86,7 +128,6 @@ class Invoice(PaymentDocument):
     day_pass_due = models.CharField('Day pass due', max_length=50)
     document_date = models.DateField('Document Date')
     document_number = models.BigIntegerField('Document Number')
-    is_expired = models.CharField('Expired', max_length=1, null=True)
     merchant_number = models.CharField(max_length=50)
     position = models.CharField('Position', max_length=50)
     reference = models.CharField("Reference", max_length=50)

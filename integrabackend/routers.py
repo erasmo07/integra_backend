@@ -45,6 +45,11 @@ router.register(
     payment_views.PaymentAttemptViewSet,
     base_name='payment_attempt')
 
+router.register(
+    r'credit-card',
+    payment_views.CreditCardViewSet,
+    base_name='credit_card')
+
 # PROXYS
 router.register(
     r'search-client',

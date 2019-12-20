@@ -58,7 +58,7 @@ class DayTypeFactory(factory.DjangoModelFactory):
         model = 'solicitude.DayType'
     
     id = factory.Faker('uuid4')
-    name = factory.Iterator(CHOICE_TYPE_DATE)
+    name = 'Laborable'
 
 
 class DayFactory(factory.django.DjangoModelFactory):
