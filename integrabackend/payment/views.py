@@ -1,6 +1,6 @@
 from django.shortcuts import get_object_or_404, render
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import status, viewsets
+from rest_framework import status, viewsets, generics
 from rest_framework.decorators import action
 from rest_framework.exceptions import APIException, NotFound, ParseError
 from rest_framework.response import Response
@@ -12,16 +12,26 @@ from . import helpers, models, serializers
 from .helpers import CompensationPayment
 
 
-class CreditCardViewSet(viewsets.ReadOnlyModelViewSet):
+class CreditCardViewSet(
+        viewsets.ReadOnlyModelViewSet,
+        generics.DestroyAPIView):
     queryset = models.CreditCard.objects.all()
     serializer_class = serializers.CreditCardSerializer
     filter_backends = [DjangoFilterBackend]
     filter_fields = ['owner',]
+    card_class = azul.Card
 
     def get_queryset(self):
         return super(
             CreditCardViewSet, self
         ).get_queryset().filter(owner=self.request.user)
+    
+    def perform_destroy(self, instance):
+        try:
+            self.card_class(instance.token).delete()
+            return super(CreditCardViewSet, self).perform_destroy(instance)
+        except azul.CantDeleteCard as exception:
+            raise ParseError(detail='Cant delete credit card')
 
 
 class PaymentAttemptViewSet(viewsets.ModelViewSet):

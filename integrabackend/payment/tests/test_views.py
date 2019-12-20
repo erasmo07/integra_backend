@@ -8,6 +8,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from oraculo.gods.exceptions import BadRequest
+from partenon.process_payment import azul
 
 from ...users.test.factories import UserFactory, GroupFactory
 from integrabackend.resident.test.factories import ResidentFactory
@@ -73,6 +74,53 @@ class TestCreditCardTestCase(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.json()), self.user.credit_card.count())
+    
+    def test_can_delete_credit_card(self):
+        user = UserFactory()
+        user.groups.add(GroupFactory(name='Aplicacion'))
+
+        token, token_expiration, brand = azul.Card(
+            number='4035874000424977',
+            expiration='202012',
+            cvc='977'
+        ).validate(amount='100', code='CODE')
+        
+        credit_card = factories.CreditCardFactory(
+            brand=brand,
+            name='Name',
+            data_vault_expiration=token_expiration,
+            owner=self.user,
+            token=token
+        )
+
+        response = self.client.delete('/api/v1/credit-card/%s/' % credit_card.id)
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+    
+    @patch('integrabackend.payment.views.CreditCardViewSet.card_class')
+    def test_cant_delete_credit_card(self, card_class):
+        card_class.side_effect = azul.CantDeleteCard
+
+        user = UserFactory()
+        user.groups.add(GroupFactory(name='Aplicacion'))
+
+        token, token_expiration, brand = azul.Card(
+            number='4035874000424977',
+            expiration='202012',
+            cvc='977'
+        ).validate(amount='100', code='CODE')
+        
+        credit_card = factories.CreditCardFactory(
+            brand=brand,
+            name='Name',
+            data_vault_expiration=token_expiration,
+            owner=self.user,
+            token=token
+        )
+
+        response = self.client.delete('/api/v1/credit-card/%s/' % credit_card.id)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
 class TestPaymenetAttemptTestCase(APITestCase):
