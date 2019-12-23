@@ -188,6 +188,33 @@ class TestServiceRequestTestCase(APITestCase):
         # THEN
         eq_(response.status_code, status.HTTP_200_OK)
         eq_(response.json().get('count'), 5)
+    
+    @patch('integrabackend.solicitude.views.APISap')
+    def test_can_search_invoice(self, mock_api):
+        # GIVEN
+        service_request = ServiceRequestFactory(aviso_id='000000508167')
+
+        api = MagicMock()
+        api.get.return_value = {'aviso': '000000508167'}
+
+        mock_api.return_value = api
+
+        # WHEN
+        url = '/api/v1/service-request/search-by-invoice/?invoice=1900008463'
+        response = self.client.get(url)
+
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.json()), 1)
+
+        api.get.assert_called()
+        self.assertEqual(
+            api.get.call_args[0],
+            ('api_portal_clie/dame_dato_factu', ))
+
+        self.assertEqual(
+            api.get.call_args[1],
+            {'params': {'numero_factura': '1900008463'}})
 
 
 class TestAvisoTestCase(APITestCase):

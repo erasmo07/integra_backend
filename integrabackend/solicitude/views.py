@@ -16,6 +16,7 @@ from .serializers import (
     DaySerializer, ServiceRequestFaveo)
 from .enums import StateEnums
 from . import helpers, tasks
+from oraculo.gods.sap import APIClient as APISap
 from partenon.ERP import ERPAviso
 from partenon.ERP.exceptions import NotHasOrder
 from .permissions import HasCreditPermission
@@ -140,6 +141,20 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         self.perform_create_faveo(serializer)
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+    
+    @action(detail=False, methods=["GET"], url_path='search-by-invoice')
+    def create_faveo(self, request):
+        data = request.query_params.dict()
+        get_value_or_404(data, 'invoice','Not set invoice')
+        data['numero_factura'] = data.pop('invoice')
+
+        url_sap = 'api_portal_clie/dame_dato_factu'
+        response = APISap().get(url_sap, params=data)
+
+        instances = ServiceRequest.objects.filter(
+            aviso_id=response.get('aviso'))
+        serializer = ServiceRequestDetailSerializer(instances, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class AvisoViewSet(viewsets.ViewSet):
