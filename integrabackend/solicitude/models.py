@@ -11,10 +11,6 @@ CHOICE_TIME = [(i, dt.time(i).strftime('%I %p')) for i in range(24)]
 CHOICE_TYPE_DATE = [
     ('Laborable', 'Laborable'),
     ('Fin de semana', 'Fin de semana')]
-CHOICE_SERVICE = [
-    (topic.topic, topic.topic)
-    for topic in Topics.objects.get_entitys()
-    if hasattr(topic, 'topic')]
 
 
 class Service(models.Model):

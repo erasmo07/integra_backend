@@ -13,6 +13,7 @@ from integrabackend.solicitude.views import get_value_or_404
 from oraculo.gods.exceptions import BadRequest, NotFound
 from oraculo.gods.faveo import APIClient as APIClientFaveo
 from oraculo.gods.sita_db import APIClient as APIClientSitaDB
+from oraculo.gods.sap import APIClient as APIClientERP
 from partenon.ERP import ERPClient, ERPResidents
 from partenon.helpdesk import HelpDesk
 
@@ -156,10 +157,11 @@ class SitaDBDepartureFlightViewSet(viewsets.ViewSet):
     proxy_url = 'api/v1/departure-flight/'
 
     def list(self, request):
-        client = self.api_client()
-        params = params = request.query_params.dict()
+        params = request.query_params.dict()
         if not params:
             return Response({})
+
+        client = self.api_client()
         return Response(client.get(self.proxy_url, params=params))
 
     def retrieve(self, request, pk=None):
@@ -271,3 +273,22 @@ class ERPClientViewSet(viewsets.ViewSet):
             )
         except NotFound as exception:
             return Response({}, status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=['GET'], url_path='society')
+    def society(self, request, pk=None, format=None):
+        try:
+            params = request.query_params.dict()
+
+            merchant = get_value_or_404(
+                params, 'merchant', 'Not send merchant')
+
+            societies = APIClientERP().get(
+                'api_portal_clie/dame_soc_mercha',
+                {
+                    'merchant_number': merchant
+                }
+            )
+            return Response(societies)
+        except NotFound as exception:
+            return Response({}, status.HTTP_404_NOT_FOUND)
+

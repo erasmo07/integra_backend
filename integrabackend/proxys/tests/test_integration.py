@@ -26,3 +26,36 @@ class TestFaveoTicketDetailTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(response.json().get('success'))
 
+
+class TestERPClientViewSet(APITestCase):
+
+    def setUp(self):
+        self.url = '/api/v1/sap/client/4259/advance-payment/'
+        
+        self.user = UserFactory()
+        self.client.force_authenticate(user=self.user)
+    
+    def test_advance_payment_get_request_success(self):
+        # WHEN
+        response = self.client.get(self.url, {'merchant': "349052692"})
+
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        for advance in response.json():
+            self.assertIn('bukrs', advance)
+            self.assertIn('concept_id', advance)
+            self.assertIn('description', advance)
+            self.assertIn('id', advance)
+            self.assertIn('spras', advance)
+            self.assertIn('status', advance)
+    
+    def test_society_get_request_success(self):
+        # WHEN
+        url = '/api/v1/sap/client/4259/society/'
+        response = self.client.get(url, {'merchant': "349052692"})
+
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        for advance in response.json():
+            self.assertIn('company', advance)
+            self.assertIn('company_name', advance)
