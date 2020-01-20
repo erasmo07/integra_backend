@@ -17,7 +17,10 @@ class CompensationPayment:
             'id', 'is_expired', 'day_pass_due',
             'payment_attempt', 'status', 'document_date'
         ]
-    
+        
+        self.advance_exclude_key = [
+            'id', 'payment_attempt', 'status']
+
     @property
     def customer(self):
         return self.transaction_attempt.user.resident.sap_customer
@@ -25,6 +28,10 @@ class CompensationPayment:
     @property
     def invoices(self):
         return self.transaction_attempt.invoices.all()
+    
+    @property
+    def advancepayments(self):
+        return self.transaction_attempt.advancepayments.all()
     
     def build_request_body(self):
         documents = list()
@@ -34,6 +41,12 @@ class CompensationPayment:
             invoice_data['amount'] = str(invoice_data['amount'])
             invoice_data['tax'] = str(invoice_data['tax'])
             documents.append(invoice_data)
+        
+        advancepayments = list()
+        for advance in self.advancepayments:
+            advance_data = model_to_dict(advance, exclude=self.advance_exclude_key) 
+            advance_data['amount'] = str(advance_data['amount'])
+            advancepayments.append(advance_data)
 
         return dict(
             customer=self.customer,
@@ -44,7 +57,7 @@ class CompensationPayment:
                 cod_autorization=self.transaction_attempt.response.response_code
             ),
             invoice=documents,
-            advancePayments=[],
+            advancepayment=advancepayments,
         )
 
     def commit(self):

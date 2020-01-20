@@ -1,5 +1,5 @@
 import uuid
-
+import decimal
 from django.contrib.contenttypes.fields import GenericRelation, GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
@@ -68,7 +68,19 @@ class PaymentAttempt(models.Model):
         blank=True, null=True
     )
     transaction = models.IntegerField()
-    user = models.ForeignKey("users.User", on_delete=models.DO_NOTHING, null=True)
+    user = models.ForeignKey("users.User", on_delete=models.DO_NOTHING)
+
+    @property
+    def total(self):
+        invoice = self.total_invoice_amount
+        if not invoice:
+            invoice = decimal.Decimal(0.00) 
+        
+        advancepayment = self.total_advancepayment_amount
+        if not advancepayment:
+            advancepayment = decimal.Decimal(0.00) 
+
+        return invoice + advancepayment 
 
     @property
     def total_invoice_amount(self):
@@ -76,15 +88,24 @@ class PaymentAttempt(models.Model):
             'amount_dop'
         ).aggregate(
             total_amount=models.Sum('amount_dop')
+        ).get('total_amount', )
+    
+    @property
+    def total_advancepayment_amount(self):
+        return self.advancepayments.values(
+            'amount'
+        ).aggregate(
+            total_amount=models.Sum('amount')
         ).get('total_amount')
     
     @property
     def total_invoice_tax(self):
-        return self.invoices.values(
+        taxs = self.invoices.values(
             'tax'
         ).aggregate(
             total_tax=models.Sum('tax')
         ).get('total_tax')
+        return taxs if taxs else decimal.Decimal(0.00)
 
     def save(self, *args, **kwargs):
         last = PaymentAttempt.objects.order_by('transaction').last()
@@ -103,6 +124,8 @@ class PaymentDocument(models.Model):
     )
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     description = models.TextField()
+    currency = models.CharField('Currency', max_length=3)
+    position = models.CharField('Position', max_length=50)
 
     payment_attempt = models.ForeignKey(
         'payment.PaymentAttempt',
@@ -123,24 +146,17 @@ class Invoice(PaymentDocument):
     amount_dop = models.DecimalField(max_digits=10, decimal_places=2)
     company = models.IntegerField('Company')
     company_name = models.CharField('Company Name', max_length=50)
-    currency = models.CharField('Currency', max_length=3)
     date = models.DateTimeField(auto_now_add=True)
     day_pass_due = models.CharField('Day pass due', max_length=50)
     document_date = models.DateField('Document Date')
     document_number = models.BigIntegerField('Document Number')
     merchant_number = models.CharField(max_length=50)
-    position = models.CharField('Position', max_length=50)
     reference = models.CharField("Reference", max_length=50)
     tax = models.DecimalField('Tax', max_digits=10, decimal_places=2)
 
 
 class AdvancePayment(PaymentDocument):
-    concept = models.ForeignKey(
-        "payment.AdvanceConcept",
-        on_delete=models.DO_NOTHING,
-        null=True
-    )
-
-
-class AdvanceConcept(models.Model):
-    name = models.CharField('Concept', max_length=50)
+    concept_id = models.CharField('Concept', max_length=50) 
+    spras = models.CharField('Spras', max_length=1)
+    bukrs = models.CharField('Bukrs', max_length=50)
+    merchant_number = models.CharField('Merchant Number', max_length=50)

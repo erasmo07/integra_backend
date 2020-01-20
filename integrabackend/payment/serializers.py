@@ -27,42 +27,51 @@ class InvoiceSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'payment_attempt', 'status')
 
 
-class AdvancePayment(serializers.ModelSerializer):
+class AdvancePaymentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.AdvancePayment
         fields = '__all__'
-        read_only_fields = ('id', )
+        read_only_fields = ('id', 'payment_attempt', 'status')
 
 
 class PaymentAttemptSerializer(serializers.ModelSerializer):
     invoices = InvoiceSerializer(many=True)
-    advancepayments = AdvancePayment(many=True, read_only=True)
+    advancepayments = AdvancePaymentSerializer(many=True)
     response = ResponsePaymentAttemptSerializer(read_only=True)
     total_invoice_amount = serializers.CharField(read_only=True)
     total_invoice_tax = serializers.CharField(read_only=True)
+    total_advancepayment_amount = serializers.CharField(read_only=True)
+    total = serializers.CharField(read_only=True)
 
     class Meta:
         model = models.PaymentAttempt
         fields = "__all__"
-        read_only_fields = (
-            'id', 'transaction', 'process_payment',
-            'total_invoice_tax', 'total_invoice_amount')
+        read_only_fields = ('id', 'transaction', 'process_payment')
 
     def create(self, validated_data):
         invoices = validated_data.pop('invoices')
+        advancepayments = validated_data.pop('advancepayments')
         payment_attempt = super(PaymentAttemptSerializer, self).create(validated_data)
 
-        status_invoice, _ = models.StatusDocument.objects.get_or_create(
+        status_pending, _ = models.StatusDocument.objects.get_or_create(
             name='Pendiente'
         )
 
-        for invoice in invoices:
-            invoice_serializer = InvoiceSerializer(data=invoice)
-            invoice_serializer.is_valid(raise_exception=True)
-            invoice_serializer.save(
+        def make_many(serializer, data):
+            serializer = serializer(data=data)
+            serializer.is_valid(raise_exception=True)
+
+            serializer.save(
                 payment_attempt=payment_attempt,
-                status=status_invoice)
+                status=status_pending
+            )
+
+        for invoice in invoices:
+            make_many(InvoiceSerializer, invoice)
+        
+        for advancepayment in advancepayments:
+            make_many(AdvancePaymentSerializer, advancepayment)
 
         return payment_attempt
 

@@ -50,6 +50,22 @@ class InvoiceFactory(factory.django.DjangoModelFactory):
         model = 'payment.Invoice'
 
 
+class AdvancePaymentFactory(factory.django.DjangoModelFactory):
+    amount = 300.00
+    bukrs = '0034'
+    concept_id = '003'
+    currency = 'DOP'
+    description = 'Shool Down Payment'
+    merchant_number = '1'
+    payment_attempt = factory.SubFactory(PaymentAttemptFactory)
+    position = "".join([str(random.randint(1, 9)) for _ in range(50)])
+    spras = 'E'
+    status = factory.SubFactory(StatusDocumentFactory)
+
+    class Meta:
+        model = 'payment.AdvancePayment'
+
+
 class StatusCreditCardFactory(factory.django.DjangoModelFactory):
 
     class Meta:

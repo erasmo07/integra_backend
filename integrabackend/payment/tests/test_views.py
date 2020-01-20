@@ -130,8 +130,10 @@ class TestPaymenetAttemptTestCase(APITestCase):
         self.keys_expect = [
             'sap_customer', 'date', 'id', 'invoices',
             'process_payment', 'transaction', 'user',
-            'total_invoice_amount', 'total_invoice_tax'
+            'total_invoice_amount', 'total_invoice_tax',
+            'total_advancepayment_amount', 'total'
         ]
+
         self.keys_expect_invoices = [
             'id', 'amount', 'amount_dop', 'company',
             'company_name', 'day_pass_due', 'description',
@@ -139,6 +141,12 @@ class TestPaymenetAttemptTestCase(APITestCase):
             'merchant_number', 'currency',
             'position', 'reference',
         ]
+
+        self.key_expect_advance_payment = [
+            'bukrs', 'description', 'status', 'id',
+            'concept_id', 'spras', 'amount',
+        ]
+
         self.user = UserFactory()
         self.resident = ResidentFactory(user=self.user, sap_customer=4259)
         self.payment_attempt = factories.PaymentAttemptFactory(user=self.resident.user)
@@ -182,6 +190,7 @@ class TestPaymenetAttemptTestCase(APITestCase):
 
         data = model_to_dict(self.payment_attempt)
         data['invoices'] = [invoice_data]
+        data['advancepayments'] = []
 
         # WHEN
         self.client.force_authenticate(user=self.resident.user)
@@ -200,6 +209,60 @@ class TestPaymenetAttemptTestCase(APITestCase):
             for key in self.keys_expect_invoices:
                 self.assertIn(key, invoice)
             self.assertEqual(invoice.get('status'), str(status_invoice.id))
+    
+    def test_can_create_payments_attempt_with_advance_payment(self):
+        # GIVE
+        invoice_data = model_to_dict(
+            factories.InvoiceFactory(),
+            exclude=['payment_attempt', 'status', 'user'])
+        
+        advance_payment = model_to_dict(
+            factories.AdvancePaymentFactory(),
+            exclude=['payment_attempt', 'status'])
+        
+        data = model_to_dict(self.payment_attempt)
+        data['invoices'] = [invoice_data]
+        data['advancepayments'] = [advance_payment]
+
+        # WHEN
+        self.client.force_authenticate(user=self.resident.user)
+        response = self.client.post(self.url, data, format='json')
+
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        for key in self.keys_expect:
+            self.assertIn(key, response.json())
+
+        status_invoice, _ = models.StatusDocument.objects.get_or_create(
+            name="Pendiente"
+        )
+
+        for invoice in response.json().get('invoices'):
+            for key in self.keys_expect_invoices:
+                self.assertIn(key, invoice)
+            self.assertEqual(invoice.get('status'), str(status_invoice.id))
+        
+        for advance in response.json().get('advancepayments'):
+            for key in self.key_expect_advance_payment:
+                self.assertIn(key, advance)
+            self.assertEqual(advance.get('status'), str(status_invoice.id))
+        
+        response_detail = self.client.get(
+            "%s%s/" % (self.url, response.json().get('id')))
+
+        self.assertEqual(response_detail.status_code, status.HTTP_200_OK)
+
+        self.assertEqual(
+            response_detail.json().get('total'),
+            str(39.38 + 300.00))
+
+        self.assertEqual(
+            response_detail.json().get('total_invoice_amount'),
+            str(39.38))
+
+        self.assertEqual(
+            response_detail.json().get('total_advancepayment_amount'),
+            '300.00')
 
     def test_not_send_correct_data(self):
         invoice = factories.InvoiceFactory(payment_attempt=self.payment_attempt)
@@ -446,3 +509,58 @@ class TestPaymenetAttemptTestCase(APITestCase):
 
         invoice.refresh_from_db()
         self.assertEqual(invoice.status.name, 'Compensada')
+
+    @patch('integrabackend.payment.views.PaymentAttemptViewSet.compensation_payments')
+    @patch('integrabackend.payment.views.PaymentAttemptViewSet.transaction_class')
+    def test_can_pay_payment_attempt_with_advancepayment(
+            self, transaction_class, compensation_payment):
+
+        transaction_response = MagicMock()
+        transaction_response.response_code = '00'
+        transaction_response.authorization_code = 'OK200'
+        transaction_response.data_vault_brand = 'VISA'
+        transaction_response.data_vault_expiration = '202010'
+        transaction_response.data_vault_token = 'TOKEN'
+
+        transaction_class_mock = MagicMock()
+        transaction_class_mock.commit.return_value = transaction_response
+
+        transaction_class.return_value = transaction_class_mock
+
+        compensation_payment_mock = MagicMock()
+        compensation_payment_mock.sap_response = {'data': 'PDF', 'success': True}
+
+        compensation_payment.return_value = compensation_payment_mock
+
+        factories.CreditCardFactory(
+            brand='VISA',
+            name='Prueba',
+            data_vault_expiration='202011',
+            owner=self.payment_attempt.user,
+            token='5EB29277-E93F-4D1F-867D-8E54AF97B86F')
+
+        self.client.force_authenticate(user=self.resident.user)
+        credit_card = self.client.get('/api/v1/credit-card/')
+
+        self.assertEqual(credit_card.status_code, status.HTTP_200_OK)
+        self.assertIn('id', credit_card.json()[0])
+        self.assertIn('brand', credit_card.json()[0])
+        self.assertIn('name', credit_card.json()[0])
+
+        advancepayment = factories.AdvancePaymentFactory(
+            payment_attempt=self.payment_attempt)
+        url = '/api/v1/payment-attempt/%s/charge/' % self.payment_attempt.id
+        data = {'card_uuid': credit_card.json()[0].get('id')}
+
+        self.client.force_authenticate(user=self.resident.user)
+        response = self.client.post(url, data, format='json')
+
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.payment_attempt.refresh_from_db()
+        self.assertEqual(self.payment_attempt.process_payment, 'AZUL')
+        self.assertIsNotNone(self.payment_attempt.response)
+
+        advancepayment.refresh_from_db()
+        self.assertEqual(advancepayment.status.name, 'Compensada')

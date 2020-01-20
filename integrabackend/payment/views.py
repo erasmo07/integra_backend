@@ -77,12 +77,11 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
         raise NotFound(detail="Not send card correct structure")
 
     def make_transaction_in_azul(self):
+        total = self.object.total or "0.00"
+        amount, amount_cents = str(total).split('.')
 
-        amount_str = str(self.object.total_invoice_amount)
-        amount, amount_cents = amount_str.split('.')
-
-        tax_str = str(self.object.total_invoice_amount)
-        tax, tax_cents = amount_str.split('.')
+        taxs = self.object.total_invoice_tax or "0.00"
+        tax, tax_cents = str(taxs).split('.')
 
         save_data_vault = '1' if self.request.data.get('card', {}).get('save') else None
         transaction = self.transaction_class(
@@ -140,6 +139,7 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
             name='Compensada'
         )
         self.object.invoices.update(status=status)
+        self.object.advancepayments.update(status=status)
 
         if (transaction_response.is_valid()
                 and self.request.data.get('card', {}).get('save')):
