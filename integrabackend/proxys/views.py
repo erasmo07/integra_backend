@@ -285,6 +285,7 @@ class ERPClientViewSet(viewsets.ViewSet):
             societies = APIClientERP().get(
                 'api_portal_clie/dame_soc_mercha',
                 {
+                    'sap_customer': pk,
                     'merchant_number': merchant
                 }
             )
@@ -292,3 +293,25 @@ class ERPClientViewSet(viewsets.ViewSet):
         except NotFound as exception:
             return Response({}, status.HTTP_404_NOT_FOUND)
 
+    @action(detail=True, methods=['GET'], url_path='account-status-pdf')
+    def account_status_pdf(self, request, pk=None, format=None):
+        try:
+            params = request.query_params.dict()
+
+            merchant = get_value_or_404(
+                params, 'merchant', 'Not send merchant')
+            date = get_value_or_404(
+                params, 'date', 'Not send merchant')
+
+            account_status = APIClientERP().get(
+                'api_portal_clie/dame_estado_cue',
+                {
+                    "sap_customer": pk,
+                    "lang": params.get('language', 'E'),
+                    "I_MERCHANTNR": merchant,
+                    "I_DATE": date
+                } 
+            )
+            return Response(account_status)
+        except NotFound as exception:
+            return Response({}, status.HTTP_404_NOT_FOUND)

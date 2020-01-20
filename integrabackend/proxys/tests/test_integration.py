@@ -59,3 +59,19 @@ class TestERPClientViewSet(APITestCase):
         for advance in response.json():
             self.assertIn('company', advance)
             self.assertIn('company_name', advance)
+
+    def test_account_status_get_request_success(self):
+        # WHEN
+        response = self.client.get(
+            '/api/v1/sap/client/4259/account-status-pdf/',
+            {
+                "lang": "E",
+                "merchant": "350000551",
+                "date": "20200115"
+            })
+
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        for item in response.json():
+            self.assertIn('data', item)
+            self.assertIn('success', item)
