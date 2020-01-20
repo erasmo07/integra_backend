@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from oraculo.gods.exceptions import BadRequest
 from partenon.process_payment import azul
 
+from ..users.models import User
 from . import helpers, models, serializers
 from .helpers import CompensationPayment
 
@@ -22,9 +23,10 @@ class CreditCardViewSet(
     card_class = azul.Card
 
     def get_queryset(self):
-        return super(
-            CreditCardViewSet, self
-        ).get_queryset().filter(owner=self.request.user)
+        queryset = super(CreditCardViewSet, self).get_queryset()
+        if self.request.user.is_aplication:
+            return queryset 
+        return queryset.filter(owner=self.request.user) 
     
     def perform_destroy(self, instance):
         try:
@@ -56,8 +58,13 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         if self.request.user.is_aplication and 'user' not in self.request.data:
             raise NotFound(detail='User is aplication need to set user key')
+        
+        if self.request.user.is_aplication and 'user' in self.request.data:
+            serializer.save(user=get_object_or_404(User, self.request.data))
+            return
 
-        serializer.save(user=self.request.user)
+        if not self.request.user.is_aplication:
+            serializer.save(user=self.request.user)
 
     def get_azul_card(self):
         if 'card' in self.request.data:

@@ -68,7 +68,7 @@ class PaymentAttempt(models.Model):
         blank=True, null=True
     )
     transaction = models.IntegerField()
-    user = models.ForeignKey("users.User", on_delete=models.DO_NOTHING)
+    user = models.ForeignKey("users.User", on_delete=models.DO_NOTHING, null=True)
 
     @property
     def total(self):
