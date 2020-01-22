@@ -303,7 +303,7 @@ class ERPClientViewSet(viewsets.ViewSet):
             date = get_value_or_404(
                 params, 'date', 'Not send merchant')
 
-            account_status = APIClientERP().get(
+            account_status = APIClientERP().post(
                 'api_portal_clie/dame_estado_cue',
                 {
                     "sap_customer": pk,
