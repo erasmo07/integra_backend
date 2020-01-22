@@ -282,7 +282,7 @@ class ERPClientViewSet(viewsets.ViewSet):
             merchant = get_value_or_404(
                 params, 'merchant', 'Not send merchant')
 
-            societies = APIClientERP().get(
+            societies = APIClientERP().post(
                 'api_portal_clie/dame_soc_mercha',
                 {
                     'sap_customer': pk,
