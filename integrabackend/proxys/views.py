@@ -301,7 +301,10 @@ class ERPClientViewSet(viewsets.ViewSet):
             merchant = get_value_or_404(
                 params, 'merchant', 'Not send merchant')
             date = get_value_or_404(
-                params, 'date', 'Not send merchant')
+                params, 'date', 'Not send date')
+            
+            companies = request.query_params.getlist('companies', []) 
+            companies = [{'bukrs': company} for company in companies]
 
             account_status = APIClientERP().post(
                 'api_portal_clie/dame_estado_cue',
@@ -309,7 +312,8 @@ class ERPClientViewSet(viewsets.ViewSet):
                     "sap_customer": pk,
                     "lang": params.get('language', 'E'),
                     "I_MERCHANTNR": merchant,
-                    "I_DATE": date
+                    "I_DATE": date,
+                    "companies": companies
                 } 
             )
             return Response(account_status)
