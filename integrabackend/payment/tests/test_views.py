@@ -150,6 +150,20 @@ class TestPaymenetAttemptTestCase(APITestCase):
         self.user = UserFactory()
         self.resident = ResidentFactory(user=self.user, sap_customer=4259)
         self.payment_attempt = factories.PaymentAttemptFactory(user=self.resident.user)
+    
+    def test_backoffice_can_list_payments(self):
+        user = UserFactory()
+        user.groups.add(GroupFactory(name='Backoffice'))
+
+        self.client.force_authenticate(user=user)
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsNot(len(response.json()), 0)
+
+        for payment_attempt in response.json():
+            for key in self.keys_expect:
+                self.assertIn(key, payment_attempt)
 
     def test_can_list_payments_without_documents(self):
         self.client.force_authenticate(user=self.resident.user)
@@ -387,6 +401,29 @@ class TestPaymenetAttemptTestCase(APITestCase):
 
         invoice.refresh_from_db()
         self.assertEqual(invoice.status.name, 'Compensada')
+
+    def test_backoffice_try_charge_payment(
+            self, transaction_class, compensation_payment):
+
+        invoice = factories.InvoiceFactory(payment_attempt=self.payment_attempt)
+        url = '/api/v1/payment-attempt/%s/charge/' % self.payment_attempt.id
+        data = {
+            'card': {
+                'number': '4035874000424977',
+                'expiration': '202012',
+                'cvc': '977',
+                'save': False
+            }
+        }
+
+        user = UserFactory()
+        user.groups.add(GroupFactory(name='Backoffice'))
+        self.client.force_authenticate(user=user)
+
+        response = self.client.post(url, data, format='json')
+
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     @patch('integrabackend.payment.views.PaymentAttemptViewSet.compensation_payments')
     @patch('integrabackend.payment.views.PaymentAttemptViewSet.transaction_class')

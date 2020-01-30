@@ -22,9 +22,11 @@ class User(AbstractUser):
     
     @property
     def is_aplication(self):
-        name_group = 'Aplicacion'
-        is_aplication = self.groups.filter(name=name_group).exists()
-        return True if is_aplication else False
+        return self.groups.filter(name='Aplicacion').exists()
+    
+    @property
+    def is_backoffice(self):
+        return self.groups.filter(name='Backoffice').exists()
 
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)

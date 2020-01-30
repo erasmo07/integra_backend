@@ -2,7 +2,8 @@ from django.shortcuts import get_object_or_404, render
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets, generics
 from rest_framework.decorators import action
-from rest_framework.exceptions import APIException, NotFound, ParseError
+from rest_framework.exceptions import (
+    APIException, NotFound, ParseError, PermissionDenied)
 from rest_framework.response import Response
 
 from oraculo.gods.exceptions import BadRequest
@@ -51,7 +52,10 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = super(PaymentAttemptViewSet, self).get_queryset()
-        if self.request.user.is_aplication:
+        if (
+                self.request.user.is_aplication
+                or self.request.user.is_backoffice
+            ):
             return queryset
         return queryset.filter(user=self.request.user)
 
@@ -63,8 +67,7 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
             serializer.save(user=get_object_or_404(User, self.request.data))
             return
 
-        if not self.request.user.is_aplication:
-            serializer.save(user=self.request.user)
+        serializer.save(user=self.request.user)
 
     def get_azul_card(self):
         if 'card' in self.request.data:
@@ -118,6 +121,9 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['POST'])
     def charge(self, request, pk=None):
+        if self.request.user.is_backoffice:
+            raise PermissionDenied(detail="User can't charge payment") 
+
         self.object = self.get_object()
         if hasattr(self.object, 'response'):
             raise ParseError(detail='PaymentAttempt has one response')
