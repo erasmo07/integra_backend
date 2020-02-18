@@ -1,7 +1,17 @@
 from django.contrib.auth import get_user_model
 
 from rest_framework import serializers
-from .models import Resident, Person, Property, PropertyType
+from .models import (
+    Resident, Person, Property,
+    PropertyType, TypeIdentification)
+
+
+class TypeIdenticationSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = TypeIdentification 
+        fields = ('id', 'name')
+        read_only_fields = ('id', )
 
 
 class PropertyTypeSerializer(serializers.ModelSerializer):
@@ -37,7 +47,7 @@ class PersonSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Person
-        fields = ('id', 'name', 'email', 'identification', 'create_by',
+        fields = ('id', 'name', 'email', 'identification',
                   'type_identification')
         read_only_fields = ('id', )
 

@@ -16,3 +16,5 @@ admin.site.register(models.Resident)
 admin.site.register(models.Area)
 admin.site.register(models.Department)
 admin.site.register(models.Organization)
+
+admin.site.register(models.TypeIdentification)

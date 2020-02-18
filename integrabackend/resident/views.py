@@ -5,11 +5,13 @@ from rest_framework.response import Response
 from rest_framework import viewsets, mixins, status
 from rest_framework.decorators import action
 
-from .models import Resident, Person, Property, PropertyType
+from .models import (
+    Resident, Person, Property,
+    PropertyType, TypeIdentification)
 from .serializers import (
     ResidentSerializer, PersonSerializer,
     PropertySerializer, PropertyTypeSerializer,
-    ResidentUserserializer)
+    ResidentUserserializer, TypeIdenticationSerializer)
 
 
 class ResidentCreateViewSet(viewsets.ModelViewSet):
@@ -98,3 +100,8 @@ class PropertyViewSet(viewsets.ModelViewSet):
 class PropertyTypeViewSet(viewsets.ModelViewSet):
     queryset = PropertyType.objects.all()
     serializer_class = PropertyTypeSerializer
+
+
+class TypeIdentificationViewSet(viewsets.ModelViewSet):
+    queryset = TypeIdentification.objects.all()
+    serializer_class = TypeIdenticationSerializer

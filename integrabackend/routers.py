@@ -2,7 +2,8 @@ from rest_framework.routers import DefaultRouter
 from .payment import views as payment_views
 from .users.views import UserViewSet
 from .resident.views import (
-    ResidentCreateViewSet, PersonViewSet, PropertyViewSet, PropertyTypeViewSet)
+    ResidentCreateViewSet, PersonViewSet, PropertyViewSet,
+    PropertyTypeViewSet, TypeIdentificationViewSet)
 from .invitation.views import InvitationViewSet, TypeInvitationViewSet
 from .solicitude.views import (
     ServiceViewSet, StateSolicitudeServiceViewSet,
@@ -20,6 +21,7 @@ router.register(r'users', UserViewSet)
 router.register(r'resident', ResidentCreateViewSet)
 router.register(r'property', PropertyViewSet)
 router.register(r'property-type', PropertyTypeViewSet)
+router.register(r'type-identification', TypeIdentificationViewSet)
 
 # APP - Invitation
 router.register(

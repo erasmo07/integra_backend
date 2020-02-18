@@ -31,13 +31,16 @@ class TypeIdentification(models.Model):
 
 class Person(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    create_by = models.ForeignKey('resident.Resident', on_delete=models.CASCADE)
     name = models.CharField(max_length=120)
-    type_identification = models.ForeignKey(
-        TypeIdentification, on_delete=models.CASCADE)
     identification = models.CharField(max_length=30)
     email = models.EmailField()
     depurate = models.BooleanField(default=False)
+
+    create_by = models.ForeignKey(
+        'resident.Resident', on_delete=models.CASCADE)
+
+    type_identification = models.ForeignKey(
+        'resident.TypeIdentification', on_delete=models.CASCADE)
 
 
 class PropertyType(models.Model):
