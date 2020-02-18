@@ -6,7 +6,8 @@ from rest_framework.decorators import action
 from .models import Resident, Person, Property, PropertyType
 from .serializers import (
     ResidentSerializer, PersonSerializer,
-    PropertySerializer, PropertyTypeSerializer)
+    PropertySerializer, PropertyTypeSerializer,
+    ResidentUserserializer)
 
 
 class ResidentCreateViewSet(viewsets.ModelViewSet):
@@ -25,13 +26,29 @@ class ResidentCreateViewSet(viewsets.ModelViewSet):
         if request._request.method == 'GET':
             serializer = PropertySerializer(resident.properties.all(), many=True)
             return Response(serializer.data)
-        
+
         if request._request.method == 'POST':
             properties_pks = request.data.get('properties') 
             properties = Property.objects.filter(pk__in=properties_pks)
             resident.properties.add(*properties)
             serializer = PropertySerializer(resident.properties.all(), many=True)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+    @action(detail=True, methods=["POST"])
+    def user(self, request, pk=True):
+        resident = self.get_object()
+        if resident.user:
+            error = {'message': "This resident has user"}
+            return Response(error, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = ResidentUserserializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        resident.user = serializer.instance
+        resident.save()
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
         
 
 class PersonViewSet(viewsets.ModelViewSet):

@@ -20,7 +20,7 @@ class Resident(models.Model):
     properties = models.ManyToManyField('resident.Property')
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE)
+        on_delete=models.SET_NULL, blank=True, null=True)
 
 
 class TypeIdentification(models.Model):
