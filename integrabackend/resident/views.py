@@ -18,7 +18,7 @@ class ResidentCreateViewSet(viewsets.ModelViewSet):
     serializer_class = ResidentSerializer
     filter_backends = (DjangoFilterBackend,)
     filter_fields = ('email', 'id_sap')
-    
+
     @action(detail=True, methods=['GET', 'POST'], url_path='property')
     def property(self, request, pk=None):
         resident = self.get_object()
@@ -28,12 +28,12 @@ class ResidentCreateViewSet(viewsets.ModelViewSet):
             return Response(serializer.data)
 
         if request._request.method == 'POST':
-            properties_pks = request.data.get('properties') 
+            properties_pks = request.data.get('properties')
             properties = Property.objects.filter(pk__in=properties_pks)
             resident.properties.add(*properties)
             serializer = PropertySerializer(resident.properties.all(), many=True)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-    
+
     @action(detail=True, methods=["POST"])
     def user(self, request, pk=True):
         resident = self.get_object()
@@ -49,7 +49,17 @@ class ResidentCreateViewSet(viewsets.ModelViewSet):
         resident.save()
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-        
+
+    @action(detail=True, methods=['PUT'])
+    def user(self, request, pk):
+        residente = self.get_object()
+
+        serializer = ResidentUserserializer(residente.user, data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        self.perform_update(serializer)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 class PersonViewSet(viewsets.ModelViewSet):
     """
@@ -73,7 +83,7 @@ class PropertyViewSet(viewsets.ModelViewSet):
         property_user = all_property.filter(resident__user=self.request.user)
 
         is_aplication = self.request.user.is_aplication
-        return all_property if is_aplication else property_user 
+        return all_property if is_aplication else property_user
 
 
 class PropertyTypeViewSet(viewsets.ModelViewSet):
