@@ -78,6 +78,14 @@ class PersonViewSet(viewsets.ModelViewSet):
     """
     queryset = Person.objects.all()
     serializer_class = PersonSerializer
+    filter_backends = (DjangoFilterBackend,)
+    filter_fields = ('create_by',)
+
+    def get_queryset(self):
+        all_person = super(PersonViewSet, self).get_queryset()
+        person_user = all_person.filter(create_by__user=self.request.user)
+
+        return all_person if self.request.user.is_aplication else person_user
 
 
 class PropertyViewSet(viewsets.ModelViewSet):
@@ -93,8 +101,7 @@ class PropertyViewSet(viewsets.ModelViewSet):
         all_property = super(PropertyViewSet, self).get_queryset(**kwargs)
         property_user = all_property.filter(resident__user=self.request.user)
 
-        is_aplication = self.request.user.is_aplication
-        return all_property if is_aplication else property_user
+        return all_property if self.request.user.is_aplication else property_user
 
 
 class PropertyTypeViewSet(viewsets.ModelViewSet):
