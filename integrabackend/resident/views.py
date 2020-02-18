@@ -1,4 +1,6 @@
 from django_filters.rest_framework import DjangoFilterBackend
+from django.shortcuts import get_list_or_404
+
 from rest_framework.response import Response
 from rest_framework import viewsets, mixins, status
 from rest_framework.decorators import action
@@ -19,7 +21,7 @@ class ResidentCreateViewSet(viewsets.ModelViewSet):
     filter_backends = (DjangoFilterBackend,)
     filter_fields = ('email', 'id_sap')
 
-    @action(detail=True, methods=['GET', 'POST'], url_path='property')
+    @action(detail=True, methods=['GET', 'POST', "DELETE"], url_path='property')
     def property(self, request, pk=None):
         resident = self.get_object()
 
@@ -33,6 +35,13 @@ class ResidentCreateViewSet(viewsets.ModelViewSet):
             resident.properties.add(*properties)
             serializer = PropertySerializer(resident.properties.all(), many=True)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        if request._request.method == "DELETE":
+            properties_pks = request.data.get('properties')
+            properties = get_list_or_404(Property, pk__in=properties_pks)
+            resident.properties.remove(*properties)
+
+            return Response({"success": True}, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["POST"])
     def user(self, request, pk=True):
