@@ -83,7 +83,7 @@ class PersonViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         all_person = super(PersonViewSet, self).get_queryset()
-        person_user = all_person.filter(create_by__user=self.request.user)
+        person_user = all_person.filter(create_by=self.request.user)
 
         return all_person if self.request.user.is_aplication else person_user
 
