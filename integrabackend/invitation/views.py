@@ -14,6 +14,9 @@ class InvitationViewSet(viewsets.ModelViewSet):
     queryset = Invitation.objects.all()
     serializer_class = InvitationSerializer
 
+    def perform_create(self, serializer):
+        serializer.save(create_by=self.request.user)
+
 
 class TypeInvitationViewSet(viewsets.ReadOnlyModelViewSet):
     """

@@ -8,8 +8,9 @@ class InvitationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Invitation
-        fields = ('id', 'resident', 'type_invitation',
-                  'date_entry', 'date_out', 'invitated')
+        fields = (
+            'id', 'type_invitation', 'date_entry',
+            'date_out', 'invitated')
         read_only_fields = ('id', )
     
     def create(self, validated_data):
@@ -23,7 +24,7 @@ class InvitationSerializer(serializers.ModelSerializer):
             serializer = PersonSerializer(data=invitated)
             serializer.is_valid(raise_exception=True)
 
-            serializer.save(create_by=invitation.resident)
+            serializer.save(create_by=invitation.create_by)
             invitation.invitated.add(serializer.instance)
 
         return invitation

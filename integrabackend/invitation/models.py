@@ -14,8 +14,8 @@ class TypeInvitation(models.Model):
 
 class Invitation(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    resident = models.ForeignKey(
-        'resident.Resident', related_name='invitations',
+    create_by = models.ForeignKey(
+        'users.User', related_name='invitations',
         on_delete=models.CASCADE)
     type_invitation = models.ForeignKey(
         'invitation.TypeInvitation', related_name='invitations',

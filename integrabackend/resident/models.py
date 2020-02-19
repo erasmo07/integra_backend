@@ -37,7 +37,7 @@ class Person(models.Model):
     depurate = models.BooleanField(default=False)
 
     create_by = models.ForeignKey(
-        'resident.Resident', on_delete=models.CASCADE)
+        'users.User', on_delete=models.CASCADE)
 
     type_identification = models.ForeignKey(
         'resident.TypeIdentification', on_delete=models.CASCADE)
