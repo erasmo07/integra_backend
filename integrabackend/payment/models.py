@@ -107,6 +107,14 @@ class PaymentAttempt(models.Model):
         ).get('total_tax')
         return taxs if taxs else decimal.Decimal(0.00)
 
+    @property
+    def total_invoice_amount_usd(self):
+        return self.invoices.values(
+            'amount'
+        ).aggregate(
+            total_amount=models.Sum('amount')
+        ).get('total_amount', )
+
     def save(self, *args, **kwargs):
         last = PaymentAttempt.objects.order_by('transaction').last()
         if not last:

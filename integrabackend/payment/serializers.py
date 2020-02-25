@@ -1,7 +1,9 @@
+import re
 from rest_framework import serializers
+
+from integrabackend.users.serializers import UserSerializer
 from . import models
 
-import re
 
 
 class ResponsePaymentAttemptSerializer(serializers.ModelSerializer):
@@ -39,6 +41,9 @@ class PaymentAttemptSerializer(serializers.ModelSerializer):
     invoices = InvoiceSerializer(many=True)
     advancepayments = AdvancePaymentSerializer(many=True)
     response = ResponsePaymentAttemptSerializer(read_only=True)
+    user = UserSerializer(read_only=True)
+
+    total_invoice_amount_usd = serializers.CharField(read_only=True)
     total_invoice_amount = serializers.CharField(read_only=True)
     total_invoice_tax = serializers.CharField(read_only=True)
     total_advancepayment_amount = serializers.CharField(read_only=True)
