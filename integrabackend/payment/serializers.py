@@ -52,7 +52,7 @@ class PaymentAttemptSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.PaymentAttempt
         fields = "__all__"
-        read_only_fields = ('id', 'transaction', 'process_payment')
+        read_only_fields = ('id', 'transaction', 'process_payment', 'date')
 
     def create(self, validated_data):
         invoices = validated_data.pop('invoices')

@@ -10,7 +10,8 @@ from oraculo.gods.exceptions import BadRequest
 from partenon.process_payment import azul
 
 from ..users.models import User
-from . import helpers, models, serializers
+from ..solicitude.serializers import StateSerializer
+from . import helpers, models, serializers, enums, filters
 from .helpers import CompensationPayment
 
 
@@ -37,6 +38,18 @@ class CreditCardViewSet(
             raise ParseError(detail='Cant delete credit card')
 
 
+class StatePaymentDocumentViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    List PaymentAttempt's status
+    """
+    queryset = models.StatusDocument.objects.filter(
+        name__in=[
+            enums.StatusInvoices.compensated,
+            enums.StatusInvoices.not_compensated
+        ])
+    serializer_class = StateSerializer
+
+
 class PaymentAttemptViewSet(viewsets.ModelViewSet):
     """
     Create resident
@@ -49,6 +62,8 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
     response_payment_attemp_model = models.ResponsePaymentAttempt
     credit_card_model = models.CreditCard
     compensation_payments = CompensationPayment
+    filter_backends = [DjangoFilterBackend]
+    filter_class = filters.PaymentAttemptFilter
 
     def get_queryset(self):
         queryset = super(PaymentAttemptViewSet, self).get_queryset()
@@ -143,13 +158,13 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
             compensation_payment.commit()
         except BadRequest as exception:
             status, _ = models.StatusDocument.objects.get_or_create(
-                name='No Compensada'
+                name=enums.StatusInvoices.not_compensated
             )
             self.object.invoices.update(status=status)
             raise NotFound(detail='SAP return 500 not charge invoice')
 
         status, _ = models.StatusDocument.objects.get_or_create(
-            name='Compensada'
+            name=enums.StatusInvoices.compensated
         )
         self.object.invoices.update(status=status)
         self.object.advancepayments.update(status=status)

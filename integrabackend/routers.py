@@ -43,6 +43,9 @@ router.register(
 
 # APP - Payment
 router.register(
+    r'state/payment-attempt',
+    payment_views.StatePaymentDocumentViewSet)
+router.register(
     r'payment-attempt',
     payment_views.PaymentAttemptViewSet,
     base_name='payment_attempt')

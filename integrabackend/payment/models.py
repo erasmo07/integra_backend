@@ -4,6 +4,8 @@ from django.contrib.contenttypes.fields import GenericRelation, GenericForeignKe
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 
+from . import enums
+
 
 class Status(models.Model):
     id = models.UUIDField(
@@ -144,6 +146,12 @@ class PaymentDocument(models.Model):
     status = models.ForeignKey(
         "payment.StatusDocument",
         on_delete=models.DO_NOTHING,
+        limit_choices_to={
+            'name__in': [
+                enums.StatusInvoices.compensated,
+                enums.StatusInvoices.not_compensated
+            ]
+        }
     )
 
     class Meta:
