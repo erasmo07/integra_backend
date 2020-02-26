@@ -109,15 +109,19 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
         tax, tax_cents = str(taxs).split('.')
 
         save_data_vault = '1' if self.request.data.get('card', {}).get('save') else None
+
         transaction = self.transaction_class(
             card=self.get_azul_card(),
             order_number=self.object.transaction,
             amount="%s%s" % (amount, amount_cents),
             itbis="%s%s" % (tax, tax_cents),
-            save_to_data_vault=save_data_vault)
+            save_to_data_vault=save_data_vault,
+            merchan_name=self.object.merchant_name,
+            store=self.object.merchant_number)
 
         self.object.process_payment = 'AZUL'
         self.object.save()
+
         return transaction.commit()
 
     def save_credit_card(self, transaction_response):

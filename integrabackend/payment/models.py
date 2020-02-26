@@ -61,9 +61,9 @@ class ResponsePaymentAttempt(models.Model):
 class PaymentAttempt(models.Model):
     """Model definition for StatusDocument. """
 
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     sap_customer = models.IntegerField()
     date = models.DateTimeField(auto_now_add=True)
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     process_payment = models.CharField(
         'Process Payment',
         max_length=50,
@@ -71,6 +71,12 @@ class PaymentAttempt(models.Model):
     )
     transaction = models.IntegerField()
     user = models.ForeignKey("users.User", on_delete=models.DO_NOTHING, null=True)
+
+    merchant_number = models.CharField(
+        'Merchant Number', max_length=50, blank=True, null=True)
+    merchant_name = models.CharField(
+        'Merchant Name', max_length=50, blank=True, null=True)
+
 
     @property
     def total(self):
