@@ -136,6 +136,7 @@ class PaymentDocument(models.Model):
     description = models.TextField()
     currency = models.CharField('Currency', max_length=3)
     position = models.CharField('Position', max_length=50)
+    merchant_number = models.CharField(max_length=50)
 
     payment_attempt = models.ForeignKey(
         'payment.PaymentAttempt',
@@ -166,13 +167,13 @@ class Invoice(PaymentDocument):
     day_pass_due = models.CharField('Day pass due', max_length=50)
     document_date = models.DateField('Document Date')
     document_number = models.BigIntegerField('Document Number')
-    merchant_number = models.CharField(max_length=50)
     reference = models.CharField("Reference", max_length=50)
     tax = models.DecimalField('Tax', max_digits=10, decimal_places=2)
+    exchage_rate = models.DecimalField(
+        'Exchange rate', max_digits=5, decimal_places=2)
 
 
 class AdvancePayment(PaymentDocument):
     concept_id = models.CharField('Concept', max_length=50) 
     spras = models.CharField('Spras', max_length=1)
     bukrs = models.CharField('Bukrs', max_length=50)
-    merchant_number = models.CharField('Merchant Number', max_length=50)
