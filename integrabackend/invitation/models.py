@@ -1,7 +1,10 @@
 import uuid
-from django.db import models
+import random
+from django.db import models, IntegrityError
 
-# Create your models here.
+
+def random_number():
+    return str(random.randint(10000, 99999))
 
 
 class TypeInvitation(models.Model):
@@ -26,3 +29,14 @@ class Invitation(models.Model):
     date_out = models.DateTimeField()
     cheking = models.DateTimeField(null=True, blank=True)
     chekout = models.DateTimeField(null=True, blank=True)
+    number = models.CharField(
+        'Random Number', max_length=7,
+        unique=True, blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        try:
+            self.number = random_number()
+            super(Invitation, self).save(*args, **kwargs)
+        except IntegrityError:
+            self.number = random_number()
+            return super(Invitation, self).save(*args, **kwargs)
