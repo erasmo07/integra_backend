@@ -20,6 +20,7 @@ class Invitation(models.Model):
     type_invitation = models.ForeignKey(
         'invitation.TypeInvitation', related_name='invitations',
         on_delete=models.CASCADE)
+    note = models.TextField('Note', blank=True, null=True)
     invitated = models.ManyToManyField('resident.Person')
     date_entry = models.DateTimeField()
     date_out = models.DateTimeField()

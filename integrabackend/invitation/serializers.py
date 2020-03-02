@@ -10,7 +10,7 @@ class InvitationSerializer(serializers.ModelSerializer):
         model = Invitation
         fields = (
             'id', 'type_invitation', 'date_entry',
-            'date_out', 'invitated')
+            'date_out', 'invitated', 'note')
         read_only_fields = ('id', )
     
     def create(self, validated_data):
