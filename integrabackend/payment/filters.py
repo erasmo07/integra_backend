@@ -5,8 +5,8 @@ from integrabackend.payment import models
 
 
 class PaymentAttemptFilter(django_filters.FilterSet):
-    to = django_filters.DateTimeFilter(field_name='date', lookup_expr='gte')
-    from_ = django_filters.DateTimeFilter(field_name='date', lookup_expr='lte')
+    from_ = django_filters.DateTimeFilter(field_name='date', lookup_expr='gte')
+    to = django_filters.DateTimeFilter(field_name='date', lookup_expr='lte')
 
     class Meta:
         model = models.PaymentAttempt
