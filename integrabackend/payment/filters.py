@@ -13,4 +13,5 @@ class PaymentAttemptFilter(django_filters.FilterSet):
         fields = {
             'sap_customer': ['exact'],
             'invoices__status': ['exact'],
+            'merchant_number': ['exact'],
         }
