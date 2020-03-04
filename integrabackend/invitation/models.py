@@ -16,6 +16,14 @@ class Medio(models.Model):
     icon = models.CharField('Icon', max_length=50, blank=True, null=True)
 
 
+class Color(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False)
+    name = models.CharField('Nombre', max_length=50)
+
+
 class TypeInvitation(models.Model):
     id = models.UUIDField(
         primary_key=True,

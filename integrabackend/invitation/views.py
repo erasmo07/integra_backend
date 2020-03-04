@@ -31,3 +31,11 @@ class MedioViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = models.Medio.objects.all()
     serializer_class = serializers.MedioSerializer
+
+
+class ColorViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    List color 
+    """
+    queryset = models.Color.objects.all()
+    serializer_class = serializers.ColorSerializer

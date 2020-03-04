@@ -26,6 +26,7 @@ router.register(r'type-identification', TypeIdentificationViewSet)
 # APP - Invitation
 router.register(r'type-invitation', invitation_views.TypeInvitationViewSet)
 router.register(r'medio', invitation_views.MedioViewSet)
+router.register(r'color', invitation_views.ColorViewSet)
 router.register(r'invitation', invitation_views.InvitationViewSet)
 router.register(r'person', PersonViewSet)
 

@@ -11,6 +11,14 @@ class MedioSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', )
 
 
+class ColorSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = models.Color
+        fields = '__all__'
+        read_only_fields = ('id', )
+
+
 class InvitationSerializer(serializers.ModelSerializer):
     invitated = PersonSerializer(many=True)
 

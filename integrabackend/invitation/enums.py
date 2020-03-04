@@ -24,3 +24,19 @@ class MedioEnums(DefaultEnums):
     taxi = 'Taxi'
     truck = 'Truck'
     walking = 'Walking'
+
+
+class ColorEnums(DefaultEnums):
+    _model = apps.get_model('invitation', 'Color')
+
+    blue = 'Blue'
+    red = 'Red'
+    orange = 'Orange'
+    green = 'Green'
+    black = 'Black'
+    white = 'White'
+    grey = 'Grey'
+    gold = 'Gold'
+    silver = 'Silver'
+    yellow = 'Yellow'
+    other = 'other'
