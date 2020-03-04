@@ -1,13 +1,21 @@
 from rest_framework import serializers
-from .models import Invitation, TypeInvitation
+from . import models, enums
 from ..resident.serializers import PersonSerializer
+
+
+class MedioSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = models.Medio
+        fields = '__all__'
+        read_only_fields = ('id', )
 
 
 class InvitationSerializer(serializers.ModelSerializer):
     invitated = PersonSerializer(many=True)
 
     class Meta:
-        model = Invitation
+        model = models.Invitation
         fields = (
             'id', 'type_invitation', 'date_entry',
             'date_out', 'invitated', 'note', 'number')

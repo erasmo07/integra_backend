@@ -3,16 +3,15 @@ from rest_framework.generics import ListAPIView
 from rest_framework.mixins import ListModelMixin
 
 
-from .models import Invitation, TypeInvitation
-from .serializers import InvitationSerializer, TypeInvitationSerializer
+from . import models, serializers
 
 
 class InvitationViewSet(viewsets.ModelViewSet):
     """
     CRUD Invitation
     """
-    queryset = Invitation.objects.all()
-    serializer_class = InvitationSerializer
+    queryset = models.Invitation.objects.all()
+    serializer_class = serializers.InvitationSerializer
 
     def perform_create(self, serializer):
         serializer.save(create_by=self.request.user)
@@ -22,5 +21,13 @@ class TypeInvitationViewSet(viewsets.ReadOnlyModelViewSet):
     """
     List type invitation
     """
-    queryset = TypeInvitation.objects.all()
-    serializer_class = TypeInvitationSerializer
+    queryset = models.TypeInvitation.objects.all()
+    serializer_class = serializers.TypeInvitationSerializer
+
+
+class MedioViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    List medio
+    """
+    queryset = models.Medio.objects.all()
+    serializer_class = serializers.MedioSerializer

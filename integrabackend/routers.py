@@ -4,7 +4,7 @@ from .users.views import UserViewSet
 from .resident.views import (
     ResidentCreateViewSet, PersonViewSet, PropertyViewSet,
     PropertyTypeViewSet, TypeIdentificationViewSet)
-from .invitation.views import InvitationViewSet, TypeInvitationViewSet
+from .invitation import views as invitation_views
 from .solicitude.views import (
     ServiceViewSet, StateSolicitudeServiceViewSet,
     ServiceRequestViewSet, DayViewSet, AvisoViewSet)
@@ -24,11 +24,9 @@ router.register(r'property-type', PropertyTypeViewSet)
 router.register(r'type-identification', TypeIdentificationViewSet)
 
 # APP - Invitation
-router.register(
-    r'type-invitation',
-    TypeInvitationViewSet,
-    base_name='type-invitation')
-router.register(r'invitation', InvitationViewSet)
+router.register(r'type-invitation', invitation_views.TypeInvitationViewSet)
+router.register(r'medio', invitation_views.MedioViewSet)
+router.register(r'invitation', invitation_views.InvitationViewSet)
 router.register(r'person', PersonViewSet)
 
 # APP - solicitude

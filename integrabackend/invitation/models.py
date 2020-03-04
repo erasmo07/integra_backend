@@ -7,6 +7,15 @@ def random_number():
     return str(random.randint(10000, 99999))
 
 
+class Medio(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False)
+    name = models.CharField('Name', max_length=50)
+    icon = models.CharField('Icon', max_length=50, blank=True, null=True)
+
+
 class TypeInvitation(models.Model):
     id = models.UUIDField(
         primary_key=True,
