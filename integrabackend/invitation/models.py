@@ -24,6 +24,28 @@ class Color(models.Model):
     name = models.CharField('Nombre', max_length=50)
 
 
+class Transportation(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False)
+    plate = models.CharField('Plate', max_length=50)
+    color = models.ForeignKey(
+        "invitation.Color", on_delete=models.CASCADE)
+    medio = models.ForeignKey(
+        "invitation.Medio", on_delete=models.CASCADE)
+
+
+class Supplier(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False)
+    name = models.CharField('Name Suplier', max_length=250)
+    transportation = models.ForeignKey(
+        "invitation.Transportation", on_delete=models.CASCADE)
+
+
 class TypeInvitation(models.Model):
     id = models.UUIDField(
         primary_key=True,
@@ -34,21 +56,26 @@ class TypeInvitation(models.Model):
 
 class Invitation(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    date_entry = models.DateTimeField()
+    date_out = models.DateTimeField()
+    cheking = models.DateTimeField(null=True, blank=True)
+    chekout = models.DateTimeField(null=True, blank=True)
+    note = models.TextField('Note', blank=True, null=True)
+    number = models.CharField(
+        'Random Number', max_length=7,
+        unique=True, blank=True, null=True)
+
     create_by = models.ForeignKey(
         'users.User', related_name='invitations',
         on_delete=models.CASCADE)
     type_invitation = models.ForeignKey(
         'invitation.TypeInvitation', related_name='invitations',
         on_delete=models.CASCADE)
-    note = models.TextField('Note', blank=True, null=True)
+    supplier = models.ForeignKey(
+        "invitation.Supplier", on_delete=models.SET_NULL,
+        blank=True, null=True)
+
     invitated = models.ManyToManyField('resident.Person')
-    date_entry = models.DateTimeField()
-    date_out = models.DateTimeField()
-    cheking = models.DateTimeField(null=True, blank=True)
-    chekout = models.DateTimeField(null=True, blank=True)
-    number = models.CharField(
-        'Random Number', max_length=7,
-        unique=True, blank=True, null=True)
 
     def save(self, *args, **kwargs):
         try:

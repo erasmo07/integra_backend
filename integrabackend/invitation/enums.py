@@ -16,6 +16,13 @@ class DefaultEnums:
             self._model.objects.get_or_create(name=value)
 
 
+class TypeInvitationEnums(DefaultEnums):
+    _model = apps.get_model('invitation', 'TypeInvitation')
+
+    supplier = 'Supplier'
+    friend_and_family = 'Friends and Family'
+
+
 class MedioEnums(DefaultEnums):
     _model = apps.get_model('invitation', 'Medio')
 
