@@ -53,6 +53,32 @@ class TypeInvitation(models.Model):
         editable=False)
     name = models.CharField(max_length=120)
 
+    def __str__(self):
+        return self.name
+    
+    @property
+    def available_days(self):
+        return self.typeinvitationproyect.available_days
+    
+    @property
+    def not_available_days(self):
+        return self.typeinvitationproyect.not_available_days.all()
+
+
+class TypeInvitationProyect(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False)
+    type_invitation = models.ForeignKey(
+        "invitation.TypeInvitation", on_delete=models.CASCADE)
+    project = models.ForeignKey(
+        "resident.Project", on_delete=models.CASCADE)
+    available_days = models.IntegerField('Available Days')
+    not_available_days = models.ManyToManyField(
+        "solicitude.Day",
+        related_name='type_invitation_not_available_day')
+
 
 class Invitation(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

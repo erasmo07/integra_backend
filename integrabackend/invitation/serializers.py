@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from . import models, enums
+from ..solicitude.serializers import DaySerializer
 from ..resident.serializers import PersonSerializer
 
 
@@ -109,12 +110,20 @@ class InvitationSerializer(serializers.ModelSerializer):
         return invitation
 
 
+class TypeInvitationProyectSerializer(serializers.ModelSerializer):
+    not_available_days = DaySerializer(read_only=True, many=True)
+
+    class Meta:
+        model = models.TypeInvitationProyect
+        exclude = ['type_invitation', 'id', 'project']
+
+
 class TypeInvitationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.TypeInvitation
-        fields = '__all__'
-        read_only_fields = ('id', )
+        fields = ['name', 'id',]
+        read_only_fields = ('id',)
 
 
 

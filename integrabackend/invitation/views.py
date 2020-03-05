@@ -1,9 +1,14 @@
-from rest_framework import viewsets
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
 from rest_framework.generics import ListAPIView
 from rest_framework.mixins import ListModelMixin
+from rest_framework.response import Response
 
+from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 
-from . import models, serializers, mixins
+from . import models, serializers, mixins, filters
+from ..resident.models import Property
 
 
 class InvitationViewSet(viewsets.ModelViewSet):
@@ -23,6 +28,29 @@ class TypeInvitationViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = models.TypeInvitation.objects.all()
     serializer_class = serializers.TypeInvitationSerializer
+
+    @action(detail=True, methods=['GET'])
+    def property(self, request, pk):
+        self.object = self.get_object()
+
+        if not request.query_params:
+            return Response(
+                {'error': 'Should be send id of property'},
+                status=status.HTTP_400_BAD_REQUEST)
+
+        property_ = get_object_or_404(
+            Property, pk=request.query_params.get('id'))
+
+        typeinvitation_proyect = get_object_or_404(
+            models.TypeInvitationProyect,
+            type_invitation=self.object, project=property_.project
+        )
+
+        serializer = serializers.TypeInvitationProyectSerializer(
+            instance=typeinvitation_proyect)
+
+        return Response(serializer.data)
+
 
 
 class MedioViewSet(

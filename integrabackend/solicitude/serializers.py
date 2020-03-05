@@ -54,7 +54,7 @@ class DaySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Day
-        fields = ('id', 'name', 'day_type')
+        fields = ('id', 'name', 'day_type', 'code')
         read_only_fields = ('id', )
 
 
