@@ -7,16 +7,24 @@ class MedioSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = models.Medio
-        fields = '__all__'
+        fields = ('name', 'id')
         read_only_fields = ('id', )
+
+
+class MedioESSerializer(MedioSerializer):
+    name = serializers.CharField(source='name_es')
 
 
 class ColorSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = models.Color
-        fields = '__all__'
+        fields = ['name', 'id']
         read_only_fields = ('id', )
+
+
+class ColorESSerializer(ColorSerializer):
+    name = serializers.CharField(source='name_es')
 
 
 class TransportationSerializer(serializers.ModelSerializer):

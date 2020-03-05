@@ -26,6 +26,7 @@ class Common(Configuration):
         'rest_framework.authtoken',  # token authentication
         'django_filters',            # for filtering rest endpoints
         'drf_yasg',                  # to documents all APIs
+        'modeltranslation',          # for translate models
         'corsheaders',
         'djcelery',
         'django_extensions',
@@ -82,7 +83,17 @@ class Common(Configuration):
     LANGUAGE_CODE = 'en-us'
     # If you set this to False, Django will make some optimizations so as not
     # to load the internationalization machinery.
-    USE_I18N = False
+    gettext = lambda s: s
+    LANGUAGES = [
+        ('en', gettext('English')),
+        ('es', gettext('Spanish')),
+    ]
+    MODELTRANSLATION_DEFAULT_LANGUAGE = 'en'
+    MODELTRANSLATION_TRANSLATION_FILES = (
+        'integrabackend.invitation.translation',
+    )
+
+    USE_I18N = True 
     USE_L10N = True
     USE_TZ = True
     LOGIN_REDIRECT_URL = '/'

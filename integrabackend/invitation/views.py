@@ -3,7 +3,7 @@ from rest_framework.generics import ListAPIView
 from rest_framework.mixins import ListModelMixin
 
 
-from . import models, serializers
+from . import models, serializers, mixins
 
 
 class InvitationViewSet(viewsets.ModelViewSet):
@@ -25,17 +25,28 @@ class TypeInvitationViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = serializers.TypeInvitationSerializer
 
 
-class MedioViewSet(viewsets.ReadOnlyModelViewSet):
+class MedioViewSet(
+        mixins.ModelTranslateMixin,
+        viewsets.ReadOnlyModelViewSet):
     """
     List medio
     """
     queryset = models.Medio.objects.all()
     serializer_class = serializers.MedioSerializer
+    serializer_language = dict(
+        en=serializers.MedioSerializer,
+        es=serializers.MedioESSerializer
+    )
 
 
-class ColorViewSet(viewsets.ReadOnlyModelViewSet):
+class ColorViewSet(
+        mixins.ModelTranslateMixin,
+        viewsets.ReadOnlyModelViewSet):
     """
     List color 
     """
     queryset = models.Color.objects.all()
     serializer_class = serializers.ColorSerializer
+    serializer_language = dict(
+        en=serializers.ColorSerializer,
+        es=serializers.ColorESSerializer)
