@@ -64,7 +64,7 @@ class SupplierSerializer(serializers.ModelSerializer):
 
 class InvitationSerializer(serializers.ModelSerializer):
     invitated = PersonSerializer(many=True, required=False)
-    supplier = SupplierSerializer()
+    supplier = SupplierSerializer(required=False)
 
     class Meta:
         model = models.Invitation
