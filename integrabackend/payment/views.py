@@ -161,13 +161,14 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
             compensation_payment = self.compensation_payments(self.object)
             compensation_payment.commit()
         except Exception:
-            status, _ = models.StatusDocument.objects.get_or_create(
+            status_invoice, _ = models.StatusDocument.objects.get_or_create(
                 name=enums.StatusInvoices.not_compensated
             )
-            self.object.invoices.update(status=status)
+            self.object.invoices.update(status=status_invoice)
 
             raise APIException(
-                code=503, default_detail='SAP return 500 not charge invoice')
+                code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail='SAP return 500 not charge invoice')
 
         status, _ = models.StatusDocument.objects.get_or_create(
             name=enums.StatusInvoices.compensated
