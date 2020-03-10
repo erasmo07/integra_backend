@@ -160,12 +160,14 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
         try:
             compensation_payment = self.compensation_payments(self.object)
             compensation_payment.commit()
-        except BadRequest as exception:
+        except Exception:
             status, _ = models.StatusDocument.objects.get_or_create(
                 name=enums.StatusInvoices.not_compensated
             )
             self.object.invoices.update(status=status)
-            raise NotFound(detail='SAP return 500 not charge invoice')
+
+            raise APIException(
+                code=503, default_detail='SAP return 500 not charge invoice')
 
         status, _ = models.StatusDocument.objects.get_or_create(
             name=enums.StatusInvoices.compensated

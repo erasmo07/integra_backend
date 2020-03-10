@@ -40,6 +40,8 @@ class CompensationPayment:
             invoice_data['amount_dop'] = str(invoice_data['amount_dop'])
             invoice_data['amount'] = str(invoice_data['amount'])
             invoice_data['tax'] = str(invoice_data['tax'])
+            invoice_data['exchange_rate'] = str(invoice_data['exchange_rate'])
+
             documents.append(invoice_data)
         
         advancepayments = list()
