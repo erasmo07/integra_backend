@@ -176,7 +176,7 @@ class Invoice(PaymentDocument):
     reference = models.CharField("Reference", max_length=50)
     tax = models.DecimalField('Tax', max_digits=10, decimal_places=2)
     exchange_rate = models.DecimalField(
-        'Exchange rate', max_digits=5, decimal_places=2)
+        'Exchange rate', max_digits=7, decimal_places=5)
 
 
 class AdvancePayment(PaymentDocument):
