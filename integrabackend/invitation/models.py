@@ -29,7 +29,9 @@ class Transportation(models.Model):
         primary_key=True,
         default=uuid.uuid4,
         editable=False)
-    plate = models.CharField('Plate', max_length=50)
+    plate = models.CharField(
+        'Plate', max_length=50,
+        blank=True, null=True)
     color = models.ForeignKey(
         "invitation.Color", on_delete=models.CASCADE)
     medio = models.ForeignKey(
