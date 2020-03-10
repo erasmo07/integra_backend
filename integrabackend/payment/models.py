@@ -175,7 +175,7 @@ class Invoice(PaymentDocument):
     document_number = models.BigIntegerField('Document Number')
     reference = models.CharField("Reference", max_length=50)
     tax = models.DecimalField('Tax', max_digits=10, decimal_places=2)
-    exchage_rate = models.DecimalField(
+    exchange_rate = models.DecimalField(
         'Exchange rate', max_digits=5, decimal_places=2)
 
 
