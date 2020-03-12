@@ -32,8 +32,19 @@ class PropertySerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'direction')
 
 
+class ResidentUserserializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = get_user_model()
+        fields = (
+            'id', 'username', 'email',
+            'first_name', 'last_name', 'last_login', 'date_joined')
+        read_only_fields = ('id', 'last_login', 'date_joined')
+
+
 class ResidentSerializer(serializers.ModelSerializer):
     properties = PropertySerializer(read_only=True, many=True)
+    user = ResidentUserserializer(read_only=True)
 
     class Meta:
         model = Resident
@@ -52,11 +63,3 @@ class PersonSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', )
 
 
-class ResidentUserserializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = get_user_model()
-        fields = (
-            'id', 'username', 'email',
-            'first_name', 'last_name')
-        read_only_fields = ('id', )
