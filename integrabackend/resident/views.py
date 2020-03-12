@@ -45,31 +45,31 @@ class ResidentCreateViewSet(viewsets.ModelViewSet):
 
             return Response({"success": True}, status=status.HTTP_201_CREATED)
 
-    @action(detail=True, methods=["POST"])
-    def user(self, request, pk=True):
+    @action(detail=True, methods=["POST", 'PUT'], url_path='user')
+    def add_user(self, request, pk=True):
         resident = self.get_object()
-        if resident.user:
-            error = {'message': "This resident has user"}
-            return Response(error, status=status.HTTP_400_BAD_REQUEST)
 
-        serializer = ResidentUserserializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
+        if request._request.method == 'POST':
+            if resident.user:
+                error = {'message': "This resident has user"}
+                return Response(error, status=status.HTTP_400_BAD_REQUEST)
 
-        resident.user = serializer.instance
-        resident.save()
+            serializer = ResidentUserserializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
 
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+            resident.user = serializer.instance
+            resident.save()
 
-    @action(detail=True, methods=['PUT'])
-    def user(self, request, pk):
-        residente = self.get_object()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        
+        if request._request.method == "PUT":
+            serializer = ResidentUserserializer(
+                resident.user, data=request.data)
+            serializer.is_valid(raise_exception=True)
 
-        serializer = ResidentUserserializer(residente.user, data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        self.perform_update(serializer)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+            self.perform_update(serializer)
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class PersonViewSet(viewsets.ModelViewSet):
