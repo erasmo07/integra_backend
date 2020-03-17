@@ -17,7 +17,7 @@ class Status(models.Model):
 
     class Meta:
         abstract = True
-    
+
     def __unicode__(self):
         """Unicode representation of StatusDocument."""
         return self.name
@@ -58,6 +58,39 @@ class ResponsePaymentAttempt(models.Model):
     order_id = models.CharField('Order ID', max_length=10)
 
 
+class RequestPaymentAttempt(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    payment_attempt = models.OneToOneField(
+        "payment.PaymentAttempt",
+        on_delete=models.DO_NOTHING,
+        related_name='request')
+    acquirer_ref_data = models.CharField(
+        'AquirerRefData', max_length=50)
+    alt_merchant_name = models.CharField(
+        'AltMerchantName', max_length=50)
+    amount = models.CharField('Amount', max_length=50)
+    card_number = models.CharField(
+        'CardNumber', max_length=4)
+    channel = models.CharField(
+        'Channel', max_length=50)
+    currency_pos_code = models.CharField(
+        'CurrencyPosCode', max_length=50)
+    customer_service_phone = models.CharField(
+        'CustomerServicePhone', max_length=50)
+    date = models.DateTimeField(
+        'Create DateTime', auto_now_add=True)
+    e_commerce_url = models.CharField(
+        'ECommerUrl', max_length=250)
+    itbis = models.CharField('ITBIS', max_length=50)
+    order_number = models.IntegerField()
+    payments = models.CharField('Payments', max_length=50)
+    plan = models.CharField('Plan', max_length=50)
+    pos_input_mode = models.CharField(
+        'PostInputMode', max_length=50)
+    store = models.CharField('Store', max_length=50)
+    trx_type = models.CharField('TrxType', max_length=50)
+
+
 class PaymentAttempt(models.Model):
     """Model definition for StatusDocument. """
 
@@ -77,18 +110,17 @@ class PaymentAttempt(models.Model):
     merchant_name = models.CharField(
         'Merchant Name', max_length=50, blank=True, null=True)
 
-
     @property
     def total(self):
         invoice = self.total_invoice_amount
         if not invoice:
-            invoice = decimal.Decimal(0.00) 
-        
+            invoice = decimal.Decimal(0.00)
+
         advancepayment = self.total_advancepayment_amount
         if not advancepayment:
-            advancepayment = decimal.Decimal(0.00) 
+            advancepayment = decimal.Decimal(0.00)
 
-        return invoice + advancepayment 
+        return invoice + advancepayment
 
     @property
     def total_invoice_amount(self):
@@ -97,7 +129,7 @@ class PaymentAttempt(models.Model):
         ).aggregate(
             total_amount=models.Sum('amount_dop')
         ).get('total_amount', )
-    
+
     @property
     def total_advancepayment_amount(self):
         return self.advancepayments.values(
@@ -105,7 +137,7 @@ class PaymentAttempt(models.Model):
         ).aggregate(
             total_amount=models.Sum('amount')
         ).get('total_amount')
-    
+
     @property
     def total_invoice_tax(self):
         taxs = self.invoices.values(
@@ -180,6 +212,6 @@ class Invoice(PaymentDocument):
 
 
 class AdvancePayment(PaymentDocument):
-    concept_id = models.CharField('Concept', max_length=50) 
+    concept_id = models.CharField('Concept', max_length=50)
     spras = models.CharField('Spras', max_length=1)
     bukrs = models.CharField('Bukrs', max_length=50)

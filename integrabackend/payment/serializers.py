@@ -14,6 +14,14 @@ class ResponsePaymentAttemptSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'payment_attempt')
 
 
+class RequestPaymentAttemptSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = models.RequestPaymentAttempt
+        fields = "__all__"
+        read_only_fields = ('id', 'payment_attempt')
+
+
 class CreditCardSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -41,6 +49,7 @@ class PaymentAttemptSerializer(serializers.ModelSerializer):
     invoices = InvoiceSerializer(many=True)
     advancepayments = AdvancePaymentSerializer(many=True)
     response = ResponsePaymentAttemptSerializer(read_only=True)
+    request = RequestPaymentAttemptSerializer(read_only=True)
     user = UserSerializer(read_only=True)
 
     total_invoice_amount_usd = serializers.CharField(read_only=True)

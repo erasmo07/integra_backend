@@ -21,15 +21,15 @@ class CreditCardViewSet(
     queryset = models.CreditCard.objects.all()
     serializer_class = serializers.CreditCardSerializer
     filter_backends = [DjangoFilterBackend]
-    filter_fields = ['owner',]
+    filter_fields = ['owner', ]
     card_class = azul.Card
 
     def get_queryset(self):
         queryset = super(CreditCardViewSet, self).get_queryset()
         if self.request.user.is_aplication:
-            return queryset 
-        return queryset.filter(owner=self.request.user) 
-    
+            return queryset
+        return queryset.filter(owner=self.request.user)
+
     def perform_destroy(self, instance):
         try:
             self.card_class(instance.token).delete()
@@ -60,6 +60,7 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
     card_class = azul.Card
     transaction_class = azul.Transaction
     response_payment_attemp_model = models.ResponsePaymentAttempt
+    request_payment_attemp_model = models.RequestPaymentAttempt
     credit_card_model = models.CreditCard
     compensation_payments = CompensationPayment
     filter_backends = [DjangoFilterBackend]
@@ -68,16 +69,16 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = super(PaymentAttemptViewSet, self).get_queryset()
         if (
-                self.request.user.is_aplication
-                or self.request.user.is_backoffice
-            ):
+            self.request.user.is_aplication or
+            self.request.user.is_backoffice
+        ):
             return queryset
         return queryset.filter(user=self.request.user)
 
     def perform_create(self, serializer):
         if self.request.user.is_aplication and 'user' not in self.request.data:
             raise NotFound(detail='User is aplication need to set user key')
-        
+
         if self.request.user.is_aplication and 'user' in self.request.data:
             serializer.save(user=get_object_or_404(User, self.request.data))
             return
@@ -101,6 +102,18 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
             return self.card_class(token=credit_card.token)
         raise NotFound(detail="Not send card correct structure")
 
+    def save_request_to_azul(self, transaction):
+        azul_data = transaction.get_data()
+        data = {azul.convert(key): value for key, value in azul_data.items()}
+
+        data['card_number'] = data['card_number'][-4:]
+        data['payment_attempt_id'] = self.object.pk
+
+        data.pop('cvc')
+        data.pop('expiration')
+
+        self.request_payment_attemp_model.objects.create(**data)
+
     def make_transaction_in_azul(self):
         total = self.object.total or "0.00"
         amount, amount_cents = str(total).split('.')
@@ -118,6 +131,8 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
             save_to_data_vault=save_data_vault,
             merchan_name=self.object.merchant_name,
             store=self.object.merchant_number)
+
+        self.save_request_to_azul(transaction)
 
         self.object.process_payment = 'AZUL'
         self.object.save()
@@ -141,11 +156,14 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['POST'])
     def charge(self, request, pk=None):
         if self.request.user.is_backoffice:
-            raise PermissionDenied(detail="User can't charge payment") 
+            raise PermissionDenied(detail="User can't charge payment")
 
         self.object = self.get_object()
         if hasattr(self.object, 'response'):
             raise ParseError(detail='PaymentAttempt has one response')
+
+        if hasattr(self.object, 'request'):
+            raise ParseError(detail='PaymentAttempt has one request')
 
         transaction_response = self.make_transaction_in_azul()
         if not transaction_response.is_valid():
@@ -170,13 +188,13 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
                 code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail='SAP return 500 not charge invoice')
 
-        status, _ = models.StatusDocument.objects.get_or_create(
+        status_invoice, _ = models.StatusDocument.objects.get_or_create(
             name=enums.StatusInvoices.compensated
         )
-        self.object.invoices.update(status=status)
-        self.object.advancepayments.update(status=status)
+        self.object.invoices.update(status=status_invoice)
+        self.object.advancepayments.update(status=status_invoice)
 
-        if (transaction_response.is_valid()
-                and self.request.data.get('card', {}).get('save')):
+        if (transaction_response.is_valid() and
+                self.request.data.get('card', {}).get('save')):
             self.save_credit_card(transaction_response)
         return Response(compensation_payment.sap_response)
