@@ -107,6 +107,8 @@ class PropertyViewSet(viewsets.ModelViewSet):
 class PropertyTypeViewSet(viewsets.ModelViewSet):
     queryset = PropertyType.objects.all()
     serializer_class = PropertyTypeSerializer
+    filter_backends = (DjangoFilterBackend,)
+    filter_fields = '__all__'
 
 
 class TypeIdentificationViewSet(viewsets.ModelViewSet):
