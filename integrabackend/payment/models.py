@@ -89,6 +89,8 @@ class RequestPaymentAttempt(models.Model):
         'PostInputMode', max_length=50)
     store = models.CharField('Store', max_length=50)
     trx_type = models.CharField('TrxType', max_length=50)
+    save_to_data_vault = models.CharField(
+        'SaveToDataVault', max_length=50)
 
 
 class PaymentAttempt(models.Model):
