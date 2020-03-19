@@ -175,6 +175,10 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
             authorization_code=transaction_response.authorization_code,
         )
 
+        if (transaction_response.is_valid() and
+                self.request.data.get('card', {}).get('save')):
+            self.save_credit_card(transaction_response)
+
         try:
             compensation_payment = self.compensation_payments(self.object)
             compensation_payment.commit()
@@ -182,11 +186,11 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
             status_invoice, _ = models.StatusDocument.objects.get_or_create(
                 name=enums.StatusInvoices.not_compensated
             )
-            self.object.invoices.update(status=status_invoice)
 
-            raise APIException(
-                code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail='SAP return 500 not charge invoice')
+            self.object.invoices.update(status=status_invoice)
+            self.object.advancepayments.update(status=status_invoice)
+
+            return Response({'success': True})
 
         status_invoice, _ = models.StatusDocument.objects.get_or_create(
             name=enums.StatusInvoices.compensated
@@ -194,7 +198,4 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
         self.object.invoices.update(status=status_invoice)
         self.object.advancepayments.update(status=status_invoice)
 
-        if (transaction_response.is_valid() and
-                self.request.data.get('card', {}).get('save')):
-            self.save_credit_card(transaction_response)
-        return Response(compensation_payment.sap_response)
+        return Response({'success': True})
