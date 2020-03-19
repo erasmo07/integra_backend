@@ -1,5 +1,8 @@
 from django_filters.rest_framework import DjangoFilterBackend
+from django.core.mail import send_mail
 from django.shortcuts import get_list_or_404
+from django.template.loader import get_template
+from django.conf import settings
 
 from rest_framework.response import Response
 from rest_framework import viewsets, mixins, status
@@ -12,6 +15,7 @@ from .serializers import (
     ResidentSerializer, PersonSerializer,
     PropertySerializer, PropertyTypeSerializer,
     ResidentUserserializer, TypeIdenticationSerializer)
+from django.contrib.auth.forms import PasswordResetForm
 
 
 class ResidentCreateViewSet(viewsets.ModelViewSet):
@@ -22,6 +26,7 @@ class ResidentCreateViewSet(viewsets.ModelViewSet):
     serializer_class = ResidentSerializer
     filter_backends = (DjangoFilterBackend,)
     filter_fields = ('email', 'id_sap')
+    form_reset_class = PasswordResetForm
 
     @action(detail=True, methods=['GET', 'POST', "DELETE"], url_path='property')
     def property(self, request, pk=None):

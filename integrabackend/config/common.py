@@ -30,6 +30,7 @@ class Common(Configuration):
         'corsheaders',
         'djcelery',
         'django_extensions',
+        'rest_auth',
 
         # Your apps
         'integrabackend.users',

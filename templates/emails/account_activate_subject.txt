@@ -1,0 +1,3 @@
+{% load i18n %}{% autoescape off %}
+{% blocktrans %}Welcome to Puntacana Customers's Site{% endblocktrans %}
+{% endautoescape %}

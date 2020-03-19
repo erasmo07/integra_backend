@@ -12,6 +12,7 @@ from .users.token import CustomObtainAuthToken
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/v1/', include(router.urls)),
+    path('rest-auth/', include('rest_auth.urls')),
     path('api-token-auth/', CustomObtainAuthToken.as_view(), name='token'),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 
