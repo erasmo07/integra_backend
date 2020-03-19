@@ -15,7 +15,7 @@ class Resident(models.Model):
     id_sap = models.CharField(max_length=50)
     is_active = models.BooleanField(default=False)
     telephone = models.CharField(max_length=12, null=True, blank=True)
-    sap_customer = models.CharField(max_length=10)
+    sap_customer = models.CharField(max_length=10, blank=True, null=True)
 
     properties = models.ManyToManyField('resident.Property')
     user = models.OneToOneField(
