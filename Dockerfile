@@ -23,8 +23,29 @@ ENV HERMES_UID=18297613965
 ENV HERMES_BASE_URL=https://hermes:8000/
 ENV HERMES_TOKEN=3f21d120491cb380c3d2aeb632a1d2885b8e7f625f6e4
 
+# AZUL
+ENV AZUL_CURRENCYPOSTCODE='$'
+ENV AZUL_ECOMMERCE_URL='https://app.puntacana.com'
+ENV AZUL_CHANNEL='EC'
+ENV AZUL_POSINPUMODE='E-Commerce'
+ENV AZUL_MERCHAN_NAME='puntacana'
+ENV AZUL_HOST='pruebas.azul.com.do'
+
+ENV AZUL_39038540035_AUTH_ONE='testcert2'
+ENV AZUL_39038540035_AUTH_TWO='testcert2'
+
+ENV AZUL_PATH_CSR='puntacana_v2.csr'
+ENV AZUL_CERTIFICATE_PATH='cert-puntacana.txt'
+ENV AZUL_CERTIFICATE_KEY_PATH='puntacana_v2.key'
+
+
 # Allows docker to cache installed dependencies between builds
 COPY ./requirements.txt requirements.txt
+COPY ./cert-puntacana.txt cert-puntacana.txt
+COPY ./puntacana_v2.key puntacana_v2.key
+COPY ./puntacana_v2.csr puntacana_v2.csr
+
+RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
 # Adds our application code to the image
