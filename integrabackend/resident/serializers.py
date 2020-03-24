@@ -44,14 +44,21 @@ class ResidentUserserializer(serializers.ModelSerializer):
 
 class ResidentSerializer(serializers.ModelSerializer):
     properties = PropertySerializer(read_only=True, many=True)
-    user = ResidentUserserializer(read_only=True)
 
     class Meta:
         model = Resident
         fields = (
             'id', 'name', 'email',
-            'telephone', 'sap_customer', 'user', 'properties', 'id_sap')
+            'telephone', 'sap_customer',
+            'user', 'properties', 'id_sap')
         read_only_fields = ('id',)
+        depth = 1
+    
+    def create(self, validated_data):
+        request_data = self.context.get('request').data
+        if 'user' in request_data:
+            validated_data.update(dict(user_id=request_data.get('user')))
+        return super(ResidentSerializer, self).create(validated_data)
 
 
 class PersonSerializer(serializers.ModelSerializer):
