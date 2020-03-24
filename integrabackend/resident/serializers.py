@@ -38,12 +38,15 @@ class ResidentUserserializer(serializers.ModelSerializer):
         model = get_user_model()
         fields = (
             'id', 'username', 'email',
-            'first_name', 'last_name', 'last_login', 'date_joined')
+            'first_name', 'last_name',
+            'last_login', 'date_joined')
         read_only_fields = ('id', 'last_login', 'date_joined')
 
 
 class ResidentSerializer(serializers.ModelSerializer):
     properties = PropertySerializer(read_only=True, many=True)
+    user = ResidentUserserializer(read_only=True)
+
 
     class Meta:
         model = Resident
@@ -52,7 +55,6 @@ class ResidentSerializer(serializers.ModelSerializer):
             'telephone', 'sap_customer',
             'user', 'properties', 'id_sap')
         read_only_fields = ('id',)
-        depth = 1
     
     def create(self, validated_data):
         request_data = self.context.get('request').data

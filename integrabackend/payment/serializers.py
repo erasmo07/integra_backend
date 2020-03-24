@@ -1,7 +1,8 @@
 import re
+from django.contrib.auth import get_user_model
+
 from rest_framework import serializers
 
-from integrabackend.users.serializers import UserSerializer
 from . import models
 
 
@@ -45,12 +46,22 @@ class AdvancePaymentSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'payment_attempt', 'status')
 
 
+class PaymentUserSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = get_user_model()
+        fields = (
+            'id', 'username', 'email',
+            'first_name', 'last_name',)
+        read_only_fields = ('id', 'last_login', 'date_joined')
+
+
 class PaymentAttemptSerializer(serializers.ModelSerializer):
     invoices = InvoiceSerializer(many=True)
     advancepayments = AdvancePaymentSerializer(many=True)
     response = ResponsePaymentAttemptSerializer(read_only=True)
     request = RequestPaymentAttemptSerializer(read_only=True)
-    user = UserSerializer(read_only=True)
+    user = PaymentUserSerializer(read_only=True)
 
     total_invoice_amount_usd = serializers.CharField(read_only=True)
     total_invoice_amount = serializers.CharField(read_only=True)
