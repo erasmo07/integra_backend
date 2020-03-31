@@ -34,6 +34,21 @@ MOCK_REQUEST_TO_AZUL = {
     "TrxType": "Sale",
 }
 
+MOCK_TRANSACTION_APROVE = {
+    "AuthorizationCode": "OK463C",
+    "AzulOrderId": "11350",
+    "CustomOrderId": "ABC123",
+    "DateTime": "20150206120821",
+    "ErrorDescription": "",
+    "IsoCode": "00",
+    "LotNumber": "29",
+    "RRN": "000012003029",
+    "ResponseCode": "ISO8583",
+    "ResponseMessage": "APROBADA",
+    "Ticket": "2809"
+}
+
+
 class TestCreditCardTestCase(APITestCase):
 
     def setUp(self):
@@ -59,7 +74,7 @@ class TestCreditCardTestCase(APITestCase):
         for credit_card in credit_card.json():
             for key in self.keys_expects:
                 self.assertIn(key, credit_card)
-    
+
     def test_can_filter_credit_card(self):
         factories.CreditCardFactory(
             brand='VISA',
@@ -378,6 +393,7 @@ class TestPaymenetAttemptTestCase(APITestCase):
         transaction_response.data_vault_brand = 'VISA'
         transaction_response.data_vault_expiration = '202010'
         transaction_response.data_vault_token = 'TOKEN'
+        transaction_response.kwargs = MOCK_TRANSACTION_APROVE
 
         transaction_class_mock = MagicMock()
         transaction_class_mock.get_data.return_value = MOCK_REQUEST_TO_AZUL
@@ -406,6 +422,9 @@ class TestPaymenetAttemptTestCase(APITestCase):
 
         # THEN
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.json().keys(),
+            MOCK_TRANSACTION_APROVE.keys())
 
         invoice.refresh_from_db()
         self.assertEqual(
@@ -423,6 +442,7 @@ class TestPaymenetAttemptTestCase(APITestCase):
         transaction_response.data_vault_brand = 'VISA'
         transaction_response.data_vault_expiration = '202010'
         transaction_response.data_vault_token = 'TOKEN'
+        transaction_response.kwargs = MOCK_TRANSACTION_APROVE
 
         transaction_class_mock = MagicMock()
         transaction_class_mock.get_data.return_value = MOCK_REQUEST_TO_AZUL
@@ -451,13 +471,19 @@ class TestPaymenetAttemptTestCase(APITestCase):
 
         # THEN
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.json().keys(),
+            MOCK_TRANSACTION_APROVE.keys())
+
         invoice.payment_attempt.refresh_from_db()
 
         self.assertEqual(invoice.payment_attempt.process_payment, 'AZUL')
         self.assertIsNotNone(invoice.payment_attempt.response)
 
         invoice.refresh_from_db()
-        self.assertEqual(invoice.status.name, 'Compensada')
+        self.assertEqual(
+            invoice.status.name,
+            enums.StatusInvoices.compensated)
 
     def test_backoffice_try_charge_payment(self):
 
@@ -492,6 +518,7 @@ class TestPaymenetAttemptTestCase(APITestCase):
         transaction_response.data_vault_brand = 'VISA'
         transaction_response.data_vault_expiration = '202010'
         transaction_response.data_vault_token = 'TOKEN'
+        transaction_response.kwargs = dict()
 
         transaction_class_mock = MagicMock()
         transaction_class_mock.get_data.return_value = MOCK_REQUEST_TO_AZUL
@@ -520,6 +547,7 @@ class TestPaymenetAttemptTestCase(APITestCase):
 
         # THEN
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('success', response.json())
         self.payment_attempt.refresh_from_db()
 
         self.assertEqual(self.payment_attempt.process_payment, 'AZUL')
@@ -561,6 +589,7 @@ class TestPaymenetAttemptTestCase(APITestCase):
         transaction_response.data_vault_brand = 'VISA'
         transaction_response.data_vault_expiration = '202010'
         transaction_response.data_vault_token = 'TOKEN'
+        transaction_response.kwargs = dict()
 
         transaction_class_mock = MagicMock()
         transaction_class_mock.get_data.return_value = MOCK_REQUEST_TO_AZUL
@@ -597,13 +626,16 @@ class TestPaymenetAttemptTestCase(APITestCase):
 
         # THEN
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.json().get('success'))
         self.payment_attempt.refresh_from_db()
 
         self.assertEqual(self.payment_attempt.process_payment, 'AZUL')
         self.assertIsNotNone(self.payment_attempt.response)
 
         invoice.refresh_from_db()
-        self.assertEqual(invoice.status.name, 'Compensada')
+        self.assertEqual(
+            invoice.status.name,
+            enums.StatusInvoices.compensated)
 
     @patch('integrabackend.payment.views.PaymentAttemptViewSet.compensation_payments')
     @patch('integrabackend.payment.views.PaymentAttemptViewSet.transaction_class')
@@ -616,6 +648,7 @@ class TestPaymenetAttemptTestCase(APITestCase):
         transaction_response.data_vault_brand = 'VISA'
         transaction_response.data_vault_expiration = '202010'
         transaction_response.data_vault_token = 'TOKEN'
+        transaction_response.kwargs = dict()
 
         transaction_class_mock = MagicMock()
         transaction_class_mock.get_data.return_value = MOCK_REQUEST_TO_AZUL
@@ -659,4 +692,6 @@ class TestPaymenetAttemptTestCase(APITestCase):
         self.assertIsNotNone(self.payment_attempt.response)
 
         advancepayment.refresh_from_db()
-        self.assertEqual(advancepayment.status.name, 'Compensada')
+        self.assertEqual(
+            advancepayment.status.name,
+            enums.StatusInvoices.compensated)

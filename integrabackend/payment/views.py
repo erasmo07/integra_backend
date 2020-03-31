@@ -182,6 +182,9 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
                 self.request.data.get('card', {}).get('save')):
             self.save_credit_card(transaction_response)
 
+        response_body = transaction_response.kwargs
+        response_body.update(dict(success=True))
+
         try:
             compensation_payment = self.compensation_payments(self.object)
             compensation_payment.commit()
@@ -193,7 +196,7 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
             self.object.invoices.update(status=status_invoice)
             self.object.advancepayments.update(status=status_invoice)
 
-            return Response({'success': True})
+            return Response(response_body)
 
         status_invoice, _ = models.StatusDocument.objects.get_or_create(
             name=enums.StatusInvoices.compensated
@@ -201,4 +204,4 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
         self.object.invoices.update(status=status_invoice)
         self.object.advancepayments.update(status=status_invoice)
 
-        return Response({'success': True})
+        return Response(response_body)
