@@ -113,6 +113,7 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
 
         data.pop('cvc', None)
         data.pop('expiration', None)
+        data.pop('data_vault_token', None)
 
         self.request_payment_attemp_model.objects.create(**data)
 
