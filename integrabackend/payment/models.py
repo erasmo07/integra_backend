@@ -108,6 +108,9 @@ class PaymentAttempt(models.Model):
     )
     transaction = models.IntegerField()
     user = models.ForeignKey("users.User", on_delete=models.DO_NOTHING, null=True)
+    
+    card_number = models.CharField(
+        'Card Number', max_length=4, blank=True, null=True)
 
     merchant_number = models.CharField(
         'Merchant Number', max_length=50, blank=True, null=True)

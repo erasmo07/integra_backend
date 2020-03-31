@@ -92,6 +92,9 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
             serializer = self.serialiser_pay_class(data=self.request.data.get('card'))
             serializer.is_valid(raise_exception=True)
 
+            self.object.card_number = serializer.data.get('number')[-4:]
+            self.object.save()
+
             return self.card_class(
                 number=serializer.data.get('number'),
                 expiration=serializer.data.get('expiration'),
@@ -100,6 +103,10 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
         if 'card_uuid' in self.request.data:
             card_uuid = self.request.data.get('card_uuid')
             credit_card = get_object_or_404(self.credit_card_model, id=card_uuid)
+
+            
+            self.object.card_number = credit_card.card_number
+            self.object.save()
 
             return self.card_class(token=credit_card.token)
         raise NotFound(detail="Not send card correct structure")

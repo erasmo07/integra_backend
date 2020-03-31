@@ -384,6 +384,11 @@ class TestPaymenetAttemptTestCase(APITestCase):
 
         # THEN
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        
+        self.payment_attempt.refresh_from_db()
+        self.assertEqual(
+            self.payment_attempt.card_number,
+            data.get('card').get('number')[-4:])
 
     @patch('integrabackend.payment.views.PaymentAttemptViewSet.compensation_payments')
     @patch('integrabackend.payment.views.PaymentAttemptViewSet.transaction_class')
@@ -431,6 +436,11 @@ class TestPaymenetAttemptTestCase(APITestCase):
         self.assertEqual(
             invoice.status.name,
             enums.StatusInvoices.not_compensated)
+        
+        self.payment_attempt.refresh_from_db()
+        self.assertEqual(
+            self.payment_attempt.card_number,
+            data.get('card').get('number')[-4:])
 
     @patch('integrabackend.payment.views.PaymentAttemptViewSet.compensation_payments')
     @patch('integrabackend.payment.views.PaymentAttemptViewSet.transaction_class')
@@ -479,6 +489,10 @@ class TestPaymenetAttemptTestCase(APITestCase):
         invoice.payment_attempt.refresh_from_db()
 
         self.assertEqual(invoice.payment_attempt.process_payment, 'AZUL')
+        self.assertEqual(
+            self.payment_attempt.card_number,
+            data.get('card').get('number')[-4:])
+
         self.assertIsNotNone(invoice.payment_attempt.response)
 
         invoice.refresh_from_db()
@@ -552,6 +566,10 @@ class TestPaymenetAttemptTestCase(APITestCase):
         self.payment_attempt.refresh_from_db()
 
         self.assertEqual(self.payment_attempt.process_payment, 'AZUL')
+        self.assertEqual(
+            self.payment_attempt.card_number,
+            data.get('card').get('number')[-4:])
+
         self.assertIsNotNone(self.payment_attempt.response)
 
         self.assertTrue(self.payment_attempt.user.credit_card.exists())
@@ -608,24 +626,16 @@ class TestPaymenetAttemptTestCase(APITestCase):
 
         compensation_payment.return_value = compensation_payment_mock
 
-        factories.CreditCardFactory(
+        credit_card = factories.CreditCardFactory(
             brand='VISA',
             name='Prueba',
             data_vault_expiration='202011',
             owner=self.payment_attempt.user,
             token='5EB29277-E93F-4D1F-867D-8E54AF97B86F')
 
-        self.client.force_authenticate(user=self.resident.user)
-        credit_card = self.client.get('/api/v1/credit-card/')
-
-        self.assertEqual(credit_card.status_code, status.HTTP_200_OK)
-        self.assertIn('id', credit_card.json()[0])
-        self.assertIn('brand', credit_card.json()[0])
-        self.assertIn('name', credit_card.json()[0])
-
         invoice = factories.InvoiceFactory(payment_attempt=self.payment_attempt)
         url = '/api/v1/payment-attempt/%s/charge/' % self.payment_attempt.id
-        data = {'card_uuid': credit_card.json()[0].get('id')}
+        data = {'card_uuid': credit_card.id}
 
         self.client.force_authenticate(user=self.resident.user)
         response = self.client.post(url, data, format='json')
@@ -636,6 +646,10 @@ class TestPaymenetAttemptTestCase(APITestCase):
         self.payment_attempt.refresh_from_db()
 
         self.assertEqual(self.payment_attempt.process_payment, 'AZUL')
+        self.assertEqual(
+            self.payment_attempt.card_number,
+            credit_card.card_number)
+
         self.assertIsNotNone(self.payment_attempt.response)
 
         invoice.refresh_from_db()
@@ -667,25 +681,19 @@ class TestPaymenetAttemptTestCase(APITestCase):
 
         compensation_payment.return_value = compensation_payment_mock
 
-        factories.CreditCardFactory(
+        credit_card = factories.CreditCardFactory(
             brand='VISA',
             name='Prueba',
             data_vault_expiration='202011',
             owner=self.payment_attempt.user,
-            token='5EB29277-E93F-4D1F-867D-8E54AF97B86F')
-
-        self.client.force_authenticate(user=self.resident.user)
-        credit_card = self.client.get('/api/v1/credit-card/')
-
-        self.assertEqual(credit_card.status_code, status.HTTP_200_OK)
-        self.assertIn('id', credit_card.json()[0])
-        self.assertIn('brand', credit_card.json()[0])
-        self.assertIn('name', credit_card.json()[0])
+            token='5EB29277-E93F-4D1F-867D-8E54AF97B86F',
+            card_number='0000'
+        )
 
         advancepayment = factories.AdvancePaymentFactory(
             payment_attempt=self.payment_attempt)
         url = '/api/v1/payment-attempt/%s/charge/' % self.payment_attempt.id
-        data = {'card_uuid': credit_card.json()[0].get('id')}
+        data = {'card_uuid': credit_card.id}
 
         self.client.force_authenticate(user=self.resident.user)
         response = self.client.post(url, data, format='json')
@@ -695,6 +703,11 @@ class TestPaymenetAttemptTestCase(APITestCase):
 
         self.payment_attempt.refresh_from_db()
         self.assertEqual(self.payment_attempt.process_payment, 'AZUL')
+        self.assertEqual(
+            self.payment_attempt.card_number,
+            credit_card.card_number)
+
+        self.assertIsNotNone(self.payment_attempt.request)
         self.assertIsNotNone(self.payment_attempt.response)
 
         advancepayment.refresh_from_db()
