@@ -106,9 +106,10 @@ class Invitation(models.Model):
     invitated = models.ManyToManyField('resident.Person')
 
     def save(self, *args, **kwargs):
-        try:
-            self.number = random_number()
-            super(Invitation, self).save(*args, **kwargs)
-        except IntegrityError:
-            self.number = random_number()
-            return super(Invitation, self).save(*args, **kwargs)
+        if not self.id:
+            number = random_number()
+            exist_invitation = self._meta.model.objects.filter(number=number)
+            if exist_invitation.exists():
+                return self.save(*args, **kwargs)
+            self.number = number
+        super(Invitation, self).save(*args, **kwargs)

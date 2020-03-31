@@ -72,6 +72,5 @@ class TestERPClientViewSet(APITestCase):
 
         # THEN
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        for item in response.json():
-            self.assertIn('data', item)
-            self.assertIn('success', item)
+        self.assertIn('data', response.json())
+        self.assertIn('success', response.json())

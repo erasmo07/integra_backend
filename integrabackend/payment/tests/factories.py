@@ -18,6 +18,8 @@ class PaymentAttemptFactory(factory.DjangoModelFactory):
     id = factory.Faker('uuid4')
     sap_customer = int("".join([str(random.randint(1, 9)) for _ in range(5)]))
     user = factory.SubFactory(UserFactory)
+    merchant_number = '39038540035'
+    merchant_name = 'CENREX'
 
     class Meta:
         model = 'payment.PaymentAttempt'
@@ -45,6 +47,7 @@ class InvoiceFactory(factory.django.DjangoModelFactory):
     reference = "2000185388"
     status = factory.SubFactory(StatusDocumentFactory)
     tax = 0.00
+    exchange_rate = '53.50'
 
     class Meta:
         model = 'payment.Invoice'

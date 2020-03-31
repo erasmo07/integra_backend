@@ -2,7 +2,6 @@ from mock import patch, MagicMock
 
 from django.forms.models import model_to_dict
 from django.urls import reverse
-from faker import Faker
 from nose.tools import eq_, ok_
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -13,15 +12,33 @@ from partenon.process_payment import azul
 from ...users.test.factories import UserFactory, GroupFactory
 from integrabackend.resident.test.factories import ResidentFactory
 from . import factories
-from .. import models
+from .. import models, enums
 
-fake = Faker()
 
+MOCK_REQUEST_TO_AZUL = {
+    "AcquirerRefData": "1",
+    "AltMerchantName": "CENREX",
+    "Amount": "650730",
+    "CardNumber": "999999xxxxxx9999",
+    "Channel": "EC",
+    "CurrencyPosCode": "$",
+    "CustomerServicePhone": "809-111-2222",
+    "ECommerceUrl": "www.miurl.com.do",
+    "Itbis": "99264",
+    "OrderNumber": 1,
+    "Payments": "1",
+    "Plan": "0",
+    "PosInputMode": "E-Commerce",
+    "SaveToDataVault": "0",
+    "Store": "39038540035",
+    "TrxType": "Sale",
+}
 
 class TestCreditCardTestCase(APITestCase):
 
     def setUp(self):
-        self.keys_expects = ['id', 'brand', 'name']
+        self.keys_expects = [
+            'id', 'brand', 'name', 'merchant_number']
 
         self.user = UserFactory()
         factories.CreditCardFactory(
@@ -29,6 +46,7 @@ class TestCreditCardTestCase(APITestCase):
             name='Name',
             data_vault_expiration='202011',
             owner=self.user,
+            merchant_number='number',
             token='5EB29277-E93F-4D1F-867D-8E54AF97B86F')
         self.client.force_authenticate(user=self.user)
 
@@ -41,12 +59,32 @@ class TestCreditCardTestCase(APITestCase):
         for credit_card in credit_card.json():
             for key in self.keys_expects:
                 self.assertIn(key, credit_card)
+    
+    def test_can_filter_credit_card(self):
+        factories.CreditCardFactory(
+            brand='VISA',
+            name='Name',
+            data_vault_expiration='202011',
+            owner=self.user,
+            merchant_number='second number',
+            token='5EB29277-E93F-4D1F-867D-8E54AF97B86F')
+
+        credit_card = self.client.get(
+            '/api/v1/credit-card/',
+            {'merchant_number': 'second number'})
+
+        self.assertEqual(credit_card.status_code, status.HTTP_200_OK)
+        self.assertEqual(1, len(credit_card.json()))
+
+        for credit_card in credit_card.json():
+            for key in self.keys_expects:
+                self.assertIn(key, credit_card)
 
     def test_can_register_two_credit_card(self):
         factories.CreditCardFactory(
             brand='VISA', name='Name',
             data_vault_expiration='202011',
-            owner=self.user,
+            merchant_number='number', owner=self.user,
             token='5EB29277-E93F-4D1F-867D-8E54AF97B86F')
 
         credit_card = self.client.get('/api/v1/credit-card/')
@@ -57,11 +95,11 @@ class TestCreditCardTestCase(APITestCase):
         for credit_card in credit_card.json():
             for key in self.keys_expects:
                 self.assertIn(key, credit_card)
-    
+
     def test_can_filter_by_owner(self):
         user = UserFactory()
         user.groups.add(GroupFactory(name='Aplicacion'))
-        
+
         factories.CreditCardFactory(
             brand='VISA',
             name='Name',
@@ -74,29 +112,36 @@ class TestCreditCardTestCase(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.json()), self.user.credit_card.count())
-    
+
     def test_can_delete_credit_card(self):
         user = UserFactory()
         user.groups.add(GroupFactory(name='Aplicacion'))
 
-        token, token_expiration, brand = azul.Card(
+        card = azul.Card(
             number='4035874000424977',
             expiration='202012',
             cvc='977'
-        ).validate(amount='100', code='CODE')
-        
+        )
+
+        transaction_response = azul.Transaction(
+            card, '1000',
+            merchan_name='CENREX',
+            store='39038540035',
+            save_to_data_vault='1').commit()
+
         credit_card = factories.CreditCardFactory(
-            brand=brand,
+            brand=transaction_response.data_vault_brand,
             name='Name',
-            data_vault_expiration=token_expiration,
+            data_vault_expiration='202012',
             owner=self.user,
-            token=token
+            token=transaction_response.data_vault_token,
+            merchant_number='39038540035'
         )
 
         response = self.client.delete('/api/v1/credit-card/%s/' % credit_card.id)
 
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-    
+
     @patch('integrabackend.payment.views.CreditCardViewSet.card_class')
     def test_cant_delete_credit_card(self, card_class):
         card_class.side_effect = azul.CantDeleteCard
@@ -104,18 +149,25 @@ class TestCreditCardTestCase(APITestCase):
         user = UserFactory()
         user.groups.add(GroupFactory(name='Aplicacion'))
 
-        token, token_expiration, brand = azul.Card(
+        card = azul.Card(
             number='4035874000424977',
             expiration='202012',
             cvc='977'
-        ).validate(amount='100', code='CODE')
-        
+        )
+
+        transaction_response = azul.Transaction(
+            card, '1000',
+            merchan_name='CENREX',
+            store='39038540035',
+            save_to_data_vault='1').commit()
+
         credit_card = factories.CreditCardFactory(
-            brand=brand,
+            brand=transaction_response.data_vault_brand,
             name='Name',
-            data_vault_expiration=token_expiration,
+            data_vault_expiration='202012',
             owner=self.user,
-            token=token
+            token=transaction_response.data_vault_token,
+            merchant_number='39038540035'
         )
 
         response = self.client.delete('/api/v1/credit-card/%s/' % credit_card.id)
@@ -150,7 +202,7 @@ class TestPaymenetAttemptTestCase(APITestCase):
         self.user = UserFactory()
         self.resident = ResidentFactory(user=self.user, sap_customer=4259)
         self.payment_attempt = factories.PaymentAttemptFactory(user=self.resident.user)
-    
+
     def test_backoffice_can_list_payments(self):
         user = UserFactory()
         user.groups.add(GroupFactory(name='Backoffice'))
@@ -223,17 +275,17 @@ class TestPaymenetAttemptTestCase(APITestCase):
             for key in self.keys_expect_invoices:
                 self.assertIn(key, invoice)
             self.assertEqual(invoice.get('status'), str(status_invoice.id))
-    
+
     def test_can_create_payments_attempt_with_advance_payment(self):
         # GIVE
         invoice_data = model_to_dict(
             factories.InvoiceFactory(),
             exclude=['payment_attempt', 'status', 'user'])
-        
+
         advance_payment = model_to_dict(
             factories.AdvancePaymentFactory(),
             exclude=['payment_attempt', 'status'])
-        
+
         data = model_to_dict(self.payment_attempt)
         data['invoices'] = [invoice_data]
         data['advancepayments'] = [advance_payment]
@@ -255,12 +307,12 @@ class TestPaymenetAttemptTestCase(APITestCase):
             for key in self.keys_expect_invoices:
                 self.assertIn(key, invoice)
             self.assertEqual(invoice.get('status'), str(status_invoice.id))
-        
+
         for advance in response.json().get('advancepayments'):
             for key in self.key_expect_advance_payment:
                 self.assertIn(key, advance)
             self.assertEqual(advance.get('status'), str(status_invoice.id))
-        
+
         response_detail = self.client.get(
             "%s%s/" % (self.url, response.json().get('id')))
 
@@ -295,6 +347,7 @@ class TestPaymenetAttemptTestCase(APITestCase):
         transaction_response.kwargs = {}
 
         transaction_class_mock = MagicMock()
+        transaction_class_mock.get_data.return_value = MOCK_REQUEST_TO_AZUL
         transaction_class_mock.commit.return_value = transaction_response
 
         transaction_class.return_value = transaction_class_mock
@@ -327,6 +380,7 @@ class TestPaymenetAttemptTestCase(APITestCase):
         transaction_response.data_vault_token = 'TOKEN'
 
         transaction_class_mock = MagicMock()
+        transaction_class_mock.get_data.return_value = MOCK_REQUEST_TO_AZUL
         transaction_class_mock.commit.return_value = transaction_response
 
         transaction_class.return_value = transaction_class_mock
@@ -351,10 +405,12 @@ class TestPaymenetAttemptTestCase(APITestCase):
         response = self.client.post(url, data, format='json')
 
         # THEN
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         invoice.refresh_from_db()
-        self.assertEqual(invoice.status.name, 'No Compensada')
+        self.assertEqual(
+            invoice.status.name,
+            enums.StatusInvoices.not_compensated)
 
     @patch('integrabackend.payment.views.PaymentAttemptViewSet.compensation_payments')
     @patch('integrabackend.payment.views.PaymentAttemptViewSet.transaction_class')
@@ -369,6 +425,7 @@ class TestPaymenetAttemptTestCase(APITestCase):
         transaction_response.data_vault_token = 'TOKEN'
 
         transaction_class_mock = MagicMock()
+        transaction_class_mock.get_data.return_value = MOCK_REQUEST_TO_AZUL
         transaction_class_mock.commit.return_value = transaction_response
 
         transaction_class.return_value = transaction_class_mock
@@ -402,8 +459,7 @@ class TestPaymenetAttemptTestCase(APITestCase):
         invoice.refresh_from_db()
         self.assertEqual(invoice.status.name, 'Compensada')
 
-    def test_backoffice_try_charge_payment(
-            self, transaction_class, compensation_payment):
+    def test_backoffice_try_charge_payment(self):
 
         invoice = factories.InvoiceFactory(payment_attempt=self.payment_attempt)
         url = '/api/v1/payment-attempt/%s/charge/' % self.payment_attempt.id
@@ -438,6 +494,7 @@ class TestPaymenetAttemptTestCase(APITestCase):
         transaction_response.data_vault_token = 'TOKEN'
 
         transaction_class_mock = MagicMock()
+        transaction_class_mock.get_data.return_value = MOCK_REQUEST_TO_AZUL
         transaction_class_mock.commit.return_value = transaction_response
 
         transaction_class.return_value = transaction_class_mock
@@ -473,7 +530,7 @@ class TestPaymenetAttemptTestCase(APITestCase):
 
         invoice.refresh_from_db()
         self.assertEqual(invoice.status.name, 'Compensada')
-    
+
     def test_cant_pay_payment_attempt_with_exists_response(self):
         payment_attempt = factories.PaymentAttemptFactory(
             user=self.resident.user
@@ -490,7 +547,7 @@ class TestPaymenetAttemptTestCase(APITestCase):
         }
         self.client.force_authenticate(user=self.resident.user)
         response = self.client.post(url, data, format='json')
-    
+
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     @patch('integrabackend.payment.views.PaymentAttemptViewSet.compensation_payments')
@@ -506,6 +563,7 @@ class TestPaymenetAttemptTestCase(APITestCase):
         transaction_response.data_vault_token = 'TOKEN'
 
         transaction_class_mock = MagicMock()
+        transaction_class_mock.get_data.return_value = MOCK_REQUEST_TO_AZUL
         transaction_class_mock.commit.return_value = transaction_response
 
         transaction_class.return_value = transaction_class_mock
@@ -560,6 +618,7 @@ class TestPaymenetAttemptTestCase(APITestCase):
         transaction_response.data_vault_token = 'TOKEN'
 
         transaction_class_mock = MagicMock()
+        transaction_class_mock.get_data.return_value = MOCK_REQUEST_TO_AZUL
         transaction_class_mock.commit.return_value = transaction_response
 
         transaction_class.return_value = transaction_class_mock

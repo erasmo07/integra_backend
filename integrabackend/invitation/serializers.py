@@ -108,7 +108,7 @@ class InvitationSerializer(serializers.ModelSerializer):
             invitation.save()
 
         return invitation
-
+    
 
 class TypeInvitationProyectSerializer(serializers.ModelSerializer):
     not_available_days = DaySerializer(read_only=True, many=True)

@@ -10,7 +10,7 @@ from django.forms.models import model_to_dict
 from ...users.test.factories import UserFactory
 
 
-class TestServiceRequestTestCase(APITestCase):
+class TestUserTestCase(APITestCase):
 
     def setUp(self):
         self.user = UserFactory()

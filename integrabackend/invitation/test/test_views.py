@@ -1,5 +1,6 @@
 from django.urls import reverse
-from faker import Faker
+from django.forms.models import model_to_dict
+
 from rest_framework import status
 from rest_framework.test import APITestCase
 from nose.tools import eq_, ok_
@@ -12,9 +13,6 @@ from ...resident.test.factories import (
 from ...users.test.factories import UserFactory
 
 
-fake = Faker()
-
-
 class TestInvitationTestCase(APITestCase):
     """
     Tests /invitation list operations.
@@ -23,15 +21,17 @@ class TestInvitationTestCase(APITestCase):
     def setUp(self):
         self.base_name = 'invitation'
         self.url = reverse('%s-list' % self.base_name)
+        self.user = UserFactory.create()
         invitation = InvitationFactory.create(
-            resident=ResidentFactory(user=UserFactory.create()),
+            create_by=self.user,
             type_invitation=TypeInvitationFactory.create())
         person = PersonFactory.create(
-            create_by=ResidentFactory(user=UserFactory.create()), 
+            create_by=self.user, 
             type_identification=TypeIdentificationFactory.create())
         invitation.invitated.add(person)
-        self.data = InvitationSerializer(invitation).data
-        self.client.force_authenticate(user=UserFactory.build())
+
+        self.data = model_to_dict(invitation, exclude=['id']) 
+        self.client.force_authenticate(user=self.user)
 
     def test_post_request_with_no_data_fails(self):
         response = self.client.post(self.url, {})
@@ -42,7 +42,7 @@ class TestInvitationTestCase(APITestCase):
         eq_(response.status_code, status.HTTP_201_CREATED)
 
         invitation = Invitation.objects.get(pk=response.data.get('id'))
-        eq_(str(invitation.resident.id), self.data.get('resident'))
+        eq_(str(invitation.create_by.id), self.data.get('create_by'))
 
     def test_get_request_list_succeeds(self):
         response = self.client.post(self.url, self.data)
@@ -69,22 +69,6 @@ class TestInvitationTestCase(APITestCase):
         eq_(invitation.get('type_invitation'),
             str(self.data.get('type_invitation')))
 
-    def test_put_request_success(self):
-        response = self.client.post(self.url, self.data)
-        eq_(response.status_code, status.HTTP_201_CREATED)
-
-        kwargs = {'pk': response.json().get('id')}
-        url = reverse('%s-detail' % self.base_name, kwargs=kwargs)
-
-        user = UserFactory.create()
-        resident = ResidentFactory(user=user)
-        self.data['resident'] = str(resident.id)
-        response = self.client.put(url, self.data)
-
-        eq_(response.status_code, status.HTTP_200_OK)
-        eq_(response.json().get('resident'), self.data.get('resident'))
-        eq_(response.json().get('type_invitation'),
-            str(self.data.get('type_invitation')))
 
 class TestTypeInvitationTestCase(APITestCase):
     """
@@ -93,8 +77,7 @@ class TestTypeInvitationTestCase(APITestCase):
 
     def setUp(self):
         self.model = TypeInvitationFactory._meta.model
-        self.base_name = 'type-invitation'
-        self.url = reverse('%s-list' % self.base_name)
+        self.url = '/api/v1/type-invitation/'
         self.client.force_authenticate(user=UserFactory.build())
 
     def test_get_request_list_succeeds(self):
@@ -106,11 +89,11 @@ class TestTypeInvitationTestCase(APITestCase):
 
     def test_get_request_with_pk_succeeds(self):
         type_invitation = TypeInvitationFactory.create()
-        url = reverse(
-            '%s-detail' % self.base_name, kwargs={'pk': type_invitation.id})
+        url = '/api/v1/type-invitation/%s/' % str(type_invitation.id)
 
         response = self.client.get(url)
 
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         type_invitation = response.json()
         ok_(type_invitation.get('id'))
         ok_(type_invitation.get('name') is not None)

@@ -3,7 +3,6 @@ from mock import patch, MagicMock
 from django.urls import reverse
 from django.forms.models import model_to_dict
 from django.core import mail
-from faker import Faker
 from rest_framework import status
 from django.test import TestCase
 from rest_framework.test import APITestCase
@@ -21,7 +20,6 @@ from django.test import tag
 from ..permissions import HasCreditPermission
 
 
-faker = Faker()
 
 class TestServiceTestCase(APITestCase):
     """
@@ -230,7 +228,7 @@ class TestAvisoTestCase(APITestCase):
     def test_request_post_without_ticket_id(self):
         response = self.client.post(self.url, data=dict())
         eq_(response.status_code, status.HTTP_404_NOT_FOUND)
-        eq_(response.json(), {'detail': 'Not found.'})
+        eq_(response.json(), {'detail': 'Not set ticket_id'})
     
     def test_request_post_service_request_not_exists(self):
         response = self.client.post(self.url, data={'ticket_id': 1} )
@@ -240,7 +238,7 @@ class TestAvisoTestCase(APITestCase):
     def test_request_get_without_ticket_id(self):
         response = self.client.get(self.url)
         eq_(response.status_code, status.HTTP_404_NOT_FOUND)
-        eq_(response.json(), {'detail': 'Not found.'})       
+        eq_(response.json(), {'detail': 'Not set ticket_id'})       
     
     def test_request_get_service_request_not_exists(self):
         response = self.client.get(self.url, data={'ticket_id': 1})

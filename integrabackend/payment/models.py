@@ -44,6 +44,7 @@ class CreditCard(models.Model):
     brand = models.CharField('Brand', max_length=10)
     data_vault_expiration = models.CharField(
         'DataVaultExpiration', max_length=6)
+    merchant_number = models.CharField('Merchant', max_length=50)
 
 
 class ResponsePaymentAttempt(models.Model):

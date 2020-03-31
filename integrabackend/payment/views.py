@@ -21,7 +21,7 @@ class CreditCardViewSet(
     queryset = models.CreditCard.objects.all()
     serializer_class = serializers.CreditCardSerializer
     filter_backends = [DjangoFilterBackend]
-    filter_fields = ['owner', ]
+    filter_fields = ['owner', 'merchant_number']
     card_class = azul.Card
 
     def get_queryset(self):
@@ -32,7 +32,9 @@ class CreditCardViewSet(
 
     def perform_destroy(self, instance):
         try:
-            self.card_class(instance.token).delete()
+            self.card_class(
+                instance.token
+            ).delete(store=instance.merchant_number)
             return super(CreditCardViewSet, self).perform_destroy(instance)
         except azul.CantDeleteCard as exception:
             raise ParseError(detail='Cant delete credit card')
@@ -109,8 +111,8 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
         data['card_number'] = data['card_number'][-4:]
         data['payment_attempt_id'] = self.object.pk
 
-        data.pop('cvc')
-        data.pop('expiration')
+        data.pop('cvc', None)
+        data.pop('expiration', None)
 
         self.request_payment_attemp_model.objects.create(**data)
 
@@ -150,7 +152,8 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
             owner=self.object.user,
             status=status,
             token=transaction_response.data_vault_token,
-            name=self.request.data.get('card', {}).get('name')
+            name=self.request.data.get('card', {}).get('name'),
+            merchant_number=self.object.merchant_number,
         )
 
     @action(detail=True, methods=['POST'])

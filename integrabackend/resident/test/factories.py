@@ -1,10 +1,6 @@
 import factory
 import random
-from faker import Faker
 from integrabackend.users.test.factories import UserFactory
-
-
-fake = Faker()
 
 
 class ResidentFactory(factory.django.DjangoModelFactory):

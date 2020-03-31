@@ -120,7 +120,6 @@ class TestServiceRequestTestCase(APITestCase):
         return self.client.post(url_approve, {})
 
     @override_settings(CELERY_ALWAYS_EAGER = True)
-    @skip('Avoid rate limit.')
     def test_good_path(self):
         # Create service request
         self.client.force_authenticate(user=UserFactory())
@@ -251,7 +250,6 @@ class TestServiceRequestTestCase(APITestCase):
         eq_(aviso_info.get('estado_aviso'), StateEnums.aviso.accepted_work)
 
     @override_settings(CELERY_ALWAYS_EAGER = True)
-    @skip('Avoid rate limit.')
     def test_client_reject_quotation(self):
         data = self.service_request_data()
 
@@ -336,7 +334,6 @@ class TestServiceRequestTestCase(APITestCase):
             StateEnums.service_request.reject_quotation)
 
     @override_settings(CELERY_ALWAYS_EAGER = True)
-    @skip('Avoid rate limit.')
     def test_client_reject_work(self):
         data = self.service_request_data()
 
@@ -473,7 +470,6 @@ class TestServiceRequestTestCase(APITestCase):
             StateEnums.service_request.reject_work)
 
     @override_settings(CELERY_ALWAYS_EAGER = True)
-    @skip('Avoid rate limit.')
     def test_create_service_request_for_faveo(self):
         # Login
         self.client.force_authenticate(user=UserFactory())
@@ -613,8 +609,8 @@ class ServiceRequestTest(APITestCase):
             date_service_request=date_service_request)
         return service_request
 
-    @tag('integration')
-    def test_create_service_request_resident_has_credit(self):
+    @patch('integrabackend.solicitude.permissions.ERPClient')
+    def test_create_service_request_resident_has_credit(self, mock_erp):
         """ Permision class check for the resident has credit, based
         on the sap_customer, '4259' has credit """
         # Arrange
@@ -682,13 +678,19 @@ class ResidentHasCreditTest(APITestCase):
     def tearDown(self):
         pass
 
-    @tag('integration')
-    def test_check_a_resident_has_credit(self):
+    @patch('integrabackend.proxys.views.ERPClient')
+    def test_check_a_resident_has_credit(self, mock_erp):
         # Arrange
         url = self.url + '?code=4259'
         expected = {
             "puede_consumir": True
         }
+
+        # Mock
+        mock = MagicMock()
+        mock.has_credit.return_value = expected
+
+        mock_erp.return_value = mock
 
         # Act
         response = self.client.get(url)
@@ -697,13 +699,19 @@ class ResidentHasCreditTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.json(), expected)
 
-    @tag('integration')
-    def test_check_a_resident_has_not_credit(self):
+    @patch('integrabackend.proxys.views.ERPClient')
+    def test_check_a_resident_has_not_credit(self, mock_erp):
         # Arrange
         url = self.url + '?code=4635'
         expected = {
             "puede_consumir": False
         }
+        
+        # Mock
+        mock = MagicMock()
+        mock.has_credit.return_value = expected
+
+        mock_erp.return_value = mock
 
         # Act
         response = self.client.get(url)
@@ -727,9 +735,13 @@ class HasCreditPermissionTest(TestCase):
         return request
 
     @tag('integration')
-    def test_permission_class_returns_true_if_resident_has_credit(self):
+    @patch('integrabackend.solicitude.permissions.ERPClient')
+    def test_permission_class_resident_has_credit(self, mock_erp):
         # Arrange
         request = self.get_request(4259)
+
+        # Mock
+        mock_erp.has_credit.return_value = {'puede_consumir': True}
 
         # Act and Assert
         self.assertTrue(self.permission.has_permission(request, self.view))

@@ -38,11 +38,12 @@ class TestFaveoWebHook(APITestCase):
     
     def test_faveo_try_to_close_service_request_with_aviso(self):
         # GIVEN
-        solicitude = solicitude_factory.ServiceRequestFactory()
+        solicitude = solicitude_factory.ServiceRequestFactory(ticket_id=None)
         helpers.create_service_request(solicitude)
 
         solicitude.aviso_id = random.randint(1, 20)
         solicitude.save()
+
         data = {
             'event': 'ticket_status_updated',
             'ticket[id]': solicitude.ticket_id,

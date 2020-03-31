@@ -37,7 +37,7 @@ class ResidentCreateViewSet(viewsets.ModelViewSet):
             return Response(serializer.data)
 
         if request._request.method == 'POST':
-            properties_pks = request.data.get('properties')
+            properties_pks = request.data.getlist('properties')
             properties = Property.objects.filter(pk__in=properties_pks)
             resident.properties.add(*properties)
             serializer = PropertySerializer(resident.properties.all(), many=True)
@@ -91,7 +91,7 @@ class PersonViewSet(viewsets.ModelViewSet):
         person_user = all_person.filter(create_by=self.request.user)
 
         return all_person if self.request.user.is_aplication else person_user
-
+    
 
 class PropertyViewSet(viewsets.ModelViewSet):
     """

@@ -1,6 +1,5 @@
 from django.urls import reverse
 from django.forms.models import model_to_dict
-from faker import Faker
 from rest_framework import status
 from rest_framework.test import APITestCase
 from nose.tools import eq_, ok_
@@ -11,9 +10,6 @@ from .factories import (
     ResidentFactory, PersonFactory, TypeIdentificationFactory,
     PropertyFactory, PropertyTypeFactory)
 from ...users.test.factories import UserFactory
-
-
-fake = Faker()
 
 
 class TestResidentListTestCase(APITestCase):
@@ -33,8 +29,7 @@ class TestResidentListTestCase(APITestCase):
         eq_(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_post_request_with_valid_data_succeeds(self):
-        data = ResidentSerializer(
-            ResidentFactory(user=UserFactory.create())).data
+        data = model_to_dict(ResidentFactory(user=UserFactory.create()))
         Resident.objects.all().delete()
         response = self.client.post(self.url, data)
         eq_(response.status_code, status.HTTP_201_CREATED)
@@ -104,6 +99,26 @@ class TestResidentListTestCase(APITestCase):
         resident = self.client.get(url)
         eq_(len(resident.json().get('properties')), 1)
 
+    def test_post_request_add_user(self):
+        resident_data = model_to_dict(ResidentFactory())
+
+        Resident.objects.all().delete()
+        resident_data.pop('user')
+        response = self.client.post(self.url, resident_data)
+
+        eq_(response.status_code, status.HTTP_201_CREATED)
+        eq_(len(response.json().get('properties')), 0)
+
+        user = UserFactory()
+        user_data = model_to_dict(user, exclude=['id'])
+        user.delete()
+
+        resident = Resident.objects.get(pk=response.data.get('id'))
+
+        url = reverse('%s-detail' % self.base_name, kwargs={'pk': resident.id})
+        response = self.client.post(url + 'user/', user_data)
+
+        eq_(response.status_code, status.HTTP_201_CREATED)
 
 
 class TestPersonTestCase(APITestCase):
@@ -117,7 +132,7 @@ class TestPersonTestCase(APITestCase):
         self.model = PersonFactory._meta.model
         self.data = model_to_dict(
             PersonFactory(
-                create_by=ResidentFactory(user=UserFactory.create()),
+                create_by=UserFactory.create(),
                 type_identification=TypeIdentificationFactory.create()))
         self.client.force_authenticate(user=UserFactory.build())
 

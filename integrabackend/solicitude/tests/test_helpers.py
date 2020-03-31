@@ -1,7 +1,6 @@
 from mock import patch, MagicMock
 from django.core import mail
 from django.test import TestCase
-from faker import Faker
 from nose.tools import eq_, ok_
 
 from .factories import (
@@ -13,8 +12,6 @@ from integrabackend.resident.test.factories import (
     AreaFactory, ProjectFactory, OrganizationFactory)
 from .. import helpers
 
-
-faker = Faker()
 
 def create_service_request():
     project = ProjectFactory(
@@ -78,6 +75,9 @@ class TestCreateServiceRequest(TestCase):
         helpdesk_class.topics.objects.get_by_name.return_value = ''
         helpdesk_class.prioritys.objects.get_by_name.return_value = ''
         helpdesk_class.user = user
+
+        self.service_request.ticket_id = None
+        self.service_request.save()
 
         # WHEN
         instance = helpers.create_service_request(

@@ -19,7 +19,7 @@ class InvitationViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.InvitationSerializer
 
     def perform_create(self, serializer):
-        serializer.save(create_by=self.request.user)
+        serializer.save(create_by_id=self.request.user.id)
 
 
 class TypeInvitationViewSet(viewsets.ReadOnlyModelViewSet):

@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.exceptions import APIException
+from rest_framework.exceptions import APIException, NotFound
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 from .models import Service, ServiceRequest, State, Day
@@ -28,7 +28,7 @@ class Http500(APIException):
 
 def get_value_or_404(data, key_value, message):
     if not data.get(key_value):
-        raise APIException(message, code=404)
+        raise NotFound(detail=message)
     return data.get(key_value)
 
 
@@ -135,7 +135,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         return Response({'success': 'ok'}, status.HTTP_200_OK)
     
     @action(detail=False, methods=["POST"], url_path='faveo')
-    def create_faveo(self, request):
+    def faveo(self, request):
         serializer = ServiceRequestFaveo(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create_faveo(serializer)
@@ -143,7 +143,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
     
     @action(detail=False, methods=["GET"], url_path='search-by-invoice')
-    def create_faveo(self, request):
+    def search_by_invoice(self, request):
         data = request.query_params.dict()
         get_value_or_404(data, 'invoice','Not set invoice')
         data['numero_factura'] = data.pop('invoice')
