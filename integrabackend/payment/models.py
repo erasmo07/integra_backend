@@ -42,6 +42,7 @@ class CreditCard(models.Model):
         "users.User",
         on_delete=models.CASCADE, related_name='credit_card')
     brand = models.CharField('Brand', max_length=10)
+    card_number = models.CharField('Card Number', max_length=4)
     data_vault_expiration = models.CharField(
         'DataVaultExpiration', max_length=6)
     merchant_number = models.CharField('Merchant', max_length=50)

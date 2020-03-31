@@ -53,7 +53,8 @@ class TestCreditCardTestCase(APITestCase):
 
     def setUp(self):
         self.keys_expects = [
-            'id', 'brand', 'name', 'merchant_number']
+            'id', 'brand', 'name', 'merchant_number',
+            'card_number']
 
         self.user = UserFactory()
         factories.CreditCardFactory(
@@ -554,7 +555,11 @@ class TestPaymenetAttemptTestCase(APITestCase):
         self.assertIsNotNone(self.payment_attempt.response)
 
         self.assertTrue(self.payment_attempt.user.credit_card.exists())
-        self.assertTrue(self.user.credit_card.filter(name='Prueba').exists())
+        self.assertTrue(
+            self.user.credit_card.filter(
+                name='Prueba', card_number='4977'
+            ).exists()
+        )
 
         invoice.refresh_from_db()
         self.assertEqual(invoice.status.name, 'Compensada')
@@ -570,7 +575,8 @@ class TestPaymenetAttemptTestCase(APITestCase):
             "card": {
                 "name": "Prueba",
                 "number": "4035874000424977",
-                "expiration": "202012", "cvc": "977",
+                "expiration": "202012",
+                "cvc": "977",
             }
         }
         self.client.force_authenticate(user=self.resident.user)

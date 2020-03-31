@@ -77,6 +77,7 @@ class StatusCreditCardFactory(factory.django.DjangoModelFactory):
 
 class CreditCardFactory(factory.django.DjangoModelFactory):
     status = factory.SubFactory(StatusCreditCardFactory)
+    card_number = '0000'
 
     class Meta:
         model = 'payment.CreditCard'

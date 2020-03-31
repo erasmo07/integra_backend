@@ -149,12 +149,13 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
 
         self.credit_card_model.objects.create(
             brand=transaction_response.data_vault_brand,
+            card_number=self.request.data.get('card', {}).get('number')[-4:],
             data_vault_expiration=transaction_response.data_vault_expiration,
+            merchant_number=self.object.merchant_number,
+            name=self.request.data.get('card', {}).get('name'),
             owner=self.object.user,
             status=status,
             token=transaction_response.data_vault_token,
-            name=self.request.data.get('card', {}).get('name'),
-            merchant_number=self.object.merchant_number,
         )
 
     @action(detail=True, methods=['POST'])
