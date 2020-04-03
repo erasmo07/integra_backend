@@ -66,10 +66,6 @@ class Common(Configuration):
     DEFAULT_SOPORT_EMAIL = 'soporte@puntacana.com'
     EMAIL_PORT = 25
 
-    ADMINS = (
-        ('Author', 'aplicaciones@puntacana.com'),
-    )
-
     # MYSQL
     DATABASES = {
         'default': dj_database_url.config(
@@ -182,10 +178,6 @@ class Common(Configuration):
                 'class': 'logging.StreamHandler',
                 'formatter': 'simple'
             },
-            'mail_admins': {
-                'level': 'ERROR',
-                'class': 'django.utils.log.AdminEmailHandler'
-            }
         },
         'loggers': {
             'django': {
@@ -196,15 +188,6 @@ class Common(Configuration):
                 'handlers': ['django.server'],
                 'level': 'INFO',
                 'propagate': False,
-            },
-            'django.request': {
-                'handlers': ['mail_admins', 'console'],
-                'level': 'ERROR',
-                'propagate': False,
-            },
-            'django.db.backends': {
-                'handlers': ['console'],
-                'level': 'INFO'
             },
         }
     }
