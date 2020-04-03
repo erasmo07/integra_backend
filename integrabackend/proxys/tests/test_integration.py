@@ -1,3 +1,5 @@
+from mock import patch, MagicMock
+
 from django.test import TestCase
 from rest_framework.test import APITestCase
 from django.test import override_settings
@@ -74,3 +76,34 @@ class TestERPClientViewSet(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('data', response.json())
         self.assertIn('success', response.json())
+
+    @patch('integrabackend.proxys.views.ERPClient')
+    def test_invoices_pdf_get_request_success(self, mock_erp_client):
+        # Mock
+        mock = MagicMock()
+
+        mock_data = MagicMock()
+        mock_data.data = 'DATA'
+
+        mock.invoice_pdf.return_value = mock_data
+
+        mock_erp_client.return_value = mock
+
+        # WHEN
+        response = self.client.get(
+            '/api/v1/sap/client/9669/invoice-pdf/',
+            {
+                "lang": "S",
+                "merchant": "39393850011",
+                "document_number": "0900000001",
+            })
+
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('binary', response.json())
+
+        self.assertEqual(response.json(), {'binary': 'DATA'})
+
+        mock.invoice_pdf.assert_called_once()
+        mock.invoice_pdf.assert_called_once_with(
+            '0900000001', '39393850011', language='S')

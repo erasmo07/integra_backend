@@ -245,10 +245,15 @@ class ERPClientViewSet(viewsets.ViewSet):
             document_number = get_value_or_404(
                 params, 'document_number', 'Not send document_number')
 
-            erp_client = self.erp_client_class(**dict(client_code=pk))
-            language = params.get('language', 'ES')
+            merchant = get_value_or_404(
+                params, 'merchant', 'Not send merchant')
 
-            invoice_pdf = erp_client.invoice_pdf(document_number, language=language)
+            language = params.get('language', 'S')
+
+            erp_client = ERPClient(**dict(client_code=pk))
+
+            invoice_pdf = erp_client.invoice_pdf(
+                document_number, merchant, language=language)
             return Response({'binary': invoice_pdf.data})
         except NotFound as exception:
             return Response({}, status.HTTP_404_NOT_FOUND)
