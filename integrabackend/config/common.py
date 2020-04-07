@@ -204,6 +204,7 @@ class Common(Configuration):
         ),
         'DEFAULT_PERMISSION_CLASSES': [
             'rest_framework.permissions.IsAuthenticated',
+            'integrabackend.users.permissions.ApplicationAuthorizeRest',
         ],
         'DEFAULT_AUTHENTICATION_CLASSES': (
             'rest_framework.authentication.SessionAuthentication',
@@ -223,3 +224,5 @@ class Common(Configuration):
     CELERY_TASK_SERIALIZER = 'json'
     CELERY_RESULT_SERIALIZER = 'json'
     CELERY_TIMEZONE = 'Africa/Nairobi'
+
+    VALID_APPLICATION = False

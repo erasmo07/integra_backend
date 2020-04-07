@@ -1,5 +1,6 @@
 import factory
 from django.contrib.auth.models import Group
+from .. import models
 
 
 class GroupFactory(factory.django.DjangoModelFactory):
@@ -24,3 +25,27 @@ class UserFactory(factory.django.DjangoModelFactory):
     last_name = factory.Faker('last_name')
     is_active = True
     is_staff = False
+
+
+class MerchantFactory(factory.django.DjangoModelFactory):
+    name = 'Name'
+    number = 'Number'
+    
+    class Meta:
+        model = models.Merchant
+
+
+class ApplicationFactory(factory.django.DjangoModelFactory):
+    name = 'Prueba'
+    description = 'Description'
+    merchant = factory.SubFactory(MerchantFactory)
+    
+    class Meta:
+        model = models.Application
+
+
+class AccessApplicationFactory(factory.django.DjangoModelFactory):
+    application = factory.SubFactory(ApplicationFactory)
+    
+    class Meta:
+        model = models.AccessApplication

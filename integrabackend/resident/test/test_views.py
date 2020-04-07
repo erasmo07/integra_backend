@@ -99,6 +99,35 @@ class TestResidentListTestCase(APITestCase):
         resident = self.client.get(url)
         eq_(len(resident.json().get('properties')), 1)
 
+    def test_post_request_add_two_property_at_time(self):
+        data = model_to_dict(ResidentFactory(user=UserFactory()))
+        Resident.objects.all().delete()
+        response = self.client.post(self.url, data)
+        eq_(response.status_code, status.HTTP_201_CREATED)
+        eq_(len(response.json().get('properties')), 0)
+        
+        property_one = PropertyFactory(property_type=PropertyTypeFactory()) 
+        property_two = PropertyFactory(property_type=PropertyTypeFactory()) 
+        property_data = {'properties': [
+            str(property_one.id), str(property_two.id)]
+        } 
+
+        resident = Resident.objects.get(pk=response.data.get('id'))
+        url = reverse('%s-detail' % self.base_name, kwargs={'pk': resident.id})
+        url_property = url + 'property/'
+        response = self.client.post(url_property, property_data)
+
+        eq_(response.status_code, status.HTTP_201_CREATED)
+
+        ok_(resident.properties.filter(
+            id__in=[str(property_one.id), str(property_two.id)]).exists())
+        eq_(resident.properties.filter(
+            id__in=[str(property_one.id), str(property_two.id)]).count(), 2)
+        
+        url = reverse('%s-detail' % self.base_name, kwargs={'pk': resident.id})
+        resident = self.client.get(url)
+        eq_(len(resident.json().get('properties')), 2)
+
     def test_post_request_add_user(self):
         resident_data = model_to_dict(ResidentFactory())
 

@@ -33,3 +33,43 @@ class User(AbstractUser):
 def create_auth_token(sender, instance=None, created=False, **kwargs):
     if created:
         Token.objects.create(user=instance)
+
+
+class Merchant(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False
+    )
+    name = models.CharField('Nombre', max_length=50)
+    number = models.CharField('Numero', max_length=50)
+
+
+class Application(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4, editable=False
+    )
+    name = models.CharField('Nombre', max_length=50)
+    description = models.TextField('Descripción')
+    merchant = models.ForeignKey("users.Merchant", on_delete=models.CASCADE)
+
+
+class AccessApplication(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False
+    )
+    user = models.ForeignKey("users.User", on_delete=models.CASCADE)
+    application = models.ForeignKey("users.Application", on_delete=models.CASCADE)
+    details = models.ManyToManyField("users.AccessDetail")
+
+
+class AccessDetail(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False
+    )
+    sap_customer = models.CharField('Numero de cliente sap', max_length=50)

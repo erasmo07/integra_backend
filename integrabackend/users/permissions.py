@@ -1,4 +1,5 @@
 from rest_framework import permissions
+from django.conf import settings
 
 
 class IsUserOrReadOnly(permissions.BasePermission):
@@ -12,3 +13,25 @@ class IsUserOrReadOnly(permissions.BasePermission):
             return True
 
         return obj == request.user
+
+
+
+class ApplicationAuthorizeRest(permissions.BasePermission):
+    header_key = 'HTTP_APPLICATION'
+
+    def has_permission(self, request, view):
+        if not settings.VALID_APPLICATION:
+            return True
+
+        header = request.META.get(self.header_key, ' ')
+        
+        key, application_id = header.split(' ')
+        if key != 'Bifrost':
+            return False
+
+        try:
+            return request.user.accessapplication_set.filter(
+                application__id=application_id
+            ).exists()
+        except Exception as exception:
+            return False
