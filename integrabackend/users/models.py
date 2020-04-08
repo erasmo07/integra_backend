@@ -50,9 +50,10 @@ class Application(models.Model):
         primary_key=True,
         default=uuid.uuid4, editable=False
     )
-    name = models.CharField('Nombre', max_length=50)
+    name = models.CharField('Nombre', max_length=50, unique=True)
     description = models.TextField('Descripción')
     merchant = models.ForeignKey("users.Merchant", on_delete=models.CASCADE)
+    domain = models.CharField('Domain', max_length=250)
 
 
 class AccessApplication(models.Model):
@@ -72,4 +73,6 @@ class AccessDetail(models.Model):
         default=uuid.uuid4,
         editable=False
     )
-    sap_customer = models.CharField('Numero de cliente sap', max_length=50)
+    sap_customer = models.CharField(
+        'Numero de cliente sap',
+        max_length=50, unique=True)
