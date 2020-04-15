@@ -8,6 +8,7 @@ from django.utils.http import urlsafe_base64_encode
 
 from rest_framework import status
 
+from integrabackend.resident.test.factories import ResidentFactory
 from integrabackend.users.test.factories import (AccessApplicationFactory,
                                                  UserFactory, ApplicationFactory)
 
@@ -28,7 +29,7 @@ class TestCreateFather(TestCase):
         # GIVEN
         row = {
             'name': 'Prueba', 'sap_customer': '0000',
-            'email': 'example@example.com',
+            'email': 'example@example.com', 'id_sap': '0000'
         }
 
         # WHEN
@@ -39,6 +40,13 @@ class TestCreateFather(TestCase):
 
         self.assertTrue(user.accessapplication_set.exists())
         self.assertEqual(user.accessapplication_set.count(), 1)
+        self.assertEqual(user.resident.email, user.email)
+        self.assertEqual(
+            user.resident.sap_customer, row.get('sap_customer'))
+        self.assertEqual(
+            user.resident.name, row.get('name'))
+        self.assertEqual(
+            user.resident.id_sap, row.get('id_sap'))
 
         assert len(mail.outbox) == 1, "Inbox is not empty"
         assert mail.outbox[0].from_email == settings.DEFAULT_FROM_EMAIL
@@ -58,10 +66,10 @@ class TestCreateFather(TestCase):
             'name': 'Prueba', 'sap_customer': '0000',
             'email': 'example@example.com',
         }
-        UserFactory.create(
-            email=row.get('email'),
-            username=row.get('email')
-        )
+
+        ResidentFactory.create(
+            user=UserFactory.create(
+                email=row.get('email'), username=row.get('email')))
 
         # WHEN
         user = application.create_father(row)
@@ -70,6 +78,7 @@ class TestCreateFather(TestCase):
         user.refresh_from_db()
 
         self.assertTrue(user.accessapplication_set.exists())
+        self.assertTrue(user.resident)
 
         assert len(mail.outbox) == 1, "Inbox is not empty"
         assert mail.outbox[0].from_email == settings.DEFAULT_FROM_EMAIL
@@ -93,6 +102,8 @@ class TestCreateFather(TestCase):
             email=row.get('email'),
             username=row.get('email')
         )
+        
+        ResidentFactory.create(user=user_factory)
 
         AccessApplicationFactory.create(
             user=user_factory,
@@ -123,7 +134,7 @@ class TestCreateFather(TestCase):
     def test_integration(self):
         row = {
             'name': 'Prueba', 'sap_customer': '0000',
-            'email': 'example@example.com',
+            'email': 'example@example.com', 'id_sap': '0001'
         }
 
         user = application.create_father(row)
@@ -131,6 +142,7 @@ class TestCreateFather(TestCase):
         
         self.assertTrue(user.accessapplication_set.exists())
         self.assertEqual(user.accessapplication_set.count(), 1)
+        self.assertTrue(user.resident)
 
         assert len(mail.outbox) == 1, "Inbox is not empty"
         assert mail.outbox[0].from_email == settings.DEFAULT_FROM_EMAIL
@@ -165,3 +177,109 @@ class TestCreateFather(TestCase):
 
         self.assertEqual(response_login.status_code, 200)
         self.assertIn('token', response_login.json())
+        self.assertIn('resident', response_login.json())
+    
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    def test_integration_father_exist_as_user(self):
+        row = {
+            'name': 'Prueba', 'sap_customer': '0000',
+            'email': 'example@example.com', 'id_sap': '0001'
+        }
+
+        user_factory = UserFactory.create(
+            email=row.get('email'),
+            username=row.get('email')
+        )
+        user_factory.set_password('@1234567')
+        user_factory.save()
+        
+        ResidentFactory.create(user=user_factory)
+
+        user = application.create_father(row)
+        user.refresh_from_db()
+        
+        self.assertTrue(user.accessapplication_set.exists())
+        self.assertEqual(user.accessapplication_set.count(), 1)
+
+        assert len(mail.outbox) == 1, "Inbox is not empty"
+        assert mail.outbox[0].from_email == settings.DEFAULT_FROM_EMAIL
+        assert mail.outbox[0].to == ['example@example.com']
+
+        assert self.application.domain in mail.outbox[0].body
+
+        response_login = self.client.post(
+            '/api-token-auth/', {
+                'username': user.username,
+                'password': '@1234567'
+            }
+        )
+
+        self.assertEqual(response_login.status_code, 200)
+        self.assertIn('token', response_login.json())
+        self.assertIn('resident', response_login.json())
+    
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    def test_integration_father_fogot_password(self):
+        row = {
+            'name': 'Prueba', 'sap_customer': '0000',
+            'email': 'example@example.com', 'id_sap': '0001'
+        }
+
+        user_factory = UserFactory.create(
+            email=row.get('email'),
+            username=row.get('email')
+        )
+        user_factory.set_password('@1234567')
+        user_factory.save()
+        
+        ResidentFactory.create(user=user_factory)
+
+        user = application.create_father(row)
+        user.refresh_from_db()
+        
+        self.assertTrue(user.accessapplication_set.exists())
+        self.assertEqual(user.accessapplication_set.count(), 1)
+
+        assert len(mail.outbox) == 1, "Inbox is not empty"
+        assert mail.outbox[0].from_email == settings.DEFAULT_FROM_EMAIL
+        assert mail.outbox[0].to == ['example@example.com']
+
+        assert self.application.domain in mail.outbox[0].body
+
+        response_login = self.client.post(
+            '/rest-auth/password/reset/',
+            {'email': row.get('email')}
+        )
+
+        assert len(mail.outbox) == 2, "Inbox is not empty"
+        
+        token = default_token_generator.make_token(user)
+        uid = urlsafe_base64_encode(force_bytes(user.id)).decode()
+
+        assert token in mail.outbox[1].body 
+        assert uid in mail.outbox[1].body
+
+        response = self.client.post(
+            '/rest-auth/password/reset/confirm/',
+            {
+                'uid': urlsafe_base64_encode(
+                    force_bytes(user.id)
+                ).decode(),
+                'token': default_token_generator.make_token(user),
+                'new_password1': '@1234567',
+                'new_password2': '@1234567',
+            })
+        
+        self.assertEqual(response.status_code, 200)
+        
+        response_login = self.client.post(
+            '/api-token-auth/', {
+                'username': user.username,
+                'password': '@1234567'
+            }
+        )
+
+        self.assertEqual(response_login.status_code, 200)
+        self.assertIn('token', response_login.json())
+        self.assertIn('resident', response_login.json())
+

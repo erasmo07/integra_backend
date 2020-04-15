@@ -16,6 +16,7 @@ from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 
 from integrabackend.celery import app
+from integrabackend.resident.models import Resident
 from integrabackend.users.models import (AccessApplication, Application,
                                          Merchant)
 
@@ -67,6 +68,15 @@ def create_father(row):
     if create:
         user.first_name = row.get('name')
         user.save()
+
+        resident, _ = Resident.objects.get_or_create(
+            name=row.get('name'),
+            email=row.get('email'),
+            identification='-', telephone='',
+            id_sap=row.get('id_sap'),
+            sap_customer=row.get('sap_customer'),
+            user=user
+        )
 
     access, create_access = AccessApplication.objects.get_or_create(
         user=user, application=application_pci,
