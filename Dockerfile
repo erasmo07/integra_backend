@@ -45,6 +45,8 @@ COPY ./cert-puntacana.txt cert-puntacana.txt
 COPY ./puntacana_v2.key puntacana_v2.key
 COPY ./puntacana_v2.csr puntacana_v2.csr
 
+RUN sed -i -E 's/MinProtocol[=\ ]+.*/MinProtocol = TLSv1.0/g' /etc/ssl/openssl.cnf
+
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
