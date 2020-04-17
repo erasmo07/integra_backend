@@ -34,19 +34,24 @@ def send_access_email(user_id, application_id, new_user):
         application__id=application_id
     ).first()
 
-    link = "http://{}/#/user/{}/{}/reset-password/".format(
-        access.application.domain,
-        urlsafe_base64_encode(force_bytes(user.pk)),
-        default_token_generator.make_token(user)
-    )
-    context = {'user': user, 'link': link}
-    template_name = 'emails/acces_pcis_portal.html'
+    template = 'acces_pcis_portal_new_user' if new_user else 'acces_pcis_portal'
+    template_name = 'emails/%s.html' % template
+
     email_template = get_template(template_name)
 
+    link = "http://{}/#/user/{}/{}/reset-password/".format(
+        access.application.domain,
+        urlsafe_base64_encode(force_bytes(user.pk)).decode(),
+        default_token_generator.make_token(user)
+    )
+
+    link_portal = 'http://{}/'.format(access.application.domain)
+
+    context = {'user': user, 'link': link, 'link_portal': link_portal}
     html_message = email_template.render(context)
 
     return send_mail(
-        'Subject',
+        'Acceso a portal de pagos del Puntacana International School - PCIS',
         html_message,
         settings.DEFAULT_FROM_EMAIL,
         [user.email],
@@ -85,12 +90,12 @@ def create_father(row):
     if create_access:
         access.details.create(sap_customer=row.get('sap_customer'))
     
-    send_access_email.delay(user.id, application_pci.id, create)
+    send_access_email(user.id, application_pci.id, create)
     return user
 
 
 def run():
     root_project = lambda *x: os.path.join(settings.ROOT_PROJECT, *x) # noqa
-    with open(root_project('father_pci.csv')) as f:
-        reader = f.readlines()
-    map(create_father, reader)
+    reader = csv.DictReader(open(root_project('father_pcis.csv')))
+    for row in reader:
+        create_father(row)
