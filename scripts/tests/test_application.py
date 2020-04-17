@@ -64,7 +64,7 @@ class TestCreateFather(TestCase):
         # GIVEN
         row = {
             'name': 'Prueba', 'sap_customer': '0000',
-            'email': 'example@example.com',
+            'email': 'example@example.com', 'id_sap': '0000'
         }
 
         ResidentFactory.create(
@@ -92,11 +92,133 @@ class TestCreateFather(TestCase):
         assert self.application.domain in mail.outbox[0].body 
     
     @override_settings(CELERY_ALWAYS_EAGER=True)
+    def test_user_exist_and_not_resident(self):
+        """
+        Should be relate user and new resident
+        """
+        # GIVEN
+        row = {
+            'name': 'Prueba', 'sap_customer': '0000',
+            'email': 'example@example.com', 'id_sap': '0000',
+        }
+        user=UserFactory.create(
+            email=row.get('email'),
+            username=row.get('email'))
+
+        # WHEN
+        user = application.create_father(row)
+
+        # THEN
+        user.refresh_from_db()
+
+        self.assertTrue(user.accessapplication_set.exists())
+        self.assertTrue(user.resident)
+
+        assert len(mail.outbox) == 1, "Inbox is not empty"
+        assert mail.outbox[0].from_email == settings.DEFAULT_FROM_EMAIL
+        assert mail.outbox[0].to == ['example@example.com']
+
+        token = default_token_generator.make_token(user)
+        uid = urlsafe_base64_encode(force_bytes(user.id)).decode()
+
+        assert token in mail.outbox[0].body 
+        assert uid in mail.outbox[0].body
+
+        assert 'cambio de contraseña' in mail.outbox[0].body
+        assert 'acceso al portal' in mail.outbox[0].body
+        assert self.application.domain in mail.outbox[0].body 
+    
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    def test_user_not_exists_and_resident_exists(self):
+        """
+        Should be relate new user and resident
+        """
+        # GIVEN
+        row = {
+            'name': 'Prueba', 'sap_customer': '0000',
+            'email': 'example@example.com', 'id_sap': '0000',
+        }
+        
+        resident = ResidentFactory.create(
+            user=UserFactory.create(),
+            sap_customer=row.get('sap_customer'))
+
+        # WHEN
+        user = application.create_father(row)
+
+        # THEN
+        user.refresh_from_db()
+
+        self.assertTrue(user.accessapplication_set.exists())
+        self.assertEqual(str(user.resident.id), resident.id)
+
+        assert len(mail.outbox) == 1, "Inbox is not empty"
+        assert mail.outbox[0].from_email == settings.DEFAULT_FROM_EMAIL
+        assert mail.outbox[0].to == ['example@example.com']
+
+        token = default_token_generator.make_token(user)
+        uid = urlsafe_base64_encode(force_bytes(user.id)).decode()
+
+        assert token in mail.outbox[0].body 
+        assert uid in mail.outbox[0].body
+        
+        assert 'cambio de contraseña' in mail.outbox[0].body
+        assert not 'acceso al portal' in mail.outbox[0].body
+
+        assert self.application.domain in mail.outbox[0].body 
+    
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    def test_user_exists_and_resident_exists(self):
+        """
+        Should be relate new user and resident
+        """
+        # GIVEN
+        row = {
+            'name': 'Prueba', 'sap_customer': '0000',
+            'email': 'example@example.com', 'id_sap': '0000',
+        }
+
+        user = UserFactory.create(
+            email=row.get('email'),
+            username=row.get('email'))
+        
+        resident = ResidentFactory.create(
+            user=UserFactory.create(),
+            sap_customer=row.get('sap_customer'))
+
+        # WHEN
+        user_function = application.create_father(row)
+
+        # THEN
+        user.refresh_from_db()
+
+        self.assertEqual(str(user.id), str(user_function.id))
+        self.assertEqual(str(user.resident.id), resident.id)
+
+        self.assertTrue(user.accessapplication_set.exists())
+
+        assert len(mail.outbox) == 1, "Inbox is not empty"
+        assert mail.outbox[0].from_email == settings.DEFAULT_FROM_EMAIL
+        assert mail.outbox[0].to == ['example@example.com']
+
+        token = default_token_generator.make_token(user)
+        uid = urlsafe_base64_encode(force_bytes(user.id)).decode()
+
+        assert token in mail.outbox[0].body 
+        assert uid in mail.outbox[0].body
+
+        assert 'cambio de contraseña' in mail.outbox[0].body
+        assert 'acceso al portal' in mail.outbox[0].body
+
+        assert self.application.domain in mail.outbox[0].body 
+    
+    
+    @override_settings(CELERY_ALWAYS_EAGER=True)
     def test_user_exists_with_application_access(self):
         # GIVEN
         row = {
             'name': 'Prueba', 'sap_customer': '0000',
-            'email': 'example@example.com',
+            'email': 'example@example.com', 'id_sap': '0000'
         }
         user_factory = UserFactory.create(
             email=row.get('email'),
@@ -128,6 +250,10 @@ class TestCreateFather(TestCase):
 
         assert token in mail.outbox[0].body 
         assert uid in mail.outbox[0].body
+        
+        assert 'cambio de contraseña' in mail.outbox[0].body
+        assert 'acceso al portal' in mail.outbox[0].body
+
         assert self.application.domain in mail.outbox[0].body 
     
     @override_settings(CELERY_ALWAYS_EAGER=True)
@@ -153,6 +279,10 @@ class TestCreateFather(TestCase):
 
         assert token in mail.outbox[0].body 
         assert uid in mail.outbox[0].body
+
+        assert 'cambio de contraseña' in mail.outbox[0].body
+        assert not 'acceso al portal' in mail.outbox[0].body
+
         assert self.application.domain in mail.outbox[0].body
 
         response = self.client.post(
@@ -205,6 +335,9 @@ class TestCreateFather(TestCase):
         assert mail.outbox[0].from_email == settings.DEFAULT_FROM_EMAIL
         assert mail.outbox[0].to == ['example@example.com']
 
+        assert 'cambio de contraseña' in mail.outbox[0].body
+        assert 'acceso al portal' in mail.outbox[0].body
+
         assert self.application.domain in mail.outbox[0].body
 
         response_login = self.client.post(
@@ -243,6 +376,9 @@ class TestCreateFather(TestCase):
         assert len(mail.outbox) == 1, "Inbox is not empty"
         assert mail.outbox[0].from_email == settings.DEFAULT_FROM_EMAIL
         assert mail.outbox[0].to == ['example@example.com']
+        
+        assert 'cambio de contraseña' in mail.outbox[0].body
+        assert 'acceso al portal' in mail.outbox[0].body
 
         assert self.application.domain in mail.outbox[0].body
 
@@ -282,4 +418,3 @@ class TestCreateFather(TestCase):
         self.assertEqual(response_login.status_code, 200)
         self.assertIn('token', response_login.json())
         self.assertIn('resident', response_login.json())
-

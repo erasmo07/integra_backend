@@ -65,23 +65,27 @@ def create_father(row):
     application_pci, create = Application.objects.get_or_create(
         name='Portal PCIS', merchant=merchant)
 
-    user, create = UserModel.objects.get_or_create(
+    user, user_created = UserModel.objects.get_or_create(
         username=row.get('email'),
         email=row.get('email')
     )
 
-    if create:
-        user.first_name = row.get('name')
-        user.save()
+    resident = Resident.objects.filter(
+        sap_customer=row.get('sap_customer'))
+    
+    if resident.exists():
+        resident.update(user=user)
 
-        resident, _ = Resident.objects.get_or_create(
+    if not hasattr(user, 'resident'):
+        Resident.objects.get_or_create(
             name=row.get('name'),
             email=row.get('email'),
-            identification='-', telephone='',
+            identification='-',
+            telephone='',
             id_sap=row.get('id_sap'),
             sap_customer=row.get('sap_customer'),
-            user=user
-        )
+            user=user)
+    
 
     access, create_access = AccessApplication.objects.get_or_create(
         user=user, application=application_pci,
@@ -90,7 +94,7 @@ def create_father(row):
     if create_access:
         access.details.create(sap_customer=row.get('sap_customer'))
     
-    send_access_email(user.id, application_pci.id, create)
+    send_access_email(user.id, application_pci.id, user_created)
     return user
 
 
