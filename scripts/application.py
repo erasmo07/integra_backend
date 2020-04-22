@@ -39,15 +39,21 @@ def send_access_email(user_id, application_id, new_user):
 
     email_template = get_template(template_name)
 
-    link = "http://{}/#/user/{}/{}/reset-password/".format(
+    params = '?utm_source=email&utm_medium='\
+             'email&utm_campaign=launch_pcis_portal'
+
+    link = "http://{}/#/user/{}/{}/reset-password/{}".format(
         access.application.domain,
         urlsafe_base64_encode(force_bytes(user.pk)).decode(),
-        default_token_generator.make_token(user)
+        default_token_generator.make_token(user),
+        params
     )
 
-    link_portal = 'http://{}/'.format(access.application.domain)
+    link_portal = 'http://{}/{}'.format(access.application.domain, params)
 
-    context = {'user': user, 'link': link, 'link_portal': link_portal}
+    context = {
+        'user': user, 'link': link,
+        'link_portal': link_portal}
     html_message = email_template.render(context)
 
     return send_mail(

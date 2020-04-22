@@ -1,10 +1,11 @@
 from django.conf import settings
 from django.test import TestCase, override_settings
-from django.core import mail
+from django.core import mail, management
 from django.urls import reverse
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
+
 
 from rest_framework import status
 
@@ -54,6 +55,11 @@ class TestCreateFather(TestCase):
 
         token = default_token_generator.make_token(user)
         uid = urlsafe_base64_encode(force_bytes(user.id)).decode()
+         
+        assert 'utm_source=email' in mail.outbox[0].body 
+        assert 'utm_medium=email' in mail.outbox[0].body 
+        assert 'utm_campaign=launch_pcis_portal' in mail.outbox[0].body 
+
 
         assert token in mail.outbox[0].body 
         assert uid in mail.outbox[0].body
@@ -87,6 +93,10 @@ class TestCreateFather(TestCase):
         token = default_token_generator.make_token(user)
         uid = urlsafe_base64_encode(force_bytes(user.id)).decode()
 
+        assert 'utm_source=email' in mail.outbox[0].body 
+        assert 'utm_medium=email' in mail.outbox[0].body 
+        assert 'utm_campaign=launch_pcis_portal' in mail.outbox[0].body 
+        
         assert token in mail.outbox[0].body 
         assert uid in mail.outbox[0].body
         assert self.application.domain in mail.outbox[0].body 
@@ -121,6 +131,10 @@ class TestCreateFather(TestCase):
         token = default_token_generator.make_token(user)
         uid = urlsafe_base64_encode(force_bytes(user.id)).decode()
 
+        assert 'utm_source=email' in mail.outbox[0].body 
+        assert 'utm_medium=email' in mail.outbox[0].body 
+        assert 'utm_campaign=launch_pcis_portal' in mail.outbox[0].body 
+        
         assert token in mail.outbox[0].body 
         assert uid in mail.outbox[0].body
 
@@ -158,7 +172,11 @@ class TestCreateFather(TestCase):
 
         token = default_token_generator.make_token(user)
         uid = urlsafe_base64_encode(force_bytes(user.id)).decode()
-
+        
+        assert 'utm_source=email' in mail.outbox[0].body 
+        assert 'utm_medium=email' in mail.outbox[0].body 
+        assert 'utm_campaign=launch_pcis_portal' in mail.outbox[0].body 
+ 
         assert token in mail.outbox[0].body 
         assert uid in mail.outbox[0].body
         
@@ -204,6 +222,10 @@ class TestCreateFather(TestCase):
         token = default_token_generator.make_token(user)
         uid = urlsafe_base64_encode(force_bytes(user.id)).decode()
 
+        assert 'utm_source=email' in mail.outbox[0].body 
+        assert 'utm_medium=email' in mail.outbox[0].body 
+        assert 'utm_campaign=launch_pcis_portal' in mail.outbox[0].body 
+
         assert token in mail.outbox[0].body 
         assert uid in mail.outbox[0].body
 
@@ -248,6 +270,10 @@ class TestCreateFather(TestCase):
         token = default_token_generator.make_token(user)
         uid = urlsafe_base64_encode(force_bytes(user.id)).decode()
 
+        assert 'utm_source=email' in mail.outbox[0].body 
+        assert 'utm_medium=email' in mail.outbox[0].body 
+        assert 'utm_campaign=launch_pcis_portal' in mail.outbox[0].body 
+
         assert token in mail.outbox[0].body 
         assert uid in mail.outbox[0].body
         
@@ -276,6 +302,10 @@ class TestCreateFather(TestCase):
 
         token = default_token_generator.make_token(user)
         uid = urlsafe_base64_encode(force_bytes(user.id)).decode()
+
+        assert 'utm_source=email' in mail.outbox[0].body 
+        assert 'utm_medium=email' in mail.outbox[0].body 
+        assert 'utm_campaign=launch_pcis_portal' in mail.outbox[0].body 
 
         assert token in mail.outbox[0].body 
         assert uid in mail.outbox[0].body
@@ -391,6 +421,10 @@ class TestCreateFather(TestCase):
         
         token = default_token_generator.make_token(user)
         uid = urlsafe_base64_encode(force_bytes(user.id)).decode()
+        
+        assert 'utm_source=email' in mail.outbox[0].body 
+        assert 'utm_medium=email' in mail.outbox[0].body 
+        assert 'utm_campaign=launch_pcis_portal' in mail.outbox[0].body 
 
         assert token in mail.outbox[1].body 
         assert uid in mail.outbox[1].body

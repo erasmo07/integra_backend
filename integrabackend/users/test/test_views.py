@@ -10,7 +10,6 @@ from .factories import UserFactory, ApplicationFactory
 from ...resident.test.factories import ResidentFactory
 
 
-
 class TestUserListTestCase(APITestCase):
     """
     Tests /users list operations.
@@ -163,5 +162,3 @@ class TestAccessApplication(APITestCase):
         # THEN
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.json()), 1)
-
-
