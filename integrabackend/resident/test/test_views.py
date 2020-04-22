@@ -27,6 +27,20 @@ class TestResidentListTestCase(APITestCase):
     def test_post_request_with_no_data_fails(self):
         response = self.client.post(self.url, {})
         eq_(response.status_code, status.HTTP_400_BAD_REQUEST)
+        
+    def test_get_resident_by_sap_customer(self):
+        # GIVEN
+        for _ in range(10):
+            ResidentFactory(user=UserFactory.create())
+
+        # WHEN
+        response = self.client.get(
+            self.url,
+            {'sap_customer': self.data.get('sap_customer')})
+    
+        # THEN
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.json()), 1)
 
     def test_post_request_with_valid_data_succeeds(self):
         data = model_to_dict(ResidentFactory(user=UserFactory.create()))

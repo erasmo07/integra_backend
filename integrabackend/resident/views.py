@@ -25,7 +25,7 @@ class ResidentCreateViewSet(viewsets.ModelViewSet):
     queryset = Resident.objects.all()
     serializer_class = ResidentSerializer
     filter_backends = (DjangoFilterBackend,)
-    filter_fields = ('email', 'id_sap')
+    filter_fields = ('email', 'id_sap', 'sap_customer')
     form_reset_class = PasswordResetForm
 
     @action(detail=True, methods=['GET', 'POST', "DELETE"], url_path='property')
