@@ -8,6 +8,7 @@ from django.utils.encoding import python_2_unicode_compatible
 from django.db.models.signals import post_save
 from rest_framework.authtoken.models import Token
 
+from . import enums
 
 @python_2_unicode_compatible
 class User(AbstractUser):
@@ -22,11 +23,15 @@ class User(AbstractUser):
     
     @property
     def is_aplication(self):
-        return self.groups.filter(name='Aplicacion').exists()
+        return self.groups.filter(
+            name=enums.GroupsEnums.application
+        ).exists()
     
     @property
     def is_backoffice(self):
-        return self.groups.filter(name='Backoffice').exists()
+        return self.groups.filter(
+            name=enums.GroupsEnums.backoffice
+        ).exists()
 
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)

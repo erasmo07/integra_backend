@@ -5,8 +5,9 @@ from nose.tools import ok_, eq_
 from rest_framework.test import APITestCase
 from rest_framework import status
 from ..models import User
-from .factories import UserFactory
-from ...resident.test.factories import ResidentFactory 
+from ..enums import GroupsEnums
+from .factories import UserFactory, ApplicationFactory
+from ...resident.test.factories import ResidentFactory
 
 
 
@@ -32,7 +33,7 @@ class TestUserListTestCase(APITestCase):
         user = User.objects.get(pk=response.data.get('id'))
         eq_(user.username, self.user_data.get('username'))
         ok_(check_password(self.user_data.get('password'), user.password))
-    
+
     def test_get_requet_with_filter_values(self):
         response = self.client.post(self.url, self.user_data)
         eq_(response.status_code, status.HTTP_201_CREATED)
@@ -83,7 +84,7 @@ class TestUserTokenTestCase(APITestCase):
 
         data = dict(username=user.username, password='1234567')
         response = self.client.post(self.url, data)
-        
+
         eq_(response.status_code, status.HTTP_200_OK)
         ok_('token' in response.json().keys())
         ok_('resident' not in response.json().keys())
@@ -95,7 +96,7 @@ class TestUserTokenTestCase(APITestCase):
 
         data = dict(username=user.username, password='1234567')
         response = self.client.post(self.url, data)
-        
+
         eq_(response.status_code, status.HTTP_200_OK)
         ok_('token' in response.json().keys())
         ok_('resident' not in response.json().keys())
@@ -109,7 +110,58 @@ class TestUserTokenTestCase(APITestCase):
 
         data = dict(username=user.username, password='1234567')
         response = self.client.post(self.url, data)
-        
+
         eq_(response.status_code, status.HTTP_200_OK)
         ok_('token' in response.json().keys())
         ok_('resident' in response.json().keys())
+
+
+class TestAccessApplication(APITestCase):
+
+    def setUp(self):
+        self.url = '/api/v1/application/'
+        ApplicationFactory.create(
+            name='Test',
+            merchant__name='Test',
+            merchant__number='Test'
+        )
+
+    def test_normal_user_cant_view(self):
+        # WHEN
+        user = UserFactory.create()
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f'Token {user.auth_token}')
+
+        response = self.client.get(self.url)
+
+        # THEN
+        self.assertEqual(response.status_code, 403)
+
+    def test_backoffice_user_cant_view(self):
+        # WHEN
+        user = UserFactory.create()
+        user.groups.create(name=GroupsEnums.backoffice)
+
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f'Token {user.auth_token}')
+
+        response = self.client.get(self.url)
+
+        # THEN
+        self.assertEqual(response.status_code, 403)
+
+    def test_application_user_can_view(self):
+        # WHEN
+        user = UserFactory.create()
+        user.groups.create(name=GroupsEnums.application)
+
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f'Token {user.auth_token}')
+
+        response = self.client.get(self.url)
+
+        # THEN
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.json()), 1)
+
+

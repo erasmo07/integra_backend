@@ -35,3 +35,9 @@ class ApplicationAuthorizeRest(permissions.BasePermission):
             ).exists()
         except Exception as exception:
             return False
+
+
+class IsApplicationUserPermission(permissions.BasePermission):
+
+    def has_permission(self, request, view):
+        return request.user.is_aplication
