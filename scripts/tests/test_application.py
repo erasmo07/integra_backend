@@ -452,3 +452,13 @@ class TestCreateFather(TestCase):
         self.assertEqual(response_login.status_code, 200)
         self.assertIn('token', response_login.json())
         self.assertIn('resident', response_login.json())
+
+
+class TestCommandWork(TestCase):
+    fixtures = [
+        ''.join([settings.ROOT_PROJECT, '/fixtures/db_integra.json']
+    )]
+
+    def test_can_apply_command_on_production(self):
+        # WHEN
+        management.call_command("runscript", "application")
