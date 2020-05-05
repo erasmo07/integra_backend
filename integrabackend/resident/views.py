@@ -1,8 +1,9 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from django.core.mail import send_mail
-from django.shortcuts import get_list_or_404
+from django.shortcuts import get_list_or_404, get_object_or_404
 from django.template.loader import get_template
 from django.conf import settings
+from django.contrib.auth.forms import PasswordResetForm
 
 from rest_framework.response import Response
 from rest_framework import viewsets, mixins, status
@@ -15,7 +16,7 @@ from .serializers import (
     ResidentSerializer, PersonSerializer,
     PropertySerializer, PropertyTypeSerializer,
     ResidentUserserializer, TypeIdenticationSerializer)
-from django.contrib.auth.forms import PasswordResetForm
+from integrabackend.users.models import Application
 
 
 class ResidentCreateViewSet(viewsets.ModelViewSet):
@@ -75,6 +76,29 @@ class ResidentCreateViewSet(viewsets.ModelViewSet):
 
             self.perform_update(serializer)
             return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=["POST", 'PUT'], url_path='access')
+    def access(self, request, pk=True):
+        resident = self.get_object()
+
+        if not request.user.is_aplication:
+            return Response(
+                'Cant assign application to user',
+                status=status.HTTP_403_FORBIDDEN)
+        
+        if not resident.user:
+            error = {'message': "This resident hasn't user"}
+            return Response(error, status=status.HTTP_400_BAD_REQUEST)
+
+        if request._request.method == 'POST':
+            applications = get_list_or_404(
+                Application, id__in=request.data.getlist('applications'))
+            
+            for application in applications:
+                resident.user.accessapplication_set.create(
+                    application=application)
+            return Response({}, status=status.HTTP_200_OK)
+        return Response({}, status.HTTP_400_BAD_REQUEST)
 
 
 class PersonViewSet(viewsets.ModelViewSet):

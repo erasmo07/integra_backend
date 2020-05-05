@@ -9,7 +9,8 @@ from ..serializers import ResidentSerializer
 from .factories import (
     ResidentFactory, PersonFactory, TypeIdentificationFactory,
     PropertyFactory, PropertyTypeFactory)
-from ...users.test.factories import UserFactory
+from ...users.test.factories import UserFactory, ApplicationFactory
+from ...users.enums import GroupsEnums
 
 
 class TestResidentListTestCase(APITestCase):
@@ -23,6 +24,10 @@ class TestResidentListTestCase(APITestCase):
         self.data = ResidentSerializer(
             ResidentFactory(user=UserFactory.create())).data
         self.client.force_authenticate(user=UserFactory.create())
+        
+        self.application = ApplicationFactory.create(
+            name='Portal PCIS', merchant__name='PCIS',
+            merchant__number='0000', domain='domain front')
 
     def test_post_request_with_no_data_fails(self):
         response = self.client.post(self.url, {})
@@ -162,6 +167,84 @@ class TestResidentListTestCase(APITestCase):
         response = self.client.post(url + 'user/', user_data)
 
         eq_(response.status_code, status.HTTP_201_CREATED)
+    
+    def test_user_normal_cant_assign_access(self):
+        # GIVE
+        user = UserFactory.create()
+        resident = ResidentFactory(user=user)
+        self.client.force_authenticate(user=user)
+
+        # WHEN
+        url_detail = reverse(
+            '%s-detail' % self.base_name,
+            kwargs={'pk': resident.id})
+        url = f'{url_detail}access/'
+        response = self.client.post(
+            url,
+            {"applications": [str(self.application.id)]})
+
+        # THEN
+        self.assertEqual(response.status_code, 403)
+
+    def test_user_backoffice_cant_assign_access(self):
+
+        user = UserFactory.create()
+        user.groups.create(name=GroupsEnums.backoffice)
+        self.client.force_authenticate(user=user)
+
+        # WHEN
+        resident = ResidentFactory(user=UserFactory.create())
+        url_detail = reverse(
+            '%s-detail' % self.base_name,
+            kwargs={'pk': resident.id})
+        url = f'{url_detail}access/'
+        response = self.client.post(
+            url,
+            {"applications": [str(self.application.id)]})
+
+        # THEN
+        self.assertEqual(response.status_code, 403)
+    
+    def test_application_not_exists(self):
+        # GIVEN
+        resident = ResidentFactory()
+        user = UserFactory.create()
+        user.groups.create(name=GroupsEnums.application)
+        self.client.force_authenticate(user=user)
+
+        # WHEN
+        url_detail = reverse(
+            '%s-detail' % self.base_name,
+            kwargs={'pk': resident.id})
+        url = f'{url_detail}access/'
+        body = {"applications": [str(self.application.id)]}
+        self.application.delete()
+        response = self.client.post(url, body)
+
+        # THEN
+        self.assertEqual(response.status_code, 400)
+    
+
+    def test_user_application_can_assing_access(self):
+        # GIVEN
+        resident = ResidentFactory(user=UserFactory.create())
+        user = UserFactory.create()
+        user.groups.create(name=GroupsEnums.application)
+
+        self.client.force_authenticate(user=user)
+
+        # WHEN
+        url_detail = reverse(
+            '%s-detail' % self.base_name,
+            kwargs={'pk': resident.id})
+        url = f'{url_detail}access/'
+        body = {"applications": [str(self.application.id)]}
+        response = self.client.post(url, body)
+
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(resident.user.accessapplication_set.filter(
+            application_id=self.application.id).exists())
 
 
 class TestPersonTestCase(APITestCase):
