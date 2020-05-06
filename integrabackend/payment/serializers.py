@@ -102,36 +102,8 @@ class PaymentAttemptSerializer(serializers.ModelSerializer):
 
 
 class PaymentAttemptPaySerializer(serializers.Serializer):
-    number = serializers.CharField(min_length=16, max_length=16)
-    expiration = serializers.CharField(max_length=6)
     cvc = serializers.CharField(max_length=4)
+    expiration = serializers.CharField(max_length=6)
+    name = serializers.CharField(max_length=500)
+    number = serializers.CharField(max_length=19)
     save = serializers.BooleanField()
-
-    def validate_number(self, value):
-        PATTERN = '^([456][0-9]{3})(-?([0-9]{4}){3})$'
-        """
-        Stackexchange: 
-            https://codereview.stackexchange.com/
-                questions/169530/validating-credit-card-numbers
-        By:
-            https://codereview.stackexchange.com/users/21002/zeta
-
-        Returns `True' if the sequence is a valid credit card number.
-
-        A valid credit card number
-        - must contain exactly 16 digits,
-        - must start with a 4, 5 or 6 
-        - must only consist of digits (0-9) or hyphens '-',
-        - may have digits in groups of 4, separated by one hyphen "-". 
-        - must NOT use any other separator like ' ' , '_',
-        - must NOT have 4 or more consecutive repeated digits.
-        """
-        match = re.match(PATTERN, value)
-
-        if match == None:
-            raise serializers.ValidationError("Invalid Number")
-
-        for group in match.groups():
-            if group[0] * 4 == group:
-                raise serializers.ValidationError("Invalid Number")
-        return value

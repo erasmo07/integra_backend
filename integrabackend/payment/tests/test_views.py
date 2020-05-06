@@ -372,9 +372,10 @@ class TestPaymenetAttemptTestCase(APITestCase):
         url = '/api/v1/payment-attempt/%s/charge/' % self.payment_attempt.id
         data = {
             'card': {
-                'number': '4035874000424977',
-                'expiration': '202012',
                 'cvc': '977',
+                'expiration': '202012',
+                'name': 'Prueba',
+                'number': '4035874000424977',
                 'save': False
             }
         }
@@ -389,6 +390,160 @@ class TestPaymenetAttemptTestCase(APITestCase):
         self.assertEqual(
             self.payment_attempt.card_number,
             data.get('card').get('number')[-4:])
+
+    @patch('integrabackend.payment.views.PaymentAttemptViewSet.compensation_payments')
+    def test_charge_payment_attempt_with_dinner_club(self, compensation_payment):
+        # GIVEN
+        compensation_payment_mock = MagicMock()
+        compensation_payment_mock.sap_response = {'data': 'PDF', 'success': True}
+
+        compensation_payment.return_value = compensation_payment_mock
+
+        invoice = factories.InvoiceFactory(payment_attempt=self.payment_attempt)
+        url = '/api/v1/payment-attempt/%s/charge/' % self.payment_attempt.id
+        data = {
+            'card': {
+                'cvc': '516',
+                'expiration': '202406',
+                'name': "Prueba",
+                'number': '3643794964698356',
+                'save': False
+            }
+        }
+
+        self.client.force_authenticate(user=self.resident.user)
+        response = self.client.post(url, data, format='json')
+
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.json().keys(),
+            MOCK_TRANSACTION_APROVE.keys())
+        
+        self.assertEqual(response.json().get('IsoCode'), '00') 
+        self.assertEqual(
+            response.json().get('ResponseMessage'), 'APROBADA') 
+
+        invoice.refresh_from_db()
+        invoice.payment_attempt.refresh_from_db()
+
+        self.assertEqual(invoice.payment_attempt.process_payment, 'AZUL')
+        self.assertEqual(
+            self.payment_attempt.card_number,
+            data.get('card').get('number')[-4:])
+
+        self.assertIsNotNone(invoice.payment_attempt.response)
+
+        self.assertEqual(
+            invoice.status.name,
+            enums.StatusInvoices.compensated)
+    
+    @patch('integrabackend.payment.views.PaymentAttemptViewSet.compensation_payments')
+    def test_charge_payment_attempt_with_amex(self, compensation_payment):
+        # GIVEN
+        compensation_payment_mock = MagicMock()
+        compensation_payment_mock.sap_response = {'data': 'PDF', 'success': True}
+
+        compensation_payment.return_value = compensation_payment_mock
+
+        invoice = factories.InvoiceFactory(payment_attempt=self.payment_attempt)
+        url = '/api/v1/payment-attempt/%s/charge/' % self.payment_attempt.id
+        data = {
+            'card': {
+                'cvc': '274',
+                'expiration': '202412',
+                'name': 'Prueba',
+                'number': '371642190784801',
+                'save': False
+            }
+        }
+
+        self.client.force_authenticate(user=self.resident.user)
+        response = self.client.post(url, data, format='json')
+
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.json().keys(),
+            MOCK_TRANSACTION_APROVE.keys())
+
+        self.assertEqual(response.json().get('IsoCode'), '00') 
+        self.assertEqual(
+            response.json().get('ResponseMessage'), 'APROBADA') 
+
+        invoice.refresh_from_db()
+        invoice.payment_attempt.refresh_from_db()
+
+        self.assertEqual(invoice.payment_attempt.process_payment, 'AZUL')
+        self.assertEqual(
+            invoice.payment_attempt.card_number,
+            data.get('card').get('number')[-4:])
+
+        self.assertIsNotNone(invoice.payment_attempt.response)
+        self.assertEqual(
+            invoice.status.name,
+            enums.StatusInvoices.compensated)
+    
+    @patch('integrabackend.payment.views.PaymentAttemptViewSet.compensation_payments')
+    @patch('integrabackend.payment.views.PaymentAttemptViewSet.transaction_class')
+    def test_can_pay_payment_attempt_american_express(
+            self, transaction_class, compensation_payment):
+
+        transaction_response = MagicMock()
+        transaction_response.response_code = '00'
+        transaction_response.authorization_code = 'OK200'
+        transaction_response.data_vault_brand = 'VISA'
+        transaction_response.data_vault_expiration = '202010'
+        transaction_response.data_vault_token = 'TOKEN'
+        transaction_response.kwargs = dict()
+
+        transaction_class_mock = MagicMock()
+        transaction_class_mock.get_data.return_value = MOCK_REQUEST_TO_AZUL
+        transaction_class_mock.commit.return_value = transaction_response
+
+        transaction_class.return_value = transaction_class_mock
+
+        compensation_payment_mock = MagicMock()
+        compensation_payment_mock.sap_response = {'data': 'PDF', 'success': True}
+
+        compensation_payment.return_value = compensation_payment_mock
+
+        invoice = factories.InvoiceFactory(
+            payment_attempt=self.payment_attempt)
+        url = '/api/v1/payment-attempt/%s/charge/' % self.payment_attempt.id
+        data = {
+            "card": {
+                "name": "Prueba",
+                "number": "376695458359273",
+                "expiration": "202012",
+                "cvc": "977",
+                "save": True
+            }
+        }
+        self.client.force_authenticate(user=self.resident.user)
+        response = self.client.post(url, data, format='json')
+
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('success', response.json())
+        self.payment_attempt.refresh_from_db()
+
+        self.assertEqual(self.payment_attempt.process_payment, 'AZUL')
+        self.assertEqual(
+            self.payment_attempt.card_number,
+            data.get('card').get('number')[-4:])
+
+        self.assertIsNotNone(self.payment_attempt.response)
+
+        self.assertTrue(self.payment_attempt.user.credit_card.exists())
+        self.assertTrue(
+            self.user.credit_card.filter(
+                name='Prueba', card_number='9273'
+            ).exists()
+        )
+
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.status.name, 'Compensada')
 
     @patch('integrabackend.payment.views.PaymentAttemptViewSet.compensation_payments')
     @patch('integrabackend.payment.views.PaymentAttemptViewSet.transaction_class')
@@ -416,9 +571,10 @@ class TestPaymenetAttemptTestCase(APITestCase):
         url = '/api/v1/payment-attempt/%s/charge/' % self.payment_attempt.id
         data = {
             'card': {
-                'number': '4035874000424977',
-                'expiration': '202012',
                 'cvc': '977',
+                'expiration': '202012',
+                'name': "Prueba",
+                'number': '4035874000424977',
                 'save': False
             }
         }
@@ -470,9 +626,10 @@ class TestPaymenetAttemptTestCase(APITestCase):
         url = '/api/v1/payment-attempt/%s/charge/' % self.payment_attempt.id
         data = {
             'card': {
-                'number': '4035874000424977',
-                'expiration': '202012',
                 'cvc': '977',
+                'expiration': '202012',
+                'name': 'Prueba',
+                'number': '4035874000424977',
                 'save': False
             }
         }
@@ -506,9 +663,10 @@ class TestPaymenetAttemptTestCase(APITestCase):
         url = '/api/v1/payment-attempt/%s/charge/' % self.payment_attempt.id
         data = {
             'card': {
-                'number': '4035874000424977',
-                'expiration': '202012',
                 'cvc': '977',
+                'expiration': '202012',
+                'name': 'Prueba',
+                'number': '4035874000424977',
                 'save': False
             }
         }
