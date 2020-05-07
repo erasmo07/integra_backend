@@ -58,6 +58,16 @@ class TestUserDetailTestCase(APITestCase):
     def test_get_request_returns_a_given_user(self):
         response = self.client.get(self.url)
         eq_(response.status_code, status.HTTP_200_OK)
+        
+        self.assertIn('last_login', response.json())
+        self.assertIn('date_joined', response.json())
+    
+    def test_get_request_find_user_by_params(self):
+        response = self.client.get(f'/api/v1/users/?email={self.user.email}')
+        eq_(response.status_code, status.HTTP_200_OK)
+        
+        self.assertIn('last_login', response.json()[0])
+        self.assertIn('date_joined', response.json()[0])
 
     def test_put_request_updates_a_user(self):
         payload = {'first_name': 'NAME'}
