@@ -1,17 +1,19 @@
+import json
+
 from django.shortcuts import get_object_or_404, render
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import status, viewsets, generics
+from rest_framework import generics, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import (
-    APIException, NotFound, ParseError, PermissionDenied)
+from rest_framework.exceptions import (APIException, NotFound, ParseError,
+                                       PermissionDenied)
 from rest_framework.response import Response
 
 from oraculo.gods.exceptions import BadRequest
 from partenon.process_payment import azul
 
-from ..users.models import User
 from ..solicitude.serializers import StateSerializer
-from . import helpers, models, serializers, enums, filters
+from ..users.models import User
+from . import enums, filters, helpers, models, serializers
 from .helpers import CompensationPayment
 
 
@@ -84,8 +86,11 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
         if self.request.user.is_aplication and 'user' in self.request.data:
             serializer.save(user=get_object_or_404(User, self.request.data))
             return
-
-        serializer.save(user=self.request.user)
+        
+        status_initial, _ = models.StatusPaymentAttempt.objects.get_or_create(
+            name=enums.StatusPaymentAttempt.initial
+        )
+        serializer.save(user=self.request.user, status=status_initial)
 
     def get_azul_card(self):
         if 'card' in self.request.data:
@@ -179,6 +184,10 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
 
         transaction_response = self.make_transaction_in_azul()
         if not transaction_response.is_valid():
+            self.object.status, _ = models.StatusPaymentAttempt.objects.get_or_create(
+                name=enums.StatusPaymentAttempt.not_approved
+            )
+            self.object.save()
             return Response(transaction_response.kwargs, status=400)
 
         self.response_payment_attemp_model.objects.create(
@@ -197,13 +206,22 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
         try:
             compensation_payment = self.compensation_payments(self.object)
             compensation_payment.commit()
-        except Exception:
+        except BadRequest as exception:
             status_invoice, _ = models.StatusDocument.objects.get_or_create(
                 name=enums.StatusInvoices.not_compensated
             )
 
             self.object.invoices.update(status=status_invoice)
             self.object.advancepayments.update(status=status_invoice)
+            
+            self.object.status, _ = models.StatusPaymentAttempt.objects.get_or_create(
+                name=enums.StatusPaymentAttempt.not_compensated
+            )
+            self.object.save()
+
+            for error in json.loads(exception.args[0])[0].get('error'):
+                error['id_sap'] = error.pop('id')
+                self.object.errors.create(**error)
 
             return Response(response_body)
 
@@ -212,5 +230,10 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
         )
         self.object.invoices.update(status=status_invoice)
         self.object.advancepayments.update(status=status_invoice)
+        
+        self.object.status, _ = models.StatusPaymentAttempt.objects.get_or_create(
+            name=enums.StatusPaymentAttempt.compensated
+        )
+        self.object.save()
 
         return Response(response_body)

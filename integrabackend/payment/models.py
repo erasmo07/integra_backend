@@ -31,6 +31,10 @@ class StatusCreditcard(Status):
     pass
 
 
+class StatusPaymentAttempt(Status):
+    pass
+
+
 class CreditCard(models.Model):
     id = models.UUIDField(
         primary_key=True, default=uuid.uuid4, editable=False)
@@ -95,6 +99,17 @@ class RequestPaymentAttempt(models.Model):
         'SaveToDataVault', max_length=50)
 
 
+class ErrorPaymentAttempt(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    payment_attempt = models.ForeignKey(
+        'payment.PaymentAttempt',
+        related_name='errors',
+        on_delete=models.CASCADE)
+    id_sap = models.CharField(max_length=5)
+    znumber = models.IntegerField()
+    message = models.TextField()
+
+
 class PaymentAttempt(models.Model):
     """Model definition for StatusDocument. """
 
@@ -108,6 +123,9 @@ class PaymentAttempt(models.Model):
     )
     transaction = models.IntegerField()
     user = models.ForeignKey("users.User", on_delete=models.DO_NOTHING, null=True)
+    status = models.ForeignKey(
+        "payment.StatusPaymentAttempt",
+        on_delete=models.CASCADE, blank=True, null=True)
     
     card_number = models.CharField(
         'Card Number', max_length=4, blank=True, null=True)
@@ -168,7 +186,7 @@ class PaymentAttempt(models.Model):
             self.transaction = 1
         else:
             self.transaction = last.transaction + 1
-        return super(PaymentAttempt, self).save()
+        return super(PaymentAttempt, self).save(*args, **kwargs)
 
 
 class PaymentDocument(models.Model):

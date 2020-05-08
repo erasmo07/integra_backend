@@ -283,6 +283,13 @@ class TestPaymenetAttemptTestCase(APITestCase):
         for key in self.keys_expect:
             self.assertIn(key, response.json())
 
+        payment_attempt = models.PaymentAttempt.objects.get(
+            id=response.json().get('id'))
+
+        self.assertEqual(
+            payment_attempt.status.name,
+            enums.StatusPaymentAttempt.initial)
+
         status_invoice, _ = models.StatusDocument.objects.get_or_create(
             name="Pendiente"
         )
@@ -314,6 +321,12 @@ class TestPaymenetAttemptTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         for key in self.keys_expect:
             self.assertIn(key, response.json())
+
+        payment_attempt = models.PaymentAttempt.objects.get(
+            id=response.json().get('id'))
+        self.assertEqual(
+            payment_attempt.status.name,
+            enums.StatusPaymentAttempt.initial)
 
         status_invoice, _ = models.StatusDocument.objects.get_or_create(
             name="Pendiente"
@@ -390,6 +403,10 @@ class TestPaymenetAttemptTestCase(APITestCase):
         self.assertEqual(
             self.payment_attempt.card_number,
             data.get('card').get('number')[-4:])
+        
+        self.assertEqual(
+            self.payment_attempt.status.name,
+            enums.StatusPaymentAttempt.not_approved)
 
     @patch('integrabackend.payment.views.PaymentAttemptViewSet.compensation_payments')
     def test_charge_payment_attempt_with_dinner_club(self, compensation_payment):
@@ -426,10 +443,14 @@ class TestPaymenetAttemptTestCase(APITestCase):
 
         invoice.refresh_from_db()
         invoice.payment_attempt.refresh_from_db()
+        
+        self.assertEqual(
+            invoice.payment_attempt.status.name,
+            enums.StatusPaymentAttempt.compensated)
 
         self.assertEqual(invoice.payment_attempt.process_payment, 'AZUL')
         self.assertEqual(
-            self.payment_attempt.card_number,
+            invoice.payment_attempt.card_number,
             data.get('card').get('number')[-4:])
 
         self.assertIsNotNone(invoice.payment_attempt.response)
@@ -473,6 +494,10 @@ class TestPaymenetAttemptTestCase(APITestCase):
 
         invoice.refresh_from_db()
         invoice.payment_attempt.refresh_from_db()
+
+        self.assertEqual(
+            invoice.payment_attempt.status.name,
+            enums.StatusPaymentAttempt.compensated)
 
         self.assertEqual(invoice.payment_attempt.process_payment, 'AZUL')
         self.assertEqual(
@@ -543,7 +568,13 @@ class TestPaymenetAttemptTestCase(APITestCase):
         )
 
         invoice.refresh_from_db()
+        invoice.payment_attempt.refresh_from_db()
+
         self.assertEqual(invoice.status.name, 'Compensada')
+        
+        self.assertEqual(
+            invoice.payment_attempt.status.name,
+            enums.StatusPaymentAttempt.compensated)
 
     @patch('integrabackend.payment.views.PaymentAttemptViewSet.compensation_payments')
     @patch('integrabackend.payment.views.PaymentAttemptViewSet.transaction_class')
@@ -563,7 +594,10 @@ class TestPaymenetAttemptTestCase(APITestCase):
         transaction_class.return_value = transaction_class_mock
 
         compensation_payment_mock = MagicMock()
-        compensation_payment_mock.commit.side_effect = BadRequest
+        exception = BadRequest(
+            '[{"error": [{"id": "F5", "znumber": 1, "message": "message"}]}]'
+        )
+        compensation_payment_mock.commit.side_effect = exception
 
         compensation_payment.return_value = compensation_payment_mock
 
@@ -589,14 +623,24 @@ class TestPaymenetAttemptTestCase(APITestCase):
             MOCK_TRANSACTION_APROVE.keys())
 
         invoice.refresh_from_db()
+
         self.assertEqual(
             invoice.status.name,
             enums.StatusInvoices.not_compensated)
         
         self.payment_attempt.refresh_from_db()
+        
+        self.assertEqual(
+            self.payment_attempt.status.name,
+            enums.StatusPaymentAttempt.not_compensated)
+
         self.assertEqual(
             self.payment_attempt.card_number,
             data.get('card').get('number')[-4:])
+        
+        self.assertTrue(self.payment_attempt.errors.filter(
+            id_sap='F5', znumber=1, message='message'
+        ).exists())
 
     @patch('integrabackend.payment.views.PaymentAttemptViewSet.compensation_payments')
     @patch('integrabackend.payment.views.PaymentAttemptViewSet.transaction_class')
@@ -656,6 +700,12 @@ class TestPaymenetAttemptTestCase(APITestCase):
         self.assertEqual(
             invoice.status.name,
             enums.StatusInvoices.compensated)
+        
+        self.payment_attempt.refresh_from_db()
+        
+        self.assertEqual(
+            self.payment_attempt.status.name,
+            enums.StatusPaymentAttempt.compensated)
 
     def test_backoffice_try_charge_payment(self):
 
@@ -724,6 +774,11 @@ class TestPaymenetAttemptTestCase(APITestCase):
         self.payment_attempt.refresh_from_db()
 
         self.assertEqual(self.payment_attempt.process_payment, 'AZUL')
+
+        self.assertEqual(
+            self.payment_attempt.status.name,
+            enums.StatusPaymentAttempt.compensated)
+
         self.assertEqual(
             self.payment_attempt.card_number,
             data.get('card').get('number')[-4:])
@@ -807,6 +862,10 @@ class TestPaymenetAttemptTestCase(APITestCase):
         self.assertEqual(
             self.payment_attempt.card_number,
             credit_card.card_number)
+        
+        self.assertEqual(
+            self.payment_attempt.status.name,
+            enums.StatusPaymentAttempt.compensated)
 
         self.assertIsNotNone(self.payment_attempt.response)
 
@@ -864,6 +923,10 @@ class TestPaymenetAttemptTestCase(APITestCase):
         self.assertEqual(
             self.payment_attempt.card_number,
             credit_card.card_number)
+        
+        self.assertEqual(
+            self.payment_attempt.status.name,
+            enums.StatusPaymentAttempt.compensated)
 
         self.assertIsNotNone(self.payment_attempt.request)
         self.assertIsNotNone(self.payment_attempt.response)
