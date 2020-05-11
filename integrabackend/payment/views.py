@@ -58,7 +58,9 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
     """
     Create resident
     """
-    queryset = models.PaymentAttempt.objects.all()
+    queryset = models.PaymentAttempt.objects.select_related(
+        'user', 'response', 'request'
+    ).prefetch_related('invoices').all()
     serializer_class = serializers.PaymentAttemptSerializer
     serialiser_pay_class = serializers.PaymentAttemptPaySerializer
     card_class = azul.Card
@@ -182,6 +184,7 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
         if hasattr(self.object, 'request'):
             raise ParseError(detail='PaymentAttempt has one request')
 
+        self.object.save()    # refresh calculate fields
         transaction_response = self.make_transaction_in_azul()
         if not transaction_response.is_valid():
             self.object.status, _ = models.StatusPaymentAttempt.objects.get_or_create(

@@ -63,16 +63,21 @@ class PaymentAttemptSerializer(serializers.ModelSerializer):
     request = RequestPaymentAttemptSerializer(read_only=True)
     user = PaymentUserSerializer(read_only=True)
 
-    total_invoice_amount_usd = serializers.CharField(read_only=True)
-    total_invoice_amount = serializers.CharField(read_only=True)
-    total_invoice_tax = serializers.CharField(read_only=True)
-    total_advancepayment_amount = serializers.CharField(read_only=True)
     total = serializers.CharField(read_only=True)
 
     class Meta:
         model = models.PaymentAttempt
         fields = "__all__"
-        read_only_fields = ('id', 'transaction', 'process_payment', 'date')
+        read_only_fields = (
+            'date',
+            'id',
+            'process_payment',
+            'total_advancepayment_amount'
+            'total_invoice_amount',
+            'total_invoice_amount_usd',
+            'total_invoice_tax',
+            'transaction',
+        )
 
     def create(self, validated_data):
         invoices = validated_data.pop('invoices')
@@ -98,6 +103,7 @@ class PaymentAttemptSerializer(serializers.ModelSerializer):
         for advancepayment in advancepayments:
             make_many(AdvancePaymentSerializer, advancepayment)
 
+        payment_attempt.save()
         return payment_attempt
 
 

@@ -122,11 +122,6 @@ class PaymentAttempt(models.Model):
         blank=True, null=True
     )
     transaction = models.IntegerField()
-    user = models.ForeignKey("users.User", on_delete=models.DO_NOTHING, null=True)
-    status = models.ForeignKey(
-        "payment.StatusPaymentAttempt",
-        on_delete=models.CASCADE, blank=True, null=True)
-    
     card_number = models.CharField(
         'Card Number', max_length=4, blank=True, null=True)
 
@@ -134,6 +129,20 @@ class PaymentAttempt(models.Model):
         'Merchant Number', max_length=50, blank=True, null=True)
     merchant_name = models.CharField(
         'Merchant Name', max_length=50, blank=True, null=True)
+    
+    total_invoice_amount = models.DecimalField(
+        max_digits=5, decimal_places=2, blank=True, null=True)
+    total_advancepayment_amount = models.DecimalField(
+        max_digits=5, decimal_places=2, blank=True, null=True)
+    total_invoice_tax = models.DecimalField(
+        max_digits=5, decimal_places=2, blank=True, null=True)
+    total_invoice_amount_usd = models.DecimalField(
+        max_digits=5, decimal_places=2, blank=True, null=True)
+
+    user = models.ForeignKey("users.User", on_delete=models.DO_NOTHING, null=True)
+    status = models.ForeignKey(
+        "payment.StatusPaymentAttempt",
+        on_delete=models.CASCADE, blank=True, null=True)
 
     @property
     def total(self):
@@ -146,39 +155,12 @@ class PaymentAttempt(models.Model):
             advancepayment = decimal.Decimal(0.00)
 
         return invoice + advancepayment
-
-    @property
-    def total_invoice_amount(self):
-        return self.invoices.values(
-            'amount_dop'
-        ).aggregate(
-            total_amount=models.Sum('amount_dop')
-        ).get('total_amount', )
-
-    @property
-    def total_advancepayment_amount(self):
-        return self.advancepayments.values(
-            'amount'
-        ).aggregate(
-            total_amount=models.Sum('amount')
-        ).get('total_amount')
-
-    @property
-    def total_invoice_tax(self):
-        taxs = self.invoices.values(
-            'tax'
-        ).aggregate(
-            total_tax=models.Sum('tax')
-        ).get('total_tax')
-        return taxs if taxs else decimal.Decimal(0.00)
-
-    @property
-    def total_invoice_amount_usd(self):
-        return self.invoices.values(
-            'amount'
-        ).aggregate(
-            total_amount=models.Sum('amount')
-        ).get('total_amount', )
+    
+    def get_total(self, foreign_key, field):
+        total = getattr(self, foreign_key).values(
+            field
+        ).aggregate(total=models.Sum(field)).get('total', 0)
+        return total if total else decimal.Decimal(0.00)
 
     def save(self, *args, **kwargs):
         last = PaymentAttempt.objects.order_by('transaction').last()
@@ -186,6 +168,12 @@ class PaymentAttempt(models.Model):
             self.transaction = 1
         else:
             self.transaction = last.transaction + 1
+        
+        self.total_invoice_amount = self.get_total('invoices', 'amount_dop')
+        self.total_advancepayment_amount = self.get_total('advancepayments', 'amount')
+        self.total_invoice_tax = self.get_total('invoices', 'tax')
+        self.total_invoice_amount_usd = self.get_total('invoices', 'amount')
+
         return super(PaymentAttempt, self).save(*args, **kwargs)
 
 

@@ -1,6 +1,7 @@
 from mock import patch, MagicMock
 
 from django.forms.models import model_to_dict
+from django.test import TransactionTestCase
 from django.urls import reverse
 from nose.tools import eq_, ok_
 from rest_framework import status
@@ -191,7 +192,7 @@ class TestCreditCardTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
-class TestPaymenetAttemptTestCase(APITestCase):
+class TestPaymenetAttemptTestCase(APITestCase, TransactionTestCase):
 
     def setUp(self):
         self.url = '/api/v1/payment-attempt/'
@@ -232,6 +233,17 @@ class TestPaymenetAttemptTestCase(APITestCase):
         for payment_attempt in response.json():
             for key in self.keys_expect:
                 self.assertIn(key, payment_attempt)
+    
+    def test_performance_list_payments_attempt(self):
+        # GIVEN
+        user = UserFactory()
+        user.groups.add(GroupFactory(name='Backoffice'))
+        self.client.force_authenticate(user=user)
+
+        # THEN
+        with self.assertNumQueries(5):
+            response = self.client.get(self.url)
+
 
     def test_can_list_payments_without_documents(self):
         self.client.force_authenticate(user=self.resident.user)

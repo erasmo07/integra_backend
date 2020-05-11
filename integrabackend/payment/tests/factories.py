@@ -33,6 +33,7 @@ class PaymentAttemptFactory(factory.DjangoModelFactory):
     status = factory.SubFactory(StatusPaymentAttemptFactory)
     merchant_number = '39038540035'
     merchant_name = 'CENREX'
+    total_invoice_amount = 0
 
     class Meta:
         model = 'payment.PaymentAttempt'
