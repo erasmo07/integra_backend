@@ -99,13 +99,16 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
             serializer = self.serialiser_pay_class(data=self.request.data.get('card'))
             serializer.is_valid(raise_exception=True)
 
-            self.object.card_number = serializer.data.get('number')[-4:]
-            self.object.save()
-
-            return self.card_class(
+            card = self.card_class(
                 number=serializer.data.get('number'),
                 expiration=serializer.data.get('expiration'),
                 cvc=serializer.data.get('cvc'))
+            
+            self.object.card_number = serializer.data.get('number')[-4:]
+            self.object.card_brand = card.brand
+            self.object.save()
+
+            return card
 
         if 'card_uuid' in self.request.data:
             card_uuid = self.request.data.get('card_uuid')

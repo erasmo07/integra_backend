@@ -415,6 +415,7 @@ class TestPaymenetAttemptTestCase(APITestCase, TransactionTestCase):
         self.assertEqual(
             self.payment_attempt.card_number,
             data.get('card').get('number')[-4:])
+        self.assertIsNotNone(self.payment_attempt.card_brand)
         
         self.assertEqual(
             self.payment_attempt.status.name,
