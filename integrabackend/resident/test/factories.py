@@ -88,6 +88,12 @@ class ProjectServiceFactory(factory.django.DjangoModelFactory):
         model = 'resident.ProjectService'
 
 
+class OrganizationFactory(factory.django.DjangoModelFactory):
+    
+    class Meta:
+        model = 'resident.Organization'
+
+
 class PropertyFactory(factory.django.DjangoModelFactory):
     id_sap = "".join([str(random.randint(1, 9)) for _ in range(10)]) 
     name = factory.Sequence(lambda n: f'testuser{n}')

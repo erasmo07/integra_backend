@@ -3,7 +3,8 @@ from .payment import views as payment_views
 from .users.views import UserViewSet, ApplicationViewSet
 from .resident.views import (
     ResidentCreateViewSet, PersonViewSet, PropertyViewSet,
-    PropertyTypeViewSet, TypeIdentificationViewSet, AreaViewSet)
+    PropertyTypeViewSet, TypeIdentificationViewSet, AreaViewSet,
+    ProjectViewSet, DepartmentViewSet, OrganizationViewSet)
 from .invitation import views as invitation_views
 from .solicitude.views import (
     ServiceViewSet, StateSolicitudeServiceViewSet,
@@ -20,10 +21,13 @@ router.register(r'application', ApplicationViewSet)
 
 # APP - Resident
 router.register(r'area', AreaViewSet)
+router.register(r'department', DepartmentViewSet)
 router.register(r'resident', ResidentCreateViewSet)
 router.register(r'property', PropertyViewSet)
+router.register(r'project', ProjectViewSet)
 router.register(r'property-type', PropertyTypeViewSet)
 router.register(r'type-identification', TypeIdentificationViewSet)
+router.register(r'organization', OrganizationViewSet)
 
 # APP - Invitation
 router.register(r'type-invitation', invitation_views.TypeInvitationViewSet)

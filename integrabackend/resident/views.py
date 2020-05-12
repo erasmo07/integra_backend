@@ -11,13 +11,16 @@ from rest_framework.decorators import action
 
 from .models import (
     Resident, Person, Property,
-    PropertyType, TypeIdentification, Area)
+    PropertyType, TypeIdentification, Area, Project,
+    Department, Organization)
 from .serializers import (
     ResidentSerializer, PersonSerializer,
     PropertySerializer, PropertyTypeSerializer,
     ResidentUserserializer, TypeIdenticationSerializer,
-    AreaSerializer)
+    AreaSerializer, ProjectSerializer, DepartmentSerializer,
+    OrganizationSerializer)
 from integrabackend.users.models import Application
+from integrabackend.users.permissions import IsApplicationUserPermission
 
 
 class ResidentCreateViewSet(viewsets.ModelViewSet):
@@ -141,6 +144,15 @@ class PropertyTypeViewSet(viewsets.ModelViewSet):
     filter_fields = '__all__'
 
 
+class ProjectViewSet(viewsets.ModelViewSet):
+    queryset = Project.objects.all()
+    serializer_class = ProjectSerializer
+    permission_classes = [IsApplicationUserPermission]
+
+    filter_backends = (DjangoFilterBackend,)
+    filter_fields = '__all__'
+
+
 class TypeIdentificationViewSet(viewsets.ModelViewSet):
     queryset = TypeIdentification.objects.all()
     serializer_class = TypeIdenticationSerializer
@@ -149,5 +161,25 @@ class TypeIdentificationViewSet(viewsets.ModelViewSet):
 class AreaViewSet(viewsets.ModelViewSet):
     queryset = Area.objects.all()
     serializer_class = AreaSerializer
+    permission_classes = [IsApplicationUserPermission]
+
+    filter_backends = (DjangoFilterBackend, )
+    filter_fields = '__all__'
+
+
+class DepartmentViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Department.objects.all()
+    permission_classes = [IsApplicationUserPermission]
+    serializer_class = DepartmentSerializer
+    
+    filter_backends = (DjangoFilterBackend, )
+    filter_fields = '__all__'
+
+
+class OrganizationViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Organization.objects.all()
+    permission_classes = [IsApplicationUserPermission]
+    serializer_class = OrganizationSerializer
+    
     filter_backends = (DjangoFilterBackend, )
     filter_fields = '__all__'
