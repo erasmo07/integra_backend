@@ -61,6 +61,7 @@ class TestUserDetailTestCase(APITestCase):
         
         self.assertIn('last_login', response.json())
         self.assertIn('date_joined', response.json())
+        self.assertIn('is_active', response.json())
     
     def test_get_request_find_user_by_params(self):
         response = self.client.get(f'/api/v1/users/?email={self.user.email}')
