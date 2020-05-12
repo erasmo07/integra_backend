@@ -107,3 +107,34 @@ class TestERPClientViewSet(APITestCase):
         mock.invoice_pdf.assert_called_once()
         mock.invoice_pdf.assert_called_once_with(
             '0900000001', '39393850011', language='S')
+
+
+class TestTemporalInvoice(APITestCase):
+    
+    def setUp(self):
+        self.url = '/api/v1/sap/temporal-invoice/'
+        
+        self.user = UserFactory()
+        self.client.force_authenticate(user=self.user)
+    
+    @patch('integrabackend.proxys.views.APIClientERP')
+    def test_generic_path(self, mock_api_client):
+        body = {
+            "CLIENTE_SAP" : "ESPVFISCAL",   
+            "CLIENTE_ESPORADICO" : [ "NOMBRE", "0980897897" ],
+            "CANAL_DISTRIBUCION" : "02",
+            "POSICION" : [{
+                "COMENTARIO" : "Uso privado salon VIP CAE",
+                "KMEIN" : "",
+                "KPEIN" : "3",
+                "MATNR" : "000000000009000320",
+            }]
+        }
+
+        mock = MagicMock()
+        mock.post.return_value = {}
+        mock_api_client.return_value = mock
+
+        response = self.client.post(self.url, body)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)

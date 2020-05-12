@@ -110,6 +110,12 @@ router.register(
     base_name='get_flight'
 )
 
+router.register(
+    r'sap/temporal-invoice',
+    proxys.TemporalInvoiceViewSet,
+    base_name='temporal_invoice'
+)
+
 # WEBHOOK
 router.register(
     r'faveo-webhook',

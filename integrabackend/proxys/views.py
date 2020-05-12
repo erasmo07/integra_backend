@@ -324,3 +324,16 @@ class ERPClientViewSet(viewsets.ViewSet):
             return Response(account_status)
         except NotFound as exception:
             return Response({}, status.HTTP_404_NOT_FOUND)
+
+
+class TemporalInvoiceViewSet(viewsets.ViewSet):
+    url = 'api_fact_vipcae/factura'
+    
+    def create(self, request, *args, **kwargs):
+        try:
+            return Response(
+                APIClientERP().post(self.url, request.data.dict())
+            )
+        except (NotFound, BadRequest) as exception:
+            error = dict(error=str(exception))
+            return Response(error, status.HTTP_404_NOT_FOUND)
