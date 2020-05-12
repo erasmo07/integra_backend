@@ -11,11 +11,12 @@ from rest_framework.decorators import action
 
 from .models import (
     Resident, Person, Property,
-    PropertyType, TypeIdentification)
+    PropertyType, TypeIdentification, Area)
 from .serializers import (
     ResidentSerializer, PersonSerializer,
     PropertySerializer, PropertyTypeSerializer,
-    ResidentUserserializer, TypeIdenticationSerializer)
+    ResidentUserserializer, TypeIdenticationSerializer,
+    AreaSerializer)
 from integrabackend.users.models import Application
 
 
@@ -143,3 +144,10 @@ class PropertyTypeViewSet(viewsets.ModelViewSet):
 class TypeIdentificationViewSet(viewsets.ModelViewSet):
     queryset = TypeIdentification.objects.all()
     serializer_class = TypeIdenticationSerializer
+
+
+class AreaViewSet(viewsets.ModelViewSet):
+    queryset = Area.objects.all()
+    serializer_class = AreaSerializer
+    filter_backends = (DjangoFilterBackend, )
+    filter_fields = '__all__'

@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from .models import (
     Resident, Person, Property,
-    PropertyType, TypeIdentification)
+    PropertyType, TypeIdentification, Area)
 
 
 class TypeIdenticationSerializer(serializers.ModelSerializer):
@@ -72,3 +72,9 @@ class PersonSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', )
 
 
+class AreaSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = Area
+        fields = '__all__'
+        read_only_fields = ('id', )

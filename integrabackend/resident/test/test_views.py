@@ -1,16 +1,19 @@
-from django.urls import reverse
+import random
+
 from django.forms.models import model_to_dict
+from django.urls import reverse
+from nose.tools import eq_, ok_
 from rest_framework import status
 from rest_framework.test import APITestCase
-from nose.tools import eq_, ok_
 
+from ...users.enums import GroupsEnums
+from ...users.test.factories import ApplicationFactory, UserFactory
 from ..models import Resident
 from ..serializers import ResidentSerializer
-from .factories import (
-    ResidentFactory, PersonFactory, TypeIdentificationFactory,
-    PropertyFactory, PropertyTypeFactory)
-from ...users.test.factories import UserFactory, ApplicationFactory
-from ...users.enums import GroupsEnums
+from . import factories
+from .factories import (AreaFactory, PersonFactory, PropertyFactory,
+                        PropertyTypeFactory, ResidentFactory,
+                        TypeIdentificationFactory)
 
 
 class TestResidentListTestCase(APITestCase):
@@ -296,3 +299,51 @@ class TestPropertyTestCase(APITestCase):
     def test_get_request_without_pk(self):
         response = self.client.get(self.url)
         eq_(response.status_code, status.HTTP_200_OK)
+
+
+class TestArea(APITestCase):
+    
+    def setUp(self):
+        self.url_to_add = '/api/v1/area/'
+        self.url_to_list = '/api/v1/area/'
+
+        self.model = factories.AreaFactory._meta.model
+        self.field_validate = ['id', 'name']
+        self.factory = factories.AreaFactory
+
+        self.client.force_login(UserFactory())
+
+    def test_get_request(self):
+        for _ in range(5):
+            self.factory.create()
+
+        response = self.client.get(self.url_to_list)
+
+        self.assertEqual(len(response.json()), 5)
+
+    def test_post_request_success_data(self):
+        data = model_to_dict(
+            self.factory.create(), exclude=['id'])
+
+        response = self.client.post(self.url_to_add, data)
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(self.model.objects.count(), 2)
+
+        instance = self.model.objects.get(id=response.json().get('id'))
+        self.assertEqual(getattr(instance, 'name'), data.get('name'))
+
+    def test_post_with_update_data_success(self):
+        instance = self.factory.create()
+        data = model_to_dict(self.factory.create())
+
+        url = '{}{}/'.format(self.url_to_add, instance.pk)
+        response = self.client.put(url, data)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(self.model.objects.count(), 2)
+
+        instance.refresh_from_db()
+
+        self.assertEqual(getattr(instance, 'name'), data.get('name'))
+        
