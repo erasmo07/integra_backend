@@ -58,15 +58,15 @@ class TestUserDetailTestCase(APITestCase):
     def test_get_request_returns_a_given_user(self):
         response = self.client.get(self.url)
         eq_(response.status_code, status.HTTP_200_OK)
-        
+
         self.assertIn('last_login', response.json())
         self.assertIn('date_joined', response.json())
         self.assertIn('is_active', response.json())
-    
+
     def test_get_request_find_user_by_params(self):
         response = self.client.get(f'/api/v1/users/?email={self.user.email}')
         eq_(response.status_code, status.HTTP_200_OK)
-        
+
         self.assertIn('last_login', response.json()[0])
         self.assertIn('date_joined', response.json()[0])
 
@@ -86,6 +86,40 @@ class TestUserTokenTestCase(APITestCase):
 
     def setUp(self):
         self.url = reverse('token')
+    
+    def test_get_request_return_resident_and_token_without_filter(self):
+        # when
+        response = self.client.get(self.url)
+
+        # then
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+    
+    def test_get_request_return_token(self):
+        # given
+        user = UserFactory.create()
+
+        # when
+        response = self.client.get(self.url, {'username': user.username})
+
+        # then
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.assertIn('token', response.json())
+    
+    def test_get_request_return_resident_and_token(self):
+        # given
+        user = UserFactory.create()
+        ResidentFactory(user=user)
+
+        # when
+        response = self.client.get(self.url, {'username': user.username})
+
+        # then
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.assertIn('token', response.json())
+        self.assertIn('resident', response.json())
+
 
     def test_post_request_not_return_resident(self):
         user = UserFactory()
