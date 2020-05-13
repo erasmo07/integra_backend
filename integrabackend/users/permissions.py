@@ -44,3 +44,12 @@ class IsApplicationUserPermission(permissions.BasePermission):
             return False
 
         return request.user.is_aplication
+
+
+class IsBackOfficeUserPermission(permissions.BasePermission):
+
+    def has_permission(self, request, view):
+        if request.user.is_anonymous:
+            return False
+
+        return request.user.is_backoffice

@@ -1,6 +1,6 @@
 from rest_framework.routers import DefaultRouter
 from .payment import views as payment_views
-from .users.views import UserViewSet, ApplicationViewSet
+from .users.views import UserViewSet, ApplicationViewSet, MerchantViewSet
 from .resident.views import (
     ResidentCreateViewSet, PersonViewSet, PropertyViewSet,
     PropertyTypeViewSet, TypeIdentificationViewSet, AreaViewSet,
@@ -18,6 +18,7 @@ router = DefaultRouter()
 # APP - User
 router.register(r'users', UserViewSet)
 router.register(r'application', ApplicationViewSet)
+router.register(r'merchant', MerchantViewSet)
 
 # APP - Resident
 router.register(r'area', AreaViewSet)

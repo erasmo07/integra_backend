@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Application
+from .models import User, Application, Merchant
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -28,3 +28,11 @@ class ApplicationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Application
         fields = ('id', 'name')
+
+
+class MerchantSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = Merchant
+        fields = '__all__' 
+        read_only_fields = ('id', )

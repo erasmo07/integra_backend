@@ -6,7 +6,7 @@ from rest_framework.test import APITestCase
 from rest_framework import status
 from ..models import User
 from ..enums import GroupsEnums
-from .factories import UserFactory, ApplicationFactory
+from .factories import UserFactory, ApplicationFactory, MerchantFactory
 from ...resident.test.factories import ResidentFactory
 
 
@@ -207,3 +207,58 @@ class TestAccessApplication(APITestCase):
         # THEN
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.json()), 1)
+
+
+class TestMerchant(APITestCase):
+    
+    def setUp(self):
+        self.url = '/api/v1/merchant/'
+        self.factory = MerchantFactory
+    
+    def test_cant_normal_user_list_merchant(self):
+        # GIVEN
+        user = UserFactory.create()
+        self.client.force_login(user=user)
+    
+        # WHEN
+        response = self.client.get(self.url)
+    
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+    
+    def test_cant_create_merchant(self):
+        # GIVEN
+        user = UserFactory()
+        user.groups.create(name=GroupsEnums.backoffice)
+    
+        self.client.force_authenticate(user=user)
+
+        # WHEN
+        data = model_to_dict(self.factory.create(), exclude=['id'])
+        response = self.client.post(self.url, data)
+    
+        # THEN
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_405_METHOD_NOT_ALLOWED)
+    
+    def test_can_backoffice_user_list_merchant(self):
+        # GIVEN
+        user = UserFactory()
+        user.groups.create(name=GroupsEnums.backoffice)
+
+        self.client.force_authenticate(user=user)
+
+        for _ in range(5):
+            self.factory.create()
+    
+        # WHEN
+        response = self.client.get(self.url)
+    
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        for merchant in response.json():
+            self.assertIn('id', merchant)
+            self.assertIn('name', merchant)
+            self.assertIn('number', merchant)
