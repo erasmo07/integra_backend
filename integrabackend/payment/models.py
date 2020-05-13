@@ -114,7 +114,11 @@ class PaymentAttempt(models.Model):
     """Model definition for StatusDocument. """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
     sap_customer = models.IntegerField()
+    sap_customer_name = models.CharField(
+        max_length=500, blank=True, null=True)
+
     date = models.DateTimeField(auto_now_add=True)
     process_payment = models.CharField(
         'Process Payment',

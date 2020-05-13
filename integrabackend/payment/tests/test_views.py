@@ -310,6 +310,42 @@ class TestPaymenetAttemptTestCase(APITestCase, TransactionTestCase):
             for key in self.keys_expect_invoices:
                 self.assertIn(key, invoice)
             self.assertEqual(invoice.get('status'), str(status_invoice.id))
+    
+    def test_can_create_payments_attempt_with_sap_customer_name(self):
+        # GIVE
+        invoice_data = model_to_dict(
+            factories.InvoiceFactory(),
+            exclude=['payment_attempt', 'status', 'user'])
+
+        data = model_to_dict(self.payment_attempt)
+        data['sap_customer_name'] = 'PRUEBA'
+        data['invoices'] = [invoice_data]
+        data['advancepayments'] = []
+
+        # WHEN
+        self.client.force_authenticate(user=self.resident.user)
+        response = self.client.post(self.url, data, format='json')
+
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        for key in self.keys_expect:
+            self.assertIn(key, response.json())
+
+        payment_attempt = models.PaymentAttempt.objects.get(
+            id=response.json().get('id'))
+
+        self.assertEqual(
+            payment_attempt.status.name,
+            enums.StatusPaymentAttempt.initial)
+        self.assertEqual(payment_attempt.sap_customer_name, "PRUEBA")
+
+        status_invoice, _ = models.StatusDocument.objects.get_or_create(
+            name="Pendiente"
+        )
+        for invoice in response.json().get('invoices'):
+            for key in self.keys_expect_invoices:
+                self.assertIn(key, invoice)
+            self.assertEqual(invoice.get('status'), str(status_invoice.id))
 
     def test_can_create_payments_attempt_with_advance_payment(self):
         # GIVE
