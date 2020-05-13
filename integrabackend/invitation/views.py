@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 
-from . import models, serializers, mixins
+from . import models, serializers, mixins, enums, permissions
 from ..resident.models import Property
 
 
@@ -16,10 +16,22 @@ class InvitationViewSet(viewsets.ModelViewSet):
     CRUD Invitation
     """
     queryset = models.Invitation.objects.all()
+    status_class = models.StatusInvitation
+    status_enums = enums.StatusInvitationEnums
     serializer_class = serializers.InvitationSerializer
 
+    permission_classes = [permissions.OnlyUpdatePending]
+
+    def _get_initial_status(self):
+        status, _ = self.status_class.objects.get_or_create(
+            name=self.status_enums.pending
+        )
+        return status
+
     def perform_create(self, serializer):
-        serializer.save(create_by_id=self.request.user.id)
+        serializer.save(
+            create_by_id=self.request.user.id,
+            status=self._get_initial_status())
 
 
 class TypeInvitationViewSet(viewsets.ReadOnlyModelViewSet):

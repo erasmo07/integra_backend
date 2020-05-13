@@ -108,7 +108,21 @@ class InvitationSerializer(serializers.ModelSerializer):
             invitation.save()
 
         return invitation
-    
+
+    def update(self, instance, validated_data):
+        invitateds = validated_data.pop('invitated', [])
+        supplier = validated_data.pop('supplier', None)
+
+        for attribute in ['date_entry', 'date_out', 'note']:
+            setattr(
+                instance,
+                attribute,
+                validated_data.get(
+                    attribute, getattr(instance, attribute)))
+
+        instance.save()
+        return instance
+
 
 class TypeInvitationProyectSerializer(serializers.ModelSerializer):
     not_available_days = DaySerializer(read_only=True, many=True)

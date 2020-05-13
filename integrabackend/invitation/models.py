@@ -1,10 +1,15 @@
 import uuid
 import random
 from django.db import models, IntegrityError
+from integrabackend.payment.models import Status
 
 
 def random_number():
     return str(random.randint(10000, 99999))
+
+
+class StatusInvitation(Status):
+    pass
 
 
 class Medio(models.Model):
@@ -93,6 +98,8 @@ class Invitation(models.Model):
         'Random Number', max_length=7,
         unique=True, blank=True, null=True)
 
+    status = models.ForeignKey(
+        "invitation.StatusInvitation", on_delete=models.CASCADE)
     create_by = models.ForeignKey(
         'users.User', related_name='invitations',
         on_delete=models.CASCADE)

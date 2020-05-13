@@ -47,3 +47,10 @@ class ColorEnums(DefaultEnums):
     silver = 'Silver'
     yellow = 'Yellow'
     other = 'other'
+
+
+class StatusInvitationEnums(DefaultEnums):
+    _model = apps.get_model('invitation', 'StatusInvitation')
+
+    check_in = 'Check-In'
+    pending = 'Pending'

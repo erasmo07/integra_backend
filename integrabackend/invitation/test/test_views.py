@@ -6,6 +6,7 @@ from rest_framework.test import APITestCase
 from nose.tools import eq_, ok_
 
 from ..models import Invitation
+from ..enums import StatusInvitationEnums
 from ..serializers import InvitationSerializer
 from .factories import InvitationFactory, TypeInvitationFactory
 from ...resident.test.factories import (
@@ -22,16 +23,53 @@ class TestInvitationTestCase(APITestCase):
         self.base_name = 'invitation'
         self.url = reverse('%s-list' % self.base_name)
         self.user = UserFactory.create()
-        invitation = InvitationFactory.create(
-            create_by=self.user,
-            type_invitation=TypeInvitationFactory.create())
+        invitation = InvitationFactory.create(create_by=self.user)
         person = PersonFactory.create(
-            create_by=self.user, 
+            create_by=self.user,
             type_identification=TypeIdentificationFactory.create())
         invitation.invitated.add(person)
 
-        self.data = model_to_dict(invitation, exclude=['id']) 
+        self.factory = InvitationFactory
+        self.data = model_to_dict(invitation, exclude=['id'])
         self.client.force_authenticate(user=self.user)
+    
+    def test_put_request_cant_update_invitation_checkin(self):
+        # GIVEN
+        invitation = self.factory.create(
+            status__name=StatusInvitationEnums.check_in)
+
+        data = model_to_dict(self.factory.create(), exclude=['id'])
+
+        # WHEN
+        url = f'{self.url}{invitation.pk}/'
+        response = self.client.put(url, data)
+
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+        invitation.refresh_from_db()
+        self.assertNotEqual(invitation.date_entry, data.get('date_entry'))
+        self.assertNotEqual(invitation.date_out, data.get('date_out'))
+        self.assertNotEqual(invitation.note, data.get('note'))
+
+    def test_put_request_can_update_invitation(self):
+        # GIVEN
+        invitation = self.factory.create(
+            status__name=StatusInvitationEnums.pending)
+
+        data = model_to_dict(self.factory.create(), exclude=['id'])
+
+        # WHEN
+        url = f'{self.url}{invitation.pk}/'
+        response = self.client.put(url, data)
+
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        invitation.refresh_from_db()
+        self.assertEqual(invitation.date_entry, data.get('date_entry'))
+        self.assertEqual(invitation.date_out, data.get('date_out'))
+        self.assertEqual(invitation.note, str(data.get('note')))
 
     def test_post_request_with_no_data_fails(self):
         response = self.client.post(self.url, {})
