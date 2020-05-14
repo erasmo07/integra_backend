@@ -128,7 +128,7 @@ class PaymentAttempt(models.Model):
     transaction = models.IntegerField()
     card_number = models.CharField(
         'Card Number', max_length=4, blank=True, null=True)
-    card_brand = models.CharField(max_length=8, blank=True, null=True)
+    card_brand = models.CharField(max_length=50, blank=True, null=True)
 
     merchant_number = models.CharField(
         'Merchant Number', max_length=50, blank=True, null=True)

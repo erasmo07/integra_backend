@@ -200,7 +200,8 @@ class TestPaymenetAttemptTestCase(APITestCase, TransactionTestCase):
             'sap_customer', 'date', 'id', 'invoices',
             'process_payment', 'transaction', 'user',
             'total_invoice_amount', 'total_invoice_tax',
-            'total_advancepayment_amount', 'total'
+            'total_advancepayment_amount', 'total',
+            'status'
         ]
 
         self.keys_expect_invoices = [

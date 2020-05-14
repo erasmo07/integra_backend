@@ -64,6 +64,8 @@ class PaymentAttemptSerializer(serializers.ModelSerializer):
     user = PaymentUserSerializer(read_only=True)
 
     total = serializers.CharField(read_only=True)
+    status = serializers.SlugRelatedField(
+        read_only=True, slug_field='name')
 
     class Meta:
         model = models.PaymentAttempt
