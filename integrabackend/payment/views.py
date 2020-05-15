@@ -59,7 +59,7 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
     Create resident
     """
     queryset = models.PaymentAttempt.objects.select_related(
-        'user', 'response', 'request'
+        'user', 'response', 'request', 'status'
     ).prefetch_related('invoices').all()
     serializer_class = serializers.PaymentAttemptSerializer
     serialiser_pay_class = serializers.PaymentAttemptPaySerializer

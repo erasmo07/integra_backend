@@ -2,6 +2,7 @@ from rest_framework import serializers
 from . import models, enums
 from ..solicitude.serializers import DaySerializer
 from ..resident.serializers import PersonSerializer
+from ..resident.models import Property
 
 
 class MedioSerializer(serializers.ModelSerializer):
@@ -63,21 +64,46 @@ class SupplierSerializer(serializers.ModelSerializer):
         return super(SupplierSerializer, self).create(validated_data)   
 
 
+class TypeInvitationField(serializers.RelatedField):
+    
+    def to_representation(self, value):
+        return value.name
+
+    def to_internal_value(self, data):
+        return models.TypeInvitation.objects.get(id=data)
+
+
+class PropertyField(serializers.RelatedField):
+
+    def to_representation(self, value):
+        return value.address
+    
+    def to_internal_value(self, data):
+        return Property.objects.get(id=data)
+
+
 class InvitationSerializer(serializers.ModelSerializer):
     invitated = PersonSerializer(many=True, required=False)
     supplier = SupplierSerializer(required=False)
+    type_invitation = TypeInvitationField(
+        queryset=models.TypeInvitation.objects.all())
+    property = PropertyField(
+        source='ownership', queryset=Property.objects.all()
+    )
+    status = serializers.SlugRelatedField(
+        read_only=True, slug_field='name')
 
     class Meta:
         model = models.Invitation
         fields = (
             'id', 'type_invitation', 'date_entry',
             'date_out', 'invitated', 'note', 'number',
-            'supplier')
+            'supplier', 'status', 'property')
         read_only_fields = ('id', 'number')
     
     def validate(self, data):
         supplier = enums.TypeInvitationEnums.supplier
-        is_supplier = data.get('type_invitation').name == supplier
+        is_supplier = data.get('type_invitation') == supplier
         if is_supplier and not data.get('supplier'):
             raise serializers.ValidationError(
                 'supplier field is required for supplier invitation')

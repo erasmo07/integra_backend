@@ -1,5 +1,7 @@
 from django.urls import reverse
+from django.core import mail
 from django.forms.models import model_to_dict
+from django.test import override_settings
 
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -31,6 +33,7 @@ class TestInvitationTestCase(APITestCase):
 
         self.factory = InvitationFactory
         self.data = model_to_dict(invitation, exclude=['id'])
+        self.data['property'] = self.data.pop('ownership')
         self.client.force_authenticate(user=self.user)
     
     def test_put_request_cant_update_invitation_checkin(self):
@@ -39,6 +42,7 @@ class TestInvitationTestCase(APITestCase):
             status__name=StatusInvitationEnums.check_in)
 
         data = model_to_dict(self.factory.create(), exclude=['id'])
+        data['property'] = data.pop('ownership')
 
         # WHEN
         url = f'{self.url}{invitation.pk}/'
@@ -58,6 +62,7 @@ class TestInvitationTestCase(APITestCase):
             status__name=StatusInvitationEnums.pending)
 
         data = model_to_dict(self.factory.create(), exclude=['id'])
+        data['property'] = data.pop('ownership')
 
         # WHEN
         url = f'{self.url}{invitation.pk}/'
@@ -90,8 +95,8 @@ class TestInvitationTestCase(APITestCase):
         for invitation in response.json():
             ok_(invitation.get('id'))
             eq_(invitation.get('resident'), self.data.get('resident'))
-            eq_(invitation.get('type_invitation'),
-                str(self.data.get('type_invitation')))
+            eq_(invitation.get('type_invitation'), 'Pending')
+            self.assertIn('property', invitation)
 
     def test_get_request_with_pk_succeeds(self):
         response = self.client.post(self.url, self.data)
@@ -104,8 +109,8 @@ class TestInvitationTestCase(APITestCase):
         invitation = response.json()
         eq_(invitation.get('id'), kwargs.get('pk'))
         eq_(invitation.get('resident'), self.data.get('resident'))
-        eq_(invitation.get('type_invitation'),
-            str(self.data.get('type_invitation')))
+        eq_(invitation.get('type_invitation'), 'Pending')
+        self.assertIn('property', invitation)
 
 
 class TestTypeInvitationTestCase(APITestCase):

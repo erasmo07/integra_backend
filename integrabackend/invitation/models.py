@@ -109,6 +109,9 @@ class Invitation(models.Model):
     supplier = models.ForeignKey(
         "invitation.Supplier", on_delete=models.SET_NULL,
         blank=True, null=True)
+    ownership = models.ForeignKey(
+        "resident.Property",
+        on_delete=models.CASCADE)
 
     invitated = models.ManyToManyField('resident.Person')
 

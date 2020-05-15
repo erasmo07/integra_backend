@@ -136,13 +136,13 @@ class PaymentAttempt(models.Model):
         'Merchant Name', max_length=50, blank=True, null=True)
     
     total_invoice_amount = models.DecimalField(
-        max_digits=5, decimal_places=2, blank=True, null=True)
+        max_digits=10, decimal_places=2, blank=True, null=True)
     total_advancepayment_amount = models.DecimalField(
-        max_digits=5, decimal_places=2, blank=True, null=True)
+        max_digits=10, decimal_places=2, blank=True, null=True)
     total_invoice_tax = models.DecimalField(
-        max_digits=5, decimal_places=2, blank=True, null=True)
+        max_digits=10, decimal_places=2, blank=True, null=True)
     total_invoice_amount_usd = models.DecimalField(
-        max_digits=5, decimal_places=2, blank=True, null=True)
+        max_digits=10, decimal_places=2, blank=True, null=True)
 
     user = models.ForeignKey("users.User", on_delete=models.DO_NOTHING, null=True)
     status = models.ForeignKey(
