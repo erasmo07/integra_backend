@@ -5,13 +5,12 @@ from integrabackend.payment import models
 
 
 class PaymentAttemptFilter(django_filters.FilterSet):
-    from_ = django_filters.DateTimeFilter(field_name='date', lookup_expr='gte')
-    to = django_filters.DateTimeFilter(field_name='date', lookup_expr='lte')
+    date = django_filters.DateFromToRangeFilter()
 
     class Meta:
         model = models.PaymentAttempt
         fields = {
             'sap_customer': ['exact'],
-            'invoices__status': ['exact'],
+            'status': ['exact'],
             'merchant_number': ['exact'],
         }

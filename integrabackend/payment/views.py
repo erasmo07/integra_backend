@@ -46,11 +46,7 @@ class StatePaymentDocumentViewSet(viewsets.ReadOnlyModelViewSet):
     """
     List PaymentAttempt's status
     """
-    queryset = models.StatusDocument.objects.filter(
-        name__in=[
-            enums.StatusInvoices.compensated,
-            enums.StatusInvoices.not_compensated
-        ])
+    queryset = models.StatusPaymentAttempt.objects.all()
     serializer_class = StateSerializer
 
 
