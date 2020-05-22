@@ -75,8 +75,9 @@ class PersonSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Person
-        fields = ('id', 'name', 'email', 'identification',
-                  'type_identification', 'create_by')
+        fields = (
+            'id', 'name', 'email', 'identification',
+            'type_identification',)
         read_only_fields = ('id', )
 
 

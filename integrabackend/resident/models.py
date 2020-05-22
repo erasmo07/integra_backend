@@ -58,7 +58,7 @@ class Property(models.Model):
         'resident.PropertyType', on_delete=models.PROTECT)
     address = models.CharField(max_length=128)
     street = models.CharField(max_length=64)
-    number = models.CharField(max_length=5)
+    number = models.CharField(max_length=10)
     project = models.ForeignKey(
         "resident.Project", on_delete=models.CASCADE, null=True)
 
