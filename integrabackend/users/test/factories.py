@@ -36,8 +36,8 @@ class MerchantFactory(factory.django.DjangoModelFactory):
 
 
 class ApplicationFactory(factory.django.DjangoModelFactory):
-    name = 'Prueba'
     description = 'Description'
+    name = factory.Sequence(lambda n: f'testuser{n}')
     merchant = factory.SubFactory(MerchantFactory)
     
     class Meta:

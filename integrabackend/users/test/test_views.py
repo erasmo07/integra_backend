@@ -1,13 +1,16 @@
-from django.urls import reverse
-from django.forms.models import model_to_dict
 from django.contrib.auth.hashers import check_password
-from nose.tools import ok_, eq_
-from rest_framework.test import APITestCase
+from django.forms.models import model_to_dict
+from django.test import override_settings
+from django.urls import reverse
+from nose.tools import eq_, ok_
 from rest_framework import status
-from ..models import User
-from ..enums import GroupsEnums
-from .factories import UserFactory, ApplicationFactory, MerchantFactory
+from rest_framework.test import APITestCase
+
 from ...resident.test.factories import ResidentFactory
+from ..enums import GroupsEnums
+from ..models import User
+from .factories import (AccessApplicationFactory, ApplicationFactory,
+                        MerchantFactory, UserFactory)
 
 
 class TestUserListTestCase(APITestCase):
@@ -86,14 +89,14 @@ class TestUserTokenTestCase(APITestCase):
 
     def setUp(self):
         self.url = reverse('token')
-    
+
     def test_get_request_return_resident_and_token_without_filter(self):
         # when
         response = self.client.get(self.url)
 
         # then
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-    
+
     def test_get_request_return_token(self):
         # given
         user = UserFactory.create()
@@ -105,7 +108,7 @@ class TestUserTokenTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         self.assertIn('token', response.json())
-    
+
     def test_get_request_return_resident_and_token(self):
         # given
         user = UserFactory.create()
@@ -120,6 +123,55 @@ class TestUserTokenTestCase(APITestCase):
         self.assertIn('token', response.json())
         self.assertIn('resident', response.json())
 
+    @override_settings(VALID_APPLICATION=True)
+    def test_post_not_send_header(self):
+        user = UserFactory()
+        user.set_password('1234567')
+        user.save()
+
+        data = dict(username=user.username, password='1234567')
+        response = self.client.post(self.url, data)
+
+        eq_(response.status_code, status.HTTP_403_FORBIDDEN)
+        eq_({'detail': 'Not send correct headers'}, response.json())
+    
+    @override_settings(VALID_APPLICATION=True)
+    def test_post_user_with_application_access(self):
+        user = UserFactory()
+        user.set_password('1234567')
+        user.save()
+
+        access = AccessApplicationFactory(user=user)
+        self.client.credentials(
+            HTTP_APPLICATION=f'Bifrost {access.application.id}')
+
+        data = dict(username=user.username, password='1234567')
+        response = self.client.post(self.url, data)
+
+        eq_(response.status_code, status.HTTP_200_OK)
+        ok_('token' in response.json())
+    
+    @override_settings(VALID_APPLICATION=True)
+    def test_post_user_with_wrong_application(self):
+        user = UserFactory()
+        user.set_password('1234567')
+        user.save()
+
+        AccessApplicationFactory(user=user)
+        access = AccessApplicationFactory(user=UserFactory.create())
+
+        self.client.credentials(
+            HTTP_APPLICATION=f'Bifrost {access.application.id}')
+
+        data = dict(username=user.username, password='1234567')
+        response = self.client.post(self.url, data)
+
+        eq_(response.status_code, status.HTTP_403_FORBIDDEN)
+        eq_('This user does not have permission for this application',
+            response.json().get('detail'))
+
+        eq_(access.application.name,
+            response.json().get('application'))
 
     def test_post_request_not_return_resident(self):
         user = UserFactory()
@@ -210,38 +262,38 @@ class TestAccessApplication(APITestCase):
 
 
 class TestMerchant(APITestCase):
-    
+
     def setUp(self):
         self.url = '/api/v1/merchant/'
         self.factory = MerchantFactory
-    
+
     def test_cant_normal_user_list_merchant(self):
         # GIVEN
         user = UserFactory.create()
         self.client.force_login(user=user)
-    
+
         # WHEN
         response = self.client.get(self.url)
-    
+
         # THEN
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-    
+
     def test_cant_create_merchant(self):
         # GIVEN
         user = UserFactory()
         user.groups.create(name=GroupsEnums.backoffice)
-    
+
         self.client.force_authenticate(user=user)
 
         # WHEN
         data = model_to_dict(self.factory.create(), exclude=['id'])
         response = self.client.post(self.url, data)
-    
+
         # THEN
         self.assertEqual(
             response.status_code,
             status.HTTP_405_METHOD_NOT_ALLOWED)
-    
+
     def test_can_backoffice_user_list_merchant(self):
         # GIVEN
         user = UserFactory()
@@ -251,13 +303,13 @@ class TestMerchant(APITestCase):
 
         for _ in range(5):
             self.factory.create()
-    
+
         # WHEN
         response = self.client.get(self.url)
-    
+
         # THEN
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        
+
         for merchant in response.json():
             self.assertIn('id', merchant)
             self.assertIn('name', merchant)
