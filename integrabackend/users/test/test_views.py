@@ -185,18 +185,6 @@ class TestUserTokenTestCase(APITestCase):
         ok_('token' in response.json().keys())
         ok_('resident' not in response.json().keys())
 
-    def test_post_request_not_return_resident(self):
-        user = UserFactory()
-        user.set_password('1234567')
-        user.save()
-
-        data = dict(username=user.username, password='1234567')
-        response = self.client.post(self.url, data)
-
-        eq_(response.status_code, status.HTTP_200_OK)
-        ok_('token' in response.json().keys())
-        ok_('resident' not in response.json().keys())
-
     def test_post_request_return_resident(self):
         user = UserFactory()
         user.set_password('1234567')
@@ -210,6 +198,42 @@ class TestUserTokenTestCase(APITestCase):
         eq_(response.status_code, status.HTTP_200_OK)
         ok_('token' in response.json().keys())
         ok_('resident' in response.json().keys())
+    
+    def test_post_request_return_default_client(self):
+        # GIVEN
+        user = UserFactory()
+        user.set_password('1234567')
+        user.save()
+        
+        access = AccessApplicationFactory.create(user=user)
+        access.details.create(sap_customer='prueba', default=True)
+    
+        # WHEN
+        data = dict(username=user.username, password='1234567')
+        response = self.client.post(self.url, data)
+
+        # THEN
+        eq_(response.status_code, status.HTTP_200_OK)
+        ok_('token' in response.json())
+        ok_('sap_customer' in response.json())
+    
+    def test_post_request_not_has_default_client(self):
+        # GIVEN
+        user = UserFactory()
+        user.set_password('1234567')
+        user.save()
+        
+        access = AccessApplicationFactory.create(user=user)
+        access.details.create(sap_customer='prueba')
+    
+        # WHEN
+        data = dict(username=user.username, password='1234567')
+        response = self.client.post(self.url, data)
+
+        # THEN
+        eq_(response.status_code, status.HTTP_200_OK)
+        ok_('token' in response.json())
+        ok_('sap_customer' not in response.json())
 
 
 class TestAccessApplication(APITestCase):

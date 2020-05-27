@@ -81,3 +81,4 @@ class AccessDetail(models.Model):
     sap_customer = models.CharField(
         'Numero de cliente sap',
         max_length=50, unique=True)
+    default = models.BooleanField(default=False)
