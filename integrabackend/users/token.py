@@ -39,6 +39,15 @@ class CustomObtainAuthToken(ObtainAuthToken):
         values = dict(token=token.key)
         if hasattr(token.user, 'resident'):
             values.update(dict(resident=token.user.resident.pk))
+        
+        default_client = token.user.accessapplication_set.filter(
+            details__default=True).first() 
+        if default_client:
+            sap_customer = default_client.details.filter(
+                default=True
+            ).first().sap_customer
+            values.update(dict(sap_customer=sap_customer))
+
         return Response(values)
     
     def get(self, request, *args, **kwargs):
