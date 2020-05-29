@@ -115,6 +115,12 @@ class Invitation(models.Model):
 
     invitated = models.ManyToManyField('resident.Person')
 
+    class Meta:
+        permissions = [
+            ('can_check_in', 'Puede hacer check-in'),
+            ('can_check_out', 'Puede hacer check-out'),
+        ]
+
     def save(self, *args, **kwargs):
         if not self.id:
             number = random_number()
