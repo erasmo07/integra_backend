@@ -7,14 +7,13 @@ class ProjectServiceAdmin(admin.ModelAdmin):
 
 
 # Register your models here.
-admin.site.register(models.Property)
-admin.site.register(models.PropertyType)
-admin.site.register(models.Project)
-admin.site.register(models.ProjectService, ProjectServiceAdmin)
-
-admin.site.register(models.Resident)
 admin.site.register(models.Area)
+admin.site.register(models.AreaPermission)
 admin.site.register(models.Department)
 admin.site.register(models.Organization)
-
+admin.site.register(models.Project)
+admin.site.register(models.ProjectService, ProjectServiceAdmin)
+admin.site.register(models.Property)
+admin.site.register(models.PropertyType)
+admin.site.register(models.Resident)
 admin.site.register(models.TypeIdentification)

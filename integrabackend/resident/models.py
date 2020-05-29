@@ -105,6 +105,11 @@ class Area(models.Model):
     organization = models.ForeignKey('resident.Organization', on_delete=models.PROTECT)
 
 
+class AreaPermission(models.Model):
+    user = models.ForeignKey("users.User", on_delete=models.CASCADE)
+    area = models.ForeignKey("resident.Area", on_delete=models.CASCADE)
+
+
 class Organization(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=64)
