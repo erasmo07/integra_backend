@@ -98,8 +98,8 @@ class InvitationSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'type_invitation', 'date_entry',
             'date_out', 'invitated', 'note', 'number',
-            'supplier', 'status', 'property')
-        read_only_fields = ('id', 'number')
+            'supplier', 'status', 'property', 'area')
+        read_only_fields = ('id', 'number', 'area')
     
     def validate(self, data):
         supplier = enums.TypeInvitationEnums.supplier

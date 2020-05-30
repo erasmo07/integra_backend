@@ -12,8 +12,10 @@ from ..enums import StatusInvitationEnums
 from ..serializers import InvitationSerializer
 from .factories import InvitationFactory, TypeInvitationFactory
 from ...resident.test.factories import (
-    ResidentFactory, PersonFactory, TypeIdentificationFactory)
+    ResidentFactory, PersonFactory, TypeIdentificationFactory,
+    AreaFactory)
 from ...users.test.factories import UserFactory
+from ...users.enums import GroupsEnums
 
 
 class TestInvitationTestCase(APITestCase):
@@ -35,11 +37,12 @@ class TestInvitationTestCase(APITestCase):
         self.data = model_to_dict(invitation, exclude=['id'])
         self.data['property'] = self.data.pop('ownership')
         self.client.force_authenticate(user=self.user)
-    
+
     def test_put_request_cant_update_invitation_checkin(self):
         # GIVEN
         invitation = self.factory.create(
-            status__name=StatusInvitationEnums.check_in)
+            status__name=StatusInvitationEnums.check_in,
+            create_by=self.user)
 
         data = model_to_dict(self.factory.create(), exclude=['id'])
         data['property'] = data.pop('ownership')
@@ -59,7 +62,8 @@ class TestInvitationTestCase(APITestCase):
     def test_put_request_can_update_invitation(self):
         # GIVEN
         invitation = self.factory.create(
-            status__name=StatusInvitationEnums.pending)
+            status__name=StatusInvitationEnums.pending,
+            create_by=self.user)
 
         data = model_to_dict(self.factory.create(), exclude=['id'])
         data['property'] = data.pop('ownership')
@@ -111,6 +115,118 @@ class TestInvitationTestCase(APITestCase):
         eq_(invitation.get('resident'), self.data.get('resident'))
         eq_(invitation.get('type_invitation'), 'Pending')
         self.assertIn('property', invitation)
+
+    def test_cant_see_invitation_from_other_area(self):
+        # GIVEN
+        area = AreaFactory.create()
+        self.user.areapermission_set.create(area=area)
+
+        invitation = self.factory.create()
+
+        # WHEN
+        response = self.client.get(self.url)
+
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        for item in response.json():
+            self.assertNotEqual(item.get('id'), str(invitation.id))
+
+    def test_can_see_invitation_for_area(self):
+        # GIVEN
+        area = AreaFactory.create()
+        self.user.areapermission_set.create(area=area)
+        self.user.groups.create(name=GroupsEnums.security_agent)
+
+        invitation = self.factory.create(ownership__project__area=area)
+
+        # WHEN
+        response = self.client.get(self.url)
+
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        for item in response.json():
+            self.assertEqual(item.get('id'), str(invitation.id))
+
+    def test_serializer_return_expects_keys(self):
+        # GIVEN
+        area = AreaFactory.create()
+        self.user.areapermission_set.create(area=area)
+        self.user.groups.create(name=GroupsEnums.security_agent)
+
+        invitation = self.factory.create(ownership__project__area=area)
+
+        # WHEN
+        response = self.client.get(self.url)
+
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        for item in response.json():
+            self.assertIn('area', item)
+            self.assertIn('property', item)
+
+    def test_can_search_by_invitated_name(self):
+        # GIVEN
+        area = AreaFactory.create()
+        self.user.areapermission_set.create(area=area)
+        self.user.groups.create(name=GroupsEnums.security_agent)
+        
+        for _ in range(5):
+            self.factory.create(ownership__project__area=area)
+
+        invitation = self.factory.create(ownership__project__area=area)
+        person = PersonFactory.create(
+            create_by=self.user,
+            type_identification=TypeIdentificationFactory.create())
+        invitation.invitated.add(person)
+
+        # WHEN
+        response = self.client.get(self.url, {'invitated__name': person.name})
+
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        eq_(len(response.json()), 1)
+        self.assertEqual(person.name, response.json()[0].get('invitated')[0].get('name'))
+
+    def test_can_search_by_property_address(self):
+        # GIVEN
+        area = AreaFactory.create()
+        self.user.areapermission_set.create(area=area)
+        self.user.groups.create(name=GroupsEnums.security_agent)
+
+        for _ in range(5):
+            self.factory.create(ownership__project__area=area)
+
+        invitation = self.factory.create(
+            ownership__project__area=area, ownership__address='Address')
+
+        # WHEN
+        response = self.client.get(
+            self.url,
+            {'ownership__address': invitation.ownership.address})
+
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        eq_(len(response.json()), 1)
+        eq_(invitation.ownership.address, response.json()[0].get('property'))
+
+    def test_can_filter_by_invitation_number(self):
+        # GIVEN
+        area = AreaFactory.create()
+        self.user.areapermission_set.create(area=area)
+        self.user.groups.create(name=GroupsEnums.security_agent)
+
+        for _ in range(5):
+            self.factory.create(ownership__project__area=area)
+
+        invitation = self.factory.create(ownership__project__area=area)
+
+        # WHEN
+        response = self.client.get(self.url, {'number': invitation.number})
+
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        eq_(len(response.json()), 1)
+        eq_(str(invitation.number), response.json()[0].get('number'))
 
 
 class TestTypeInvitationTestCase(APITestCase):

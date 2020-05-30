@@ -33,6 +33,18 @@ class User(AbstractUser):
             name=enums.GroupsEnums.backoffice
         ).exists()
 
+    @property
+    def is_security_agent(self):
+        return self.groups.filter(
+            name=enums.GroupsEnums.security_agent
+        ).exists()
+    
+    @property
+    def is_monitoring_center(self):
+        return self.groups.filter(
+            name=enums.GroupsEnums.monitoring_center
+        ).exists()
+
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_auth_token(sender, instance=None, created=False, **kwargs):

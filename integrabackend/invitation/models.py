@@ -94,9 +94,7 @@ class Invitation(models.Model):
     cheking = models.DateTimeField(null=True, blank=True)
     chekout = models.DateTimeField(null=True, blank=True)
     note = models.TextField('Note', blank=True, null=True)
-    number = models.CharField(
-        'Random Number', max_length=7,
-        unique=True, blank=True, null=True)
+    number = models.CharField('Random Number', max_length=7, unique=True)
 
     status = models.ForeignKey(
         "invitation.StatusInvitation", on_delete=models.CASCADE)
@@ -115,6 +113,10 @@ class Invitation(models.Model):
 
     invitated = models.ManyToManyField('resident.Person')
 
+    @property
+    def area(self):
+        return f'{self.ownership.project.area.name}'
+
     class Meta:
         permissions = [
             ('can_check_in', 'Puede hacer check-in'),
@@ -122,9 +124,10 @@ class Invitation(models.Model):
         ]
 
     def save(self, *args, **kwargs):
-        if not self.id:
-            number = random_number()
+        if not self.number:
+            number = str(random.randint(10000, 99999))
             exist_invitation = self._meta.model.objects.filter(number=number)
+
             if exist_invitation.exists():
                 return self.save(*args, **kwargs)
             self.number = number

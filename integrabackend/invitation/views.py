@@ -15,18 +15,38 @@ class InvitationViewSet(viewsets.ModelViewSet):
     """
     CRUD Invitation
     """
-    queryset = models.Invitation.objects.all()
-    status_class = models.StatusInvitation
-    status_enums = enums.StatusInvitationEnums
-    serializer_class = serializers.InvitationSerializer
+    filter_backends = (DjangoFilterBackend,)
+    filter_fields = [
+        'number',
+        'ownership__address',
+        'invitated__name']
 
     permission_classes = [permissions.OnlyUpdatePending]
+    queryset = models.Invitation.objects.all()
+    serializer_class = serializers.InvitationSerializer
+
+    status_class = models.StatusInvitation
+    status_enums = enums.StatusInvitationEnums
 
     def _get_initial_status(self):
         status, _ = self.status_class.objects.get_or_create(
             name=self.status_enums.pending
         )
         return status
+
+    def get_queryset(self):
+        queryset = super(InvitationViewSet, self).get_queryset()
+        if (
+            self.request.user.is_monitoring_center
+            or self.request.user.is_aplication
+        ):
+            return queryset
+
+        if self.request.user.is_security_agent:
+            areas = self.request.user.areapermission_set.values('area')
+            return queryset.filter(ownership__project__area__in=areas)
+
+        return queryset.filter(create_by_id=self.request.user.id)
 
     def perform_create(self, serializer):
         serializer.save(
@@ -62,7 +82,6 @@ class TypeInvitationViewSet(viewsets.ReadOnlyModelViewSet):
             instance=typeinvitation_proyect)
 
         return Response(serializer.data)
-
 
 
 class MedioViewSet(
