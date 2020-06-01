@@ -8,7 +8,7 @@ from rest_framework.test import APITestCase
 from nose.tools import eq_, ok_
 
 from ..models import Invitation
-from ..enums import StatusInvitationEnums
+from ..enums import StatusInvitationEnums, TypeInvitationEnums
 from ..serializers import InvitationSerializer
 from .factories import InvitationFactory, TypeInvitationFactory
 from ...resident.test.factories import (
@@ -34,7 +34,7 @@ class TestInvitationTestCase(APITestCase):
         invitation.invitated.add(person)
 
         self.factory = InvitationFactory
-        self.data = model_to_dict(invitation, exclude=['id'])
+        self.data = model_to_dict(invitation, exclude=['id', 'barcode'])
         self.data['property'] = self.data.pop('ownership')
         self.client.force_authenticate(user=self.user)
 
@@ -44,7 +44,7 @@ class TestInvitationTestCase(APITestCase):
             status__name=StatusInvitationEnums.check_in,
             create_by=self.user)
 
-        data = model_to_dict(self.factory.create(), exclude=['id'])
+        data = model_to_dict(self.factory.create(), exclude=['id', 'barcode'])
         data['property'] = data.pop('ownership')
 
         # WHEN
@@ -65,7 +65,9 @@ class TestInvitationTestCase(APITestCase):
             status__name=StatusInvitationEnums.pending,
             create_by=self.user)
 
-        data = model_to_dict(self.factory.create(), exclude=['id'])
+        data = model_to_dict(
+            self.factory.create(),
+            exclude=['id', 'barcode'])
         data['property'] = data.pop('ownership')
 
         # WHEN
@@ -115,6 +117,105 @@ class TestInvitationTestCase(APITestCase):
         eq_(invitation.get('resident'), self.data.get('resident'))
         eq_(invitation.get('type_invitation'), 'Pending')
         self.assertIn('property', invitation)
+
+    def test_cant_backoffice_resend_invitation(self):
+        # GIVEN
+        response = self.client.post(self.url, self.data)
+
+        # WHEN
+        user = UserFactory()
+        user.groups.create(name=GroupsEnums.backoffice)
+        self.client.force_authenticate(user=user)
+        
+        pk = response.json().get('id')
+        url = f'/api/v1/invitation/{pk}/resend-notification/'
+        response = self.client.post(url, {})
+
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+    
+    def test_cant_application_resend_invitation(self):
+        # GIVEN
+        response = self.client.post(self.url, self.data)
+
+        # WHEN
+        user = UserFactory()
+        user.groups.create(name=GroupsEnums.application)
+        self.client.force_authenticate(user=user)
+        
+        pk = response.json().get('id')
+        url = f'/api/v1/invitation/{pk}/resend-notification/'
+        response = self.client.post(url, {})
+
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_invitation_not_pending_cant_resend_invitation(self):
+        # GIVEN
+        invitation = InvitationFactory.create(
+            create_by=self.user,
+            status__name=StatusInvitationEnums.check_in)
+
+        # WHEN
+        url = f'/api/v1/invitation/{invitation.pk}/resend-notification/'
+        response = self.client.post(url, {})
+
+        # THEN
+        self.assertEqual(
+            response.status_code, status.HTTP_403_FORBIDDEN)
+
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    def test_owner_invitation_resend_invitation(self):
+        # GIVEN
+        invitation = InvitationFactory.create(
+            create_by=self.user,
+            status__name=StatusInvitationEnums.pending,
+            type_invitation__name=TypeInvitationEnums.friend_and_family)
+        invitation.invitated.add(PersonFactory.create())
+
+        # WHEN
+        url = f'/api/v1/invitation/{invitation.pk}/resend-notification/'
+        response = self.client.post(url, {})
+
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.assertEqual(len(mail.outbox), 1)
+
+        invitation.refresh_from_db()
+        self.assertEqual(invitation.status.name, StatusInvitationEnums.pending)
+    
+    def test_cant_cancel_invitation_not_pending(self):
+        # GIVEN
+        invitation = InvitationFactory.create(
+            create_by=self.user,
+            status__name=StatusInvitationEnums.check_in)
+
+        # WHEN
+        url = f'/api/v1/invitation/{invitation.pk}/cancel/'
+        response = self.client.post(url, {})
+
+        # THEN
+        self.assertEqual(
+            response.status_code, status.HTTP_403_FORBIDDEN)   
+
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    def test_owner_want_cancel_invitaton_pending(self):
+        # GIVEN
+        invitation = InvitationFactory.create(
+            create_by=self.user,
+            status__name=StatusInvitationEnums.pending)
+        invitation.invitated.add(PersonFactory.create())
+
+        # WHEN
+        url = f'/api/v1/invitation/{invitation.pk}/cancel/'
+        response = self.client.post(url, {})
+
+        # THEN
+        invitation.refresh_from_db()
+        self.assertEqual(
+            invitation.status.name,
+            StatusInvitationEnums.cancel)
 
     def test_cant_see_invitation_from_other_area(self):
         # GIVEN

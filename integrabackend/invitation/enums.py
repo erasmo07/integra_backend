@@ -17,14 +17,14 @@ class DefaultEnums:
 
 
 class TypeInvitationEnums(DefaultEnums):
-    _model = apps.get_model('invitation', 'TypeInvitation')
+    # _model = apps.get_model('invitation', 'TypeInvitation')
 
     supplier = 'Supplier'
     friend_and_family = 'Friends and Family'
 
 
 class MedioEnums(DefaultEnums):
-    _model = apps.get_model('invitation', 'Medio')
+    # _model = apps.get_model('invitation', 'Medio')
 
     automobile = 'Automobile'
     motorcicle = 'Motorcicle'
@@ -34,7 +34,7 @@ class MedioEnums(DefaultEnums):
 
 
 class ColorEnums(DefaultEnums):
-    _model = apps.get_model('invitation', 'Color')
+    # _model = apps.get_model('invitation', 'Color')
 
     blue = 'Blue'
     red = 'Red'
@@ -50,7 +50,12 @@ class ColorEnums(DefaultEnums):
 
 
 class StatusInvitationEnums(DefaultEnums):
-    _model = apps.get_model('invitation', 'StatusInvitation')
+    # _model = apps.get_model('invitation', 'StatusInvitation')
 
     check_in = 'Check-In'
-    pending = 'Pending'
+    pending = 'Pendiente'
+    cancel = 'Cancelada'
+
+
+class Subjects:
+    send_notification = 'Notificación de invitación - Puntacana Resort and Club'  #noqa

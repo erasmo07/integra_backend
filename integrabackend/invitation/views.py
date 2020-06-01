@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, exceptions
 from rest_framework.decorators import action
 from rest_framework.generics import ListAPIView
 from rest_framework.mixins import ListModelMixin
@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 
-from . import models, serializers, mixins, enums, permissions
+from . import models, serializers, mixins, enums, permissions, helpers
 from ..resident.models import Property
 
 
@@ -52,6 +52,40 @@ class InvitationViewSet(viewsets.ModelViewSet):
         serializer.save(
             create_by_id=self.request.user.id,
             status=self._get_initial_status())
+
+        helpers.notify_invitation.delay(serializer.instance.id.hex)
+    
+    @action(detail=True, methods=['POST'], url_path='resend-notification')
+    def resend_notification(self, request, pk):
+        if request.user.is_aplication or request.user.is_backoffice:
+            raise exceptions.PermissionDenied()
+
+        self.object = self.get_object()
+        if not self.object.is_pending:
+            raise exceptions.PermissionDenied('Invitation is not pending')
+
+        helpers.notify_invitation.delay(self.object.id.hex)
+            
+        return Response({}, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['POST'], url_path='cancel')
+    def cancel(self, request, pk):
+        if request.user.is_aplication or request.user.is_backoffice:
+            raise exceptions.PermissionDenied()
+
+        self.object = self.get_object()
+        if not self.object.is_pending:
+            raise exceptions.PermissionDenied('Invitation is not pending')
+
+        helpers.notify_invitation.delay(
+            self.object.id.hex,
+            email_template='emails/invitation/cancel.html')
+
+        self.object.status, _ = models.StatusInvitation.objects.get_or_create(
+            name=enums.StatusInvitationEnums.cancel
+        )
+        self.object.save()
+        return Response({}, status=status.HTTP_200_OK)
 
 
 class TypeInvitationViewSet(viewsets.ReadOnlyModelViewSet):

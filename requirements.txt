@@ -53,6 +53,10 @@ django-storages==1.7.1
 boto3==1.9.4
 whitenoise==4.1.2
 
+# Others tools
+python-barcode==0.11.0
+pillow==7.1.2
+
 # Internal library
 -e git+https://erasmo_montes@bitbucket.org/grupopuntacana/partenon.git#egg=partenon
 -e git+https://erasmo_montes@bitbucket.org/grupopuntacana/oraculo.git#egg=oraculo

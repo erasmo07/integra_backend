@@ -3,9 +3,11 @@ import random
 from django.db import models, IntegrityError
 from integrabackend.payment.models import Status
 
+from . import enums
+
 
 def random_number():
-    return str(random.randint(10000, 99999))
+    return str(random.randint(100000000000, 999999999999))
 
 
 class StatusInvitation(Status):
@@ -94,7 +96,10 @@ class Invitation(models.Model):
     cheking = models.DateTimeField(null=True, blank=True)
     chekout = models.DateTimeField(null=True, blank=True)
     note = models.TextField('Note', blank=True, null=True)
-    number = models.CharField('Random Number', max_length=7, unique=True)
+    barcode = models.ImageField(upload_to='invitation-barcode', blank=True, null=True)
+    number = models.CharField(
+        'Random Number', max_length=12,
+        unique=True, blank=True, null=True)
 
     status = models.ForeignKey(
         "invitation.StatusInvitation", on_delete=models.CASCADE)
@@ -114,6 +119,22 @@ class Invitation(models.Model):
     invitated = models.ManyToManyField('resident.Person')
 
     @property
+    def is_pending(self):
+        return self.status.name == enums.StatusInvitationEnums.pending
+    
+    @property
+    def is_family_and_friend(self):
+        return (
+            self.type_invitation.name == 
+            enums.TypeInvitationEnums.friend_and_family)
+
+    @property
+    def is_supplier(self):
+        return (
+            self.type_invitation.name == 
+            enums.TypeInvitationEnums.supplier)
+
+    property
     def area(self):
         return f'{self.ownership.project.area.name}'
 
@@ -125,7 +146,7 @@ class Invitation(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.number:
-            number = str(random.randint(10000, 99999))
+            number = str(random.randint(100000000000, 999999999999))
             exist_invitation = self._meta.model.objects.filter(number=number)
 
             if exist_invitation.exists():

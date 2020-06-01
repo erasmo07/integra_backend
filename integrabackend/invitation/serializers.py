@@ -70,7 +70,7 @@ class TypeInvitationField(serializers.RelatedField):
         return value.name
 
     def to_internal_value(self, data):
-        return models.TypeInvitation.objects.get(id=data)
+        return models.TypeInvitation.objects.filter(id=data).first()
 
 
 class PropertyField(serializers.RelatedField):
@@ -79,7 +79,7 @@ class PropertyField(serializers.RelatedField):
         return value.address
     
     def to_internal_value(self, data):
-        return Property.objects.get(id=data)
+        return Property.objects.filter(id=data).first()
 
 
 class InvitationSerializer(serializers.ModelSerializer):

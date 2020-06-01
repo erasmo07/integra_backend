@@ -33,9 +33,11 @@ class PersonFactory(factory.django.DjangoModelFactory):
 
     name = factory.Sequence(lambda n: f'testuser{n}')
     email = factory.Faker('email')
+
     identification = factory.Sequence(lambda n: f'testuser{n}')
-    create_by = ResidentFactory.build()
-    type_identification = TypeIdentificationFactory.build()
+    type_identification = factory.SubFactory(TypeIdentificationFactory)
+
+    create_by = factory.SubFactory(UserFactory)
 
 
 class PropertyTypeFactory(factory.django.DjangoModelFactory):
