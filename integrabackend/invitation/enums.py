@@ -52,9 +52,9 @@ class ColorEnums(DefaultEnums):
 class StatusInvitationEnums(DefaultEnums):
     # _model = apps.get_model('invitation', 'StatusInvitation')
 
-    check_in = 'Check-In'
-    pending = 'Pendiente'
-    cancel = 'Cancelada'
+    check_in = 'In House'
+    pending = 'Pending'
+    cancel = 'Cancelled'
 
 
 class Subjects:
