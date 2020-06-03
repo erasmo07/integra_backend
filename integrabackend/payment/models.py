@@ -31,7 +31,11 @@ class StatusCreditcard(Status):
     pass
 
 
-class StatusPaymentAttempt(Status):
+class StatusProcessPayment(Status):
+    pass
+
+
+class StatusCompensation(Status):
     pass
 
 
@@ -145,8 +149,14 @@ class PaymentAttempt(models.Model):
         max_digits=10, decimal_places=2, blank=True, null=True)
 
     user = models.ForeignKey("users.User", on_delete=models.DO_NOTHING, null=True)
-    status = models.ForeignKey(
-        "payment.StatusPaymentAttempt",
+
+    # THIS WAS CREATE TO SATIFY PRODUCT OWNER
+    status_process_payment = models.ForeignKey(
+        "payment.StatusProcessPayment",
+        on_delete=models.CASCADE, blank=True, null=True)
+
+    status_compensation = models.ForeignKey(
+        "payment.StatusCompensation",
         on_delete=models.CASCADE, blank=True, null=True)
 
     @property

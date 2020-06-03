@@ -193,6 +193,41 @@ class TestCreditCardTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
+class TestStatusPaymentAttempt(APITestCase):
+
+    def setUp(self):
+        self.url_compensation = '/api/v1/state-compensation/'
+        self.url_process_payment = '/api/v1/state-process-payment/'
+        self.keys_expect = ['name', 'id']
+        
+        self.client.force_authenticate(user=UserFactory())
+    
+    def validate_keys(self, response):
+        for payment_attempt in response.json():
+            for key in self.keys_expect:
+                self.assertIn(key, payment_attempt)
+
+    def test_can_find_state_compensation(self):
+        for _ in range(5):
+            factories.StatusCompensationFactory.create()
+
+        response = self.client.get(self.url_compensation)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.json()), 5)
+        self.validate_keys(response)
+
+    def test_can_find_state_process_payment(self):
+        for _ in range(5):
+            factories.StatusProcessPaymentFactory.create()
+
+        response = self.client.get(self.url_process_payment)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.json()), 5)
+        self.validate_keys(response)
+
+
 class TestPaymenetAttemptTestCase(APITestCase, TransactionTestCase):
 
     def setUp(self):
@@ -202,7 +237,7 @@ class TestPaymenetAttemptTestCase(APITestCase, TransactionTestCase):
             'process_payment', 'transaction', 'user',
             'total_invoice_amount', 'total_invoice_tax',
             'total_advancepayment_amount', 'total',
-            'status'
+            'status_process_payment', 'status_compensation'
         ]
 
         self.keys_expect_invoices = [
@@ -257,7 +292,7 @@ class TestPaymenetAttemptTestCase(APITestCase, TransactionTestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.json()), 1)
 
-    def test_backoffice_can_filte_by_status(self):
+    def test_backoffice_can_filte_by_status_process_payment(self):
         user = UserFactory()
         user.groups.add(GroupFactory(name='Backoffice'))
         self.client.force_authenticate(user=user)
@@ -265,11 +300,37 @@ class TestPaymenetAttemptTestCase(APITestCase, TransactionTestCase):
         for _ in range(5):
             factories.PaymentAttemptFactory.create()
 
-        status_to_search = models.StatusPaymentAttempt.objects.create(name='TEST')
+        status_to_search = models.StatusProcessPayment.objects.create(name='TEST')
 
-        payment = factories.PaymentAttemptFactory.create(status=status_to_search)
+        payment = factories.PaymentAttemptFactory.create(
+            status_process_payment=status_to_search)
 
-        params = {'status': str(status_to_search.id)}
+        params = {'status_process_payment': str(status_to_search.id)}
+        response = self.client.get(self.url, params)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.json()), 1)
+
+    def test_backoffice_can_filte_by_status_compensation(self):
+        user = UserFactory()
+        user.groups.add(GroupFactory(name='Backoffice'))
+        self.client.force_authenticate(user=user)
+
+        for _ in range(5):
+            factories.PaymentAttemptFactory.create()
+        status_compensation = models.StatusCompensation.objects.create(name='TEST')
+
+        payment = factories.PaymentAttemptFactory.create(
+            status_compensation=status_compensation)
+        
+        response_state = self.client.get('/api/v1/state-compensation/')
+
+        self.assertEqual(response_state.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response_state.json()), 1)
+        self.assertIn('id', response_state.json()[0])
+
+        state_compensation_id = response_state.json()[0].get('id')
+        params = {'status_compensation': state_compensation_id}
         response = self.client.get(self.url, params)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -339,8 +400,11 @@ class TestPaymenetAttemptTestCase(APITestCase, TransactionTestCase):
             id=response.json().get('id'))
 
         self.assertEqual(
-            payment_attempt.status.name,
-            enums.StatusPaymentAttempt.initial)
+            payment_attempt.status_process_payment.name,
+            enums.StatusProcessPayment.initial)
+        self.assertEqual(
+            payment_attempt.status_compensation.name,
+            enums.StatusCompensation.initial)
 
         status_invoice, _ = models.StatusDocument.objects.get_or_create(
             name="Pendiente"
@@ -375,8 +439,12 @@ class TestPaymenetAttemptTestCase(APITestCase, TransactionTestCase):
             id=response.json().get('id'))
 
         self.assertEqual(
-            payment_attempt.status.name,
-            enums.StatusPaymentAttempt.initial)
+            payment_attempt.status_process_payment.name,
+            enums.StatusProcessPayment.initial)
+        self.assertEqual(
+            payment_attempt.status_compensation.name,
+            enums.StatusCompensation.initial)
+
         self.assertEqual(payment_attempt.sap_customer_name, "PRUEBA")
 
         status_invoice, _ = models.StatusDocument.objects.get_or_create(
@@ -413,8 +481,11 @@ class TestPaymenetAttemptTestCase(APITestCase, TransactionTestCase):
         payment_attempt = models.PaymentAttempt.objects.get(
             id=response.json().get('id'))
         self.assertEqual(
-            payment_attempt.status.name,
-            enums.StatusPaymentAttempt.initial)
+            payment_attempt.status_process_payment.name,
+            enums.StatusProcessPayment.initial)
+        self.assertEqual(
+            payment_attempt.status_compensation.name,
+            enums.StatusCompensation.initial)
 
         status_invoice, _ = models.StatusDocument.objects.get_or_create(
             name="Pendiente"
@@ -494,8 +565,9 @@ class TestPaymenetAttemptTestCase(APITestCase, TransactionTestCase):
         self.assertIsNotNone(self.payment_attempt.card_brand)
 
         self.assertEqual(
-            self.payment_attempt.status.name,
-            enums.StatusPaymentAttempt.not_approved)
+            self.payment_attempt.status_process_payment.name,
+            enums.StatusProcessPayment.not_approved)
+        self.assertIsNone(self.payment_attempt.status_compensation)
 
     @patch('integrabackend.payment.views.PaymentAttemptViewSet.compensation_payments')
     def test_charge_payment_attempt_with_dinner_club(self, compensation_payment):
@@ -534,8 +606,11 @@ class TestPaymenetAttemptTestCase(APITestCase, TransactionTestCase):
         invoice.payment_attempt.refresh_from_db()
 
         self.assertEqual(
-            invoice.payment_attempt.status.name,
-            enums.StatusPaymentAttempt.compensated)
+            invoice.payment_attempt.status_process_payment.name,
+            enums.StatusProcessPayment.approved)
+        self.assertEqual(
+            invoice.payment_attempt.status_compensation.name,
+            enums.StatusCompensation.compensated)
 
         self.assertEqual(invoice.payment_attempt.process_payment, 'AZUL')
         self.assertEqual(
@@ -585,8 +660,11 @@ class TestPaymenetAttemptTestCase(APITestCase, TransactionTestCase):
         invoice.payment_attempt.refresh_from_db()
 
         self.assertEqual(
-            invoice.payment_attempt.status.name,
-            enums.StatusPaymentAttempt.compensated)
+            invoice.payment_attempt.status_process_payment.name,
+            enums.StatusProcessPayment.approved)
+        self.assertEqual(
+            invoice.payment_attempt.status_compensation.name,
+            enums.StatusCompensation.compensated)
 
         self.assertEqual(invoice.payment_attempt.process_payment, 'AZUL')
         self.assertEqual(
@@ -662,8 +740,11 @@ class TestPaymenetAttemptTestCase(APITestCase, TransactionTestCase):
         self.assertEqual(invoice.status.name, 'Compensada')
 
         self.assertEqual(
-            invoice.payment_attempt.status.name,
-            enums.StatusPaymentAttempt.compensated)
+            invoice.payment_attempt.status_process_payment.name,
+            enums.StatusProcessPayment.approved)
+        self.assertEqual(
+            invoice.payment_attempt.status_compensation.name,
+            enums.StatusCompensation.compensated)
 
     @patch('integrabackend.payment.views.PaymentAttemptViewSet.compensation_payments')
     @patch('integrabackend.payment.views.PaymentAttemptViewSet.transaction_class')
@@ -720,8 +801,11 @@ class TestPaymenetAttemptTestCase(APITestCase, TransactionTestCase):
         self.payment_attempt.refresh_from_db()
 
         self.assertEqual(
-            self.payment_attempt.status.name,
-            enums.StatusPaymentAttempt.not_compensated)
+            self.payment_attempt.status_process_payment.name,
+            enums.StatusProcessPayment.approved)
+        self.assertEqual(
+            self.payment_attempt.status_compensation.name,
+            enums.StatusCompensation.not_compensated)
 
         self.assertEqual(
             self.payment_attempt.card_number,
@@ -793,8 +877,11 @@ class TestPaymenetAttemptTestCase(APITestCase, TransactionTestCase):
         self.payment_attempt.refresh_from_db()
 
         self.assertEqual(
-            self.payment_attempt.status.name,
-            enums.StatusPaymentAttempt.compensated)
+            self.payment_attempt.status_process_payment.name,
+            enums.StatusProcessPayment.approved)
+        self.assertEqual(
+            self.payment_attempt.status_compensation.name,
+            enums.StatusCompensation.compensated)
 
     def test_backoffice_try_charge_payment(self):
 
@@ -865,8 +952,11 @@ class TestPaymenetAttemptTestCase(APITestCase, TransactionTestCase):
         self.assertEqual(self.payment_attempt.process_payment, 'AZUL')
 
         self.assertEqual(
-            self.payment_attempt.status.name,
-            enums.StatusPaymentAttempt.compensated)
+            self.payment_attempt.status_process_payment.name,
+            enums.StatusProcessPayment.approved)
+        self.assertEqual(
+            self.payment_attempt.status_compensation.name,
+            enums.StatusCompensation.compensated)
 
         self.assertEqual(
             self.payment_attempt.card_number,
@@ -953,8 +1043,11 @@ class TestPaymenetAttemptTestCase(APITestCase, TransactionTestCase):
             credit_card.card_number)
 
         self.assertEqual(
-            self.payment_attempt.status.name,
-            enums.StatusPaymentAttempt.compensated)
+            self.payment_attempt.status_process_payment.name,
+            enums.StatusProcessPayment.approved)
+        self.assertEqual(
+            self.payment_attempt.status_compensation.name,
+            enums.StatusCompensation.compensated)
 
         self.assertIsNotNone(self.payment_attempt.response)
 
@@ -1014,8 +1107,11 @@ class TestPaymenetAttemptTestCase(APITestCase, TransactionTestCase):
             credit_card.card_number)
 
         self.assertEqual(
-            self.payment_attempt.status.name,
-            enums.StatusPaymentAttempt.compensated)
+            self.payment_attempt.status_process_payment.name,
+            enums.StatusProcessPayment.approved)
+        self.assertEqual(
+            self.payment_attempt.status_compensation.name,
+            enums.StatusCompensation.compensated)
 
         self.assertIsNotNone(self.payment_attempt.request)
         self.assertIsNotNone(self.payment_attempt.response)

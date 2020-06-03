@@ -20,17 +20,22 @@ class StatusDocumentFactory(factory.django.DjangoModelFactory):
         model = 'payment.StatusDocument'
 
 
-class StatusPaymentAttemptFactory(factory.django.DjangoModelFactory):
+class StatusProcessPaymentFactory(factory.django.DjangoModelFactory):
     
     class Meta:
-        model = 'payment.StatusPaymentAttempt'
+        model = 'payment.StatusProcessPayment'
+
+
+class StatusCompensationFactory(factory.django.DjangoModelFactory):
+    
+    class Meta:
+        model = 'payment.StatusCompensation'
 
 
 class PaymentAttemptFactory(factory.DjangoModelFactory):
     id = factory.Faker('uuid4')
     sap_customer = int("".join([str(random.randint(1, 9)) for _ in range(5)]))
     user = factory.SubFactory(UserFactory)
-    status = factory.SubFactory(StatusPaymentAttemptFactory)
     merchant_number = '39038540035'
     merchant_name = 'CENREX'
     total_invoice_amount = 0

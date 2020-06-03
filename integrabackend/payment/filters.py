@@ -11,6 +11,7 @@ class PaymentAttemptFilter(django_filters.FilterSet):
         model = models.PaymentAttempt
         fields = {
             'sap_customer': ['exact'],
-            'status': ['exact'],
+            'status_process_payment': ['exact'],
+            'status_compensation': ['exact'],
             'merchant_number': ['exact'],
         }

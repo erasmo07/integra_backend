@@ -49,8 +49,12 @@ router.register(
 
 # APP - Payment
 router.register(
-    r'state/payment-attempt',
-    payment_views.StatePaymentDocumentViewSet)
+    r'state-process-payment',
+    payment_views.StateProcessPaymentViewSet)
+router.register(
+    r'state-compensation',
+    payment_views.StateCompensationViewSet)
+
 router.register(
     r'payment-attempt',
     payment_views.PaymentAttemptViewSet,

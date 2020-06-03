@@ -42,11 +42,19 @@ class CreditCardViewSet(
             raise ParseError(detail='Cant delete credit card')
 
 
-class StatePaymentDocumentViewSet(viewsets.ReadOnlyModelViewSet):
+class StateProcessPaymentViewSet(viewsets.ReadOnlyModelViewSet):
     """
     List PaymentAttempt's status
     """
-    queryset = models.StatusPaymentAttempt.objects.all()
+    queryset = models.StatusProcessPayment.objects.all()
+    serializer_class = StateSerializer
+
+
+class StateCompensationViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    List PaymentAttempt's status
+    """
+    queryset = models.StatusCompensation.objects.all()
     serializer_class = StateSerializer
 
 
@@ -55,24 +63,32 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
     Create resident
     """
     queryset = models.PaymentAttempt.objects.select_related(
-        'user', 'response', 'request', 'status'
+        'user', 'response', 'request', 'status_compensation',
+        'status_process_payment'
     ).prefetch_related('invoices').all()
-    serializer_class = serializers.PaymentAttemptSerializer
-    serialiser_pay_class = serializers.PaymentAttemptPaySerializer
     card_class = azul.Card
-    transaction_class = azul.Transaction
-    response_payment_attemp_model = models.ResponsePaymentAttempt
-    request_payment_attemp_model = models.RequestPaymentAttempt
-    credit_card_model = models.CreditCard
     compensation_payments = CompensationPayment
+    credit_card_model = models.CreditCard
     filter_backends = [DjangoFilterBackend]
     filter_class = filters.PaymentAttemptFilter
+    request_payment_attemp_model = models.RequestPaymentAttempt
+    response_payment_attemp_model = models.ResponsePaymentAttempt
+    serialiser_pay_class = serializers.PaymentAttemptPaySerializer
+    serializer_class = serializers.PaymentAttemptSerializer
+
+    enums_process_payment = enums.StatusProcessPayment
+    enums_compensation = enums.StatusCompensation
+
+    status_process_payment = models.StatusProcessPayment
+    status_compensation = models.StatusCompensation
+
+    transaction_class = azul.Transaction
 
     def get_queryset(self):
         queryset = super(PaymentAttemptViewSet, self).get_queryset()
         if (
-            self.request.user.is_aplication or
-            self.request.user.is_backoffice
+            self.request.user.is_aplication
+            or self.request.user.is_backoffice
         ):
             return queryset
         return queryset.filter(user=self.request.user)
@@ -84,11 +100,16 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
         if self.request.user.is_aplication and 'user' in self.request.data:
             serializer.save(user=get_object_or_404(User, self.request.data))
             return
-        
-        status_initial, _ = models.StatusPaymentAttempt.objects.get_or_create(
-            name=enums.StatusPaymentAttempt.initial
-        )
-        serializer.save(user=self.request.user, status=status_initial)
+
+        status_process_payment, _ = self.status_process_payment.objects.get_or_create(
+            name=self.enums_process_payment.initial)
+        status_compensation, _ = self.status_compensation.objects.get_or_create(
+            name=self.enums_compensation.initial)
+
+        serializer.save(
+            user=self.request.user,
+            status_process_payment=status_process_payment,
+            status_compensation=status_compensation)
 
     def get_azul_card(self):
         if 'card' in self.request.data:
@@ -99,7 +120,7 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
                 number=serializer.data.get('number'),
                 expiration=serializer.data.get('expiration'),
                 cvc=serializer.data.get('cvc'))
-            
+
             self.object.card_number = serializer.data.get('number')[-4:]
             self.object.card_brand = card.brand
             self.object.save()
@@ -110,7 +131,6 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
             card_uuid = self.request.data.get('card_uuid')
             credit_card = get_object_or_404(self.credit_card_model, id=card_uuid)
 
-            
             self.object.card_number = credit_card.card_number
             self.object.save()
 
@@ -186,11 +206,19 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
         self.object.save()    # refresh calculate fields
         transaction_response = self.make_transaction_in_azul()
         if not transaction_response.is_valid():
-            self.object.status, _ = models.StatusPaymentAttempt.objects.get_or_create(
-                name=enums.StatusPaymentAttempt.not_approved
-            )
+            status, _ = self.status_process_payment.objects.get_or_create(
+                name=self.enums_process_payment.not_approved)
+
+            self.object.status_process_payment = status
             self.object.save()
+
             return Response(transaction_response.kwargs, status=400)
+        else:
+            status_process_payment, _ = models.StatusProcessPayment.objects.get_or_create(
+                name=self.enums_process_payment.approved
+            )
+            self.object.status_process_payment = status_process_payment
+            self.object.save()
 
         self.response_payment_attemp_model.objects.create(
             payment_attempt=self.object,
@@ -198,8 +226,8 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
             authorization_code=transaction_response.authorization_code,
         )
 
-        if (transaction_response.is_valid() and
-                self.request.data.get('card', {}).get('save')):
+        if (transaction_response.is_valid()
+                and self.request.data.get('card', {}).get('save')):
             self.save_credit_card(transaction_response)
 
         response_body = transaction_response.kwargs
@@ -208,17 +236,26 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
         try:
             compensation_payment = self.compensation_payments(self.object)
             compensation_payment.commit()
-        except BadRequest as exception:
             status_invoice, _ = models.StatusDocument.objects.get_or_create(
-                name=enums.StatusInvoices.not_compensated
-            )
-
+                name=enums.StatusInvoices.compensated)
             self.object.invoices.update(status=status_invoice)
             self.object.advancepayments.update(status=status_invoice)
-            
-            self.object.status, _ = models.StatusPaymentAttempt.objects.get_or_create(
-                name=enums.StatusPaymentAttempt.not_compensated
-            )
+
+            status_compensation, _ = models.StatusCompensation.objects.get_or_create(
+                name=self.enums_compensation.compensated)
+            self.object.status_compensation = status_compensation
+            self.object.save()
+
+            return Response(response_body)
+        except BadRequest as exception:
+            status_invoice, _ = models.StatusDocument.objects.get_or_create(
+                name=enums.StatusInvoices.not_compensated)
+            self.object.invoices.update(status=status_invoice)
+            self.object.advancepayments.update(status=status_invoice)
+
+            status_compensation, _ = models.StatusCompensation.objects.get_or_create(
+                name=self.enums_compensation.not_compensated)
+            self.object.status_compensation = status_compensation
             self.object.save()
 
             for error in json.loads(exception.args[0])[0].get('error'):
@@ -226,16 +263,3 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
                 self.object.errors.create(**error)
 
             return Response(response_body)
-
-        status_invoice, _ = models.StatusDocument.objects.get_or_create(
-            name=enums.StatusInvoices.compensated
-        )
-        self.object.invoices.update(status=status_invoice)
-        self.object.advancepayments.update(status=status_invoice)
-        
-        self.object.status, _ = models.StatusPaymentAttempt.objects.get_or_create(
-            name=enums.StatusPaymentAttempt.compensated
-        )
-        self.object.save()
-
-        return Response(response_body)

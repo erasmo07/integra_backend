@@ -64,7 +64,9 @@ class PaymentAttemptSerializer(serializers.ModelSerializer):
     user = PaymentUserSerializer(read_only=True)
 
     total = serializers.CharField(read_only=True)
-    status = serializers.SlugRelatedField(
+    status_process_payment = serializers.SlugRelatedField(
+        read_only=True, slug_field='name')
+    status_compensation = serializers.SlugRelatedField(
         read_only=True, slug_field='name')
 
     class Meta:
