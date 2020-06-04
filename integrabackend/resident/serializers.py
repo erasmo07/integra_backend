@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 
 from rest_framework import serializers
+from ..users.models import AccessDetail
 from .models import (
     Resident, Person, Property,
     PropertyType, TypeIdentification, Area,
@@ -10,13 +11,13 @@ from .models import (
 class TypeIdenticationSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = TypeIdentification 
+        model = TypeIdentification
         fields = ('id', 'name')
         read_only_fields = ('id', )
 
 
 class PropertyTypeSerializer(serializers.ModelSerializer):
-    
+
     class Meta:
         model = PropertyType
         fields = ('id', 'name')
@@ -41,7 +42,7 @@ class ProjectSerializer(serializers.ModelSerializer):
 
 
 class ResidentUserserializer(serializers.ModelSerializer):
-    
+
     class Meta:
         model = get_user_model()
         fields = (
@@ -54,7 +55,7 @@ class ResidentUserserializer(serializers.ModelSerializer):
 class ResidentSerializer(serializers.ModelSerializer):
     properties = PropertySerializer(read_only=True, many=True)
     user = ResidentUserserializer(read_only=True)
-
+    sap_customer = serializers.SerializerMethodField()
 
     class Meta:
         model = Resident
@@ -63,7 +64,13 @@ class ResidentSerializer(serializers.ModelSerializer):
             'telephone', 'sap_customer',
             'user', 'properties', 'id_sap')
         read_only_fields = ('id',)
-    
+
+    def get_sap_customer(self, obj):
+        access_detail = AccessDetail.objects.filter(
+            default=True, accessapplication__user=obj.user,
+        ).first()
+        return access_detail.sap_customer if access_detail else ''
+
     def create(self, validated_data):
         request_data = self.context.get('request')
         if request_data and 'user' in request_data.data:
@@ -82,7 +89,7 @@ class PersonSerializer(serializers.ModelSerializer):
 
 
 class AreaSerializer(serializers.ModelSerializer):
-    
+
     class Meta:
         model = Area
         fields = '__all__'
@@ -90,7 +97,7 @@ class AreaSerializer(serializers.ModelSerializer):
 
 
 class DepartmentSerializer(serializers.ModelSerializer):
-    
+
     class Meta:
         model = Department
         fields = '__all__'
@@ -98,7 +105,7 @@ class DepartmentSerializer(serializers.ModelSerializer):
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
-    
+
     class Meta:
         model = Organization
         fields = '__all__'

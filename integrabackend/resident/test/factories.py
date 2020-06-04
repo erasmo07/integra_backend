@@ -36,7 +36,6 @@ class PersonFactory(factory.django.DjangoModelFactory):
 
     identification = factory.Sequence(lambda n: f'testuser{n}')
     type_identification = factory.SubFactory(TypeIdentificationFactory)
-
     create_by = factory.SubFactory(UserFactory)
 
 

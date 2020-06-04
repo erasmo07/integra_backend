@@ -7,7 +7,8 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from ...users.enums import GroupsEnums
-from ...users.test.factories import ApplicationFactory, UserFactory
+from ...users.test.factories import (AccessApplicationFactory,
+                                     ApplicationFactory, UserFactory)
 from ..models import Resident
 from ..serializers import ResidentSerializer
 from . import factories
@@ -32,34 +33,34 @@ class TestResidentListTestCase(APITestCase):
             name='Portal PCIS', merchant__name='PCIS',
             merchant__number='0000', domain='domain front')
 
-    def test_post_request_with_no_data_fails(self):
-        response = self.client.post(self.url, {})
-        eq_(response.status_code, status.HTTP_400_BAD_REQUEST)
+    def test_get_request_retun_sap_customer_from_access_detail(self):
+        # GIVEN
+        resident = ResidentFactory.create(user=UserFactory.create())
+        access = AccessApplicationFactory.create(user=resident.user)
+        access.details.create(sap_customer='test', default=True)
+
+        # WHEN
+        response = self.client.get(f'/api/v1/resident/{resident.pk}/')
+
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual('test', response.json().get('sap_customer'))
 
     def test_get_resident_by_sap_customer(self):
         # GIVEN
         for _ in range(10):
             ResidentFactory(user=UserFactory.create())
 
+        resident = ResidentFactory.create(user=UserFactory.create())
+        access = AccessApplicationFactory.create(user=resident.user)
+        access.details.create(sap_customer='test', default=True)
+
         # WHEN
-        response = self.client.get(
-            self.url,
-            {'sap_customer': self.data.get('sap_customer')})
+        response = self.client.get(self.url, {'sap_customer': 'test'})
 
         # THEN
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.json()), 1)
-
-    def test_post_request_with_valid_data_succeeds(self):
-        data = model_to_dict(ResidentFactory(user=UserFactory.create()))
-        Resident.objects.all().delete()
-        response = self.client.post(self.url, data)
-        eq_(response.status_code, status.HTTP_201_CREATED)
-
-        resident = Resident.objects.get(pk=response.data.get('id'))
-        eq_(resident.name, data.get('name'))
-        eq_(resident.email, data.get('email'))
-        eq_(resident.telephone, data.get('telephone'))
 
     def test_get_request_with_pk_succeeds(self):
         data = model_to_dict(ResidentFactory(user=UserFactory()))
@@ -93,6 +94,21 @@ class TestResidentListTestCase(APITestCase):
 
         for _property in response.json().get('properties'):
             ok_(resident.properties.get(pk=_property.get('id')))
+
+    def test_post_request_with_no_data_fails(self):
+        response = self.client.post(self.url, {})
+        eq_(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_post_request_with_valid_data_succeeds(self):
+        data = model_to_dict(ResidentFactory(user=UserFactory.create()))
+        Resident.objects.all().delete()
+        response = self.client.post(self.url, data)
+        eq_(response.status_code, status.HTTP_201_CREATED)
+
+        resident = Resident.objects.get(pk=response.data.get('id'))
+        eq_(resident.name, data.get('name'))
+        eq_(resident.email, data.get('email'))
+        eq_(resident.telephone, data.get('telephone'))
 
     def test_post_request_add_property(self):
         data = model_to_dict(ResidentFactory(user=UserFactory()))
@@ -258,11 +274,9 @@ class TestPersonTestCase(APITestCase):
         self.base_name = 'person'
         self.url = reverse('%s-list' % self.base_name)
         self.model = PersonFactory._meta.model
-        self.data = model_to_dict(
-            PersonFactory(
-                create_by=UserFactory.create(),
-                type_identification=TypeIdentificationFactory.create()))
-        self.client.force_authenticate(user=UserFactory.build())
+        self.data = model_to_dict(PersonFactory.create())
+        self.user = UserFactory.create()
+        self.client.force_authenticate(user=self.user)
 
     def test_post_request_with_no_data_fails(self):
         response = self.client.post(self.url, {})
@@ -276,7 +290,7 @@ class TestPersonTestCase(APITestCase):
         eq_(person.name, self.data.get('name'))
         eq_(person.identification, self.data.get('identification'))
 
-        eq_(str(person.create_by.id), self.data.get('create_by'))
+        eq_(str(person.create_by.id), str(self.user.id))
         eq_(str(person.type_identification.id),
             str(self.data.get('type_identification')))
 
@@ -349,7 +363,7 @@ class TestDeparment(APITestCase):
 
 
 class TestOrganization(APITestCase):
-    
+
     def setUp(self):
         self.url = '/api/v1/organization/'
         self.factory = factories.OrganizationFactory

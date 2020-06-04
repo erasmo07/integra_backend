@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework import viewsets, mixins, status
 from rest_framework.decorators import action
 
+from . import filters
 from .models import (
     Resident, Person, Property,
     PropertyType, TypeIdentification, Area, Project,
@@ -30,7 +31,7 @@ class ResidentCreateViewSet(viewsets.ModelViewSet):
     queryset = Resident.objects.all()
     serializer_class = ResidentSerializer
     filter_backends = (DjangoFilterBackend,)
-    filter_fields = ('email', 'id_sap', 'sap_customer')
+    filter_class = filters.ResidentFilter
     form_reset_class = PasswordResetForm
 
     @action(detail=True, methods=['GET', 'POST', "DELETE"], url_path='property')
@@ -72,7 +73,7 @@ class ResidentCreateViewSet(viewsets.ModelViewSet):
             resident.save()
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        
+
         if request._request.method == "PUT":
             serializer = ResidentUserserializer(
                 resident.user, data=request.data)
@@ -80,7 +81,7 @@ class ResidentCreateViewSet(viewsets.ModelViewSet):
 
             self.perform_update(serializer)
             return Response(serializer.data, status=status.HTTP_200_OK)
-    
+
     @action(detail=True, methods=["POST", 'PUT'], url_path='access')
     def access(self, request, pk=True):
         resident = self.get_object()
@@ -89,7 +90,7 @@ class ResidentCreateViewSet(viewsets.ModelViewSet):
             return Response(
                 'Cant assign application to user',
                 status=status.HTTP_403_FORBIDDEN)
-        
+
         if not resident.user:
             error = {'message': "This resident hasn't user"}
             return Response(error, status=status.HTTP_400_BAD_REQUEST)
@@ -97,7 +98,7 @@ class ResidentCreateViewSet(viewsets.ModelViewSet):
         if request._request.method == 'POST':
             applications = get_list_or_404(
                 Application, id__in=request.data.getlist('applications'))
-            
+
             for application in applications:
                 resident.user.accessapplication_set.create(
                     application=application)
@@ -114,12 +115,15 @@ class PersonViewSet(viewsets.ModelViewSet):
     filter_backends = (DjangoFilterBackend,)
     filter_fields = ('create_by',)
 
+    def perform_create(self, serializer):
+        serializer.save(create_by=self.request.user)
+
     def get_queryset(self):
         all_person = super(PersonViewSet, self).get_queryset()
         person_user = all_person.filter(create_by=self.request.user)
 
         return all_person if self.request.user.is_aplication else person_user
-    
+
 
 class PropertyViewSet(viewsets.ModelViewSet):
     """
@@ -171,7 +175,7 @@ class DepartmentViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Department.objects.all()
     permission_classes = [IsApplicationUserPermission]
     serializer_class = DepartmentSerializer
-    
+
     filter_backends = (DjangoFilterBackend, )
     filter_fields = '__all__'
 
@@ -180,6 +184,6 @@ class OrganizationViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Organization.objects.all()
     permission_classes = [IsApplicationUserPermission]
     serializer_class = OrganizationSerializer
-    
+
     filter_backends = (DjangoFilterBackend, )
     filter_fields = '__all__'
