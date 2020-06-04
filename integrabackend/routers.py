@@ -1,23 +1,25 @@
 from rest_framework.routers import DefaultRouter
-from .payment import views as payment_views
-from .users.views import UserViewSet, ApplicationViewSet, MerchantViewSet
-from .resident.views import (
-    ResidentCreateViewSet, PersonViewSet, PropertyViewSet,
-    PropertyTypeViewSet, TypeIdentificationViewSet, AreaViewSet,
-    ProjectViewSet, DepartmentViewSet, OrganizationViewSet)
-from .invitation import views as invitation_views
-from .solicitude.views import (
-    ServiceViewSet, StateSolicitudeServiceViewSet,
-    ServiceRequestViewSet, DayViewSet, AvisoViewSet)
-from .proxys import views as proxys
-from .webhook import views as webhooks
 
+from .invitation import views as invitation_views
+from .payment import views as payment_views
+from .proxys import views as proxys
+from .resident.views import (AreaViewSet, DepartmentViewSet,
+                             OrganizationViewSet, PersonViewSet,
+                             ProjectViewSet, PropertyTypeViewSet,
+                             PropertyViewSet, ResidentCreateViewSet,
+                             TypeIdentificationViewSet)
+from .solicitude.views import (AvisoViewSet, DayViewSet, ServiceRequestViewSet,
+                               ServiceViewSet, StateSolicitudeServiceViewSet)
+from .users.views import (AccessApplicationViewSet, ApplicationViewSet,
+                          MerchantViewSet, UserViewSet)
+from .webhook import views as webhooks
 
 router = DefaultRouter()
 
 # APP - User
 router.register(r'users', UserViewSet)
 router.register(r'application', ApplicationViewSet)
+router.register(r'access-application', AccessApplicationViewSet)
 router.register(r'merchant', MerchantViewSet)
 
 # APP - Resident

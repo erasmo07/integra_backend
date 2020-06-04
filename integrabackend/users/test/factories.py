@@ -45,6 +45,7 @@ class ApplicationFactory(factory.django.DjangoModelFactory):
 
 
 class AccessApplicationFactory(factory.django.DjangoModelFactory):
+    user = factory.SubFactory(UserFactory)
     application = factory.SubFactory(ApplicationFactory)
     
     class Meta:

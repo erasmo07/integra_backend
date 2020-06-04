@@ -1,13 +1,14 @@
 from rest_framework import viewsets, mixins, generics
 from rest_framework.permissions import AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import User, Application, Merchant
+from .models import User, Application, Merchant, AccessApplication
 from .permissions import (
     IsUserOrReadOnly, IsBackOfficeUserPermission,
     IsApplicationUserPermission)
 from .serializers import (
     UserSerializer,
     ApplicationSerializer,
+    AccessApplicationSerializer,
     MerchantSerializer)
 
 
@@ -28,6 +29,18 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     queryset = Application.objects.all()
     serializer_class = ApplicationSerializer
     permission_classes = [IsApplicationUserPermission]
+
+
+class AccessApplicationViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    View all access-application register
+    """
+    queryset = AccessApplication.objects.all()
+    serializer_class = AccessApplicationSerializer 
+    permission_classes = [IsApplicationUserPermission]
+
+    filter_backends = (DjangoFilterBackend,)
+    filter_fields = '__all__'
 
 
 class MerchantViewSet(viewsets.ReadOnlyModelViewSet):
