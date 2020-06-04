@@ -21,6 +21,7 @@ from .serializers import (
     AreaSerializer, ProjectSerializer, DepartmentSerializer,
     OrganizationSerializer)
 from integrabackend.users.models import Application
+from integrabackend.users.serializers import AccessApplicationSerializer
 from integrabackend.users.permissions import IsApplicationUserPermission
 
 
@@ -96,12 +97,10 @@ class ResidentCreateViewSet(viewsets.ModelViewSet):
             return Response(error, status=status.HTTP_400_BAD_REQUEST)
 
         if request._request.method == 'POST':
-            applications = get_list_or_404(
-                Application, id__in=request.data.getlist('applications'))
-
-            for application in applications:
-                resident.user.accessapplication_set.create(
-                    application=application)
+            serializer = AccessApplicationSerializer(data=request.data)
+            serializer.initial_data.update(dict(user=resident.user.id))
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
             return Response({}, status=status.HTTP_200_OK)
         return Response({}, status.HTTP_400_BAD_REQUEST)
 

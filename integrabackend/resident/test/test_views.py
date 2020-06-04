@@ -256,8 +256,11 @@ class TestResidentListTestCase(APITestCase):
             '%s-detail' % self.base_name,
             kwargs={'pk': resident.id})
         url = f'{url_detail}access/'
-        body = {"applications": [str(self.application.id)]}
-        response = self.client.post(url, body)
+        body = {
+            "application": self.application.id,
+            "details": [{'sap_customer': 'prueba', 'default': False}]
+        }
+        response = self.client.post(url, body, format='json')
 
         # THEN
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -409,6 +412,7 @@ class TestOrganization(APITestCase):
 
         # THEN
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+
 
 class TestArea(APITestCase):
 

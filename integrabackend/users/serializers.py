@@ -19,12 +19,12 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = (
             'auth_token', 'resident',
             'last_login', 'date_joined',
-            'is_active') 
+            'is_active')
         extra_kwargs = {'password': {'write_only': True}}
 
 
 class ApplicationSerializer(serializers.ModelSerializer):
-    
+
     class Meta:
         model = models.Application
         fields = ('id', 'name')
@@ -39,7 +39,6 @@ class AccessDetail(serializers.ModelSerializer):
 
 
 class AccessApplicationSerializer(serializers.ModelSerializer):
-    application = ApplicationSerializer()
     details = AccessDetail(many=True)
 
     class Meta:
@@ -47,10 +46,17 @@ class AccessApplicationSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ('id', )
 
+    def create(self, validated_data):
+        details = validated_data.pop('details')
+        instance = self.Meta.model.objects.create(**validated_data)
+        for detail in details:
+            instance.details.create(**detail)
+        return instance
+
 
 class MerchantSerializer(serializers.ModelSerializer):
-    
+
     class Meta:
         model = models.Merchant
-        fields = '__all__' 
+        fields = '__all__'
         read_only_fields = ('id', )
