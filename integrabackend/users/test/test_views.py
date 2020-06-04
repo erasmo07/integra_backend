@@ -346,7 +346,7 @@ class TestAccessApplication(APITestCase):
 
         self.assertEqual(
             str(instance.application.id),
-            response.json()[0].get('application').get('id'))
+            response.json()[0].get('application'))
 
     def validate_not_has_access_to_endpoint(self, group_name):
         # WHEN
@@ -393,6 +393,22 @@ class TestAccessApplication(APITestCase):
         self.assertEqual(
             response.status_code,
             status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def test_put_request_for_remove_client(self):
+        # GIVEN
+        instance = self.factory.create()
+        instance.details.create(
+            sap_customer='{}'.format(randint(100000, 999999)))
+    
+        # WHEN
+        url = f'/api/v1/access-application/{instance.pk}/remove-detail/'
+        response = self.client.put(url, {'id': instance.details.first().id})
+    
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        instance.refresh_from_db()
+        self.assertEqual(instance.details.count(), 0)
 
 
 class TestMerchant(APITestCase):
