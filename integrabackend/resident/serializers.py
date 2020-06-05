@@ -66,10 +66,23 @@ class ResidentSerializer(serializers.ModelSerializer):
         read_only_fields = ('id',)
 
     def get_sap_customer(self, obj):
+        request = self.context.get('request')
+        if not request:
+            return ''
+
+        application = request._request.META.get(
+            "HTTP_APPLICATION", ' '
+        ).split(' ')
+
+        if not application:
+            return ''
+
         access_detail = AccessDetail.objects.filter(
-            default=True, accessapplication__user=obj.user,
+            default=True,
+            accessapplication__user=obj.user,
+            accessapplication__application=application,
         ).first()
-        return access_detail.sap_customer if access_detail else ''
+        return access_detail.sap_customer
 
     def create(self, validated_data):
         request_data = self.context.get('request')

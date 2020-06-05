@@ -40,6 +40,8 @@ class TestResidentListTestCase(APITestCase):
         access.details.create(sap_customer='test', default=True)
 
         # WHEN
+        self.client.credentials(
+            HTTP_APPLICATION=f'Bifrost {access.application.id}')
         response = self.client.get(f'/api/v1/resident/{resident.pk}/')
 
         # THEN
