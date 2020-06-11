@@ -40,3 +40,31 @@ class InvitationFactory(factory.django.DjangoModelFactory):
     type_invitation = factory.SubFactory(TypeInvitationFactory)
     ownership = factory.SubFactory(PropertyFactory)
     status = factory.SubFactory(StatusInvitationFactory)
+
+
+class ColorFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = 'invitation.Color'
+
+
+class MedioFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = 'invitation.Medio'
+
+
+class TransportationFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = 'invitation.Transportation'
+
+    plate = 'A12345678'
+    color = factory.SubFactory(ColorFactory)
+    medio = factory.SubFactory(MedioFactory)
+
+
+class SupplierFactory(factory.django.DjangoModelFactory):
+
+    class Meta:
+        model = 'invitation.Supplier'
+
+    id = factory.Faker('uuid4')
+    transportation = factory.SubFactory(TransportationFactory)

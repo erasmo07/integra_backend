@@ -3,6 +3,7 @@ from . import models, enums
 from ..solicitude.serializers import DaySerializer
 from ..resident.serializers import PersonSerializer
 from ..resident.models import Property
+from collections import OrderedDict
 
 
 class MedioSerializer(serializers.ModelSerializer):
@@ -45,6 +46,13 @@ class TransportationSerializer(serializers.ModelSerializer):
         return instance
     
 
+class TransportationSerializerDetail(serializers.ModelSerializer):
+
+    class Meta:
+        model = models.Transportation
+        fields = '__all__'
+
+
 class SupplierSerializer(serializers.ModelSerializer):
     transportation = TransportationSerializer()
 
@@ -62,6 +70,14 @@ class SupplierSerializer(serializers.ModelSerializer):
 
         validated_data.update(dict(transportation=serializer.instance))
         return super(SupplierSerializer, self).create(validated_data)   
+
+
+class SupplierSerializerDetail(serializers.ModelSerializer):
+    transportation = TransportationSerializerDetail()
+
+    class Meta:
+        model = models.Supplier
+        fields = '__all__'
 
 
 class TypeInvitationField(serializers.RelatedField):
@@ -98,7 +114,7 @@ class InvitationSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'type_invitation', 'date_entry',
             'date_out', 'invitated', 'note', 'number',
-            'supplier', 'status', 'property', 'area')
+            'supplier', 'status', 'property', 'area', 'total_companions')
         read_only_fields = ('id', 'number', 'area')
     
     def validate(self, data):
@@ -137,17 +153,64 @@ class InvitationSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         invitateds = validated_data.pop('invitated', [])
+        persons = instance.invitated.all()
+        persons = list(persons)
         supplier = validated_data.pop('supplier', None)
 
-        for attribute in ['date_entry', 'date_out', 'note']:
+        for attribute in [
+            'date_entry', 'date_out', 'ownership',
+                'total_companions', 'note', 'type_invitation']:
             setattr(
                 instance,
                 attribute,
                 validated_data.get(
                     attribute, getattr(instance, attribute)))
-
         instance.save()
+
+        for invitated in invitateds:
+            type_identification = invitated.pop('type_identification')
+            invitated['type_identification'] = str(type_identification.id)
+
+            person = persons.pop(0)
+            serializer = PersonSerializer(instance=person, data=invitated)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
+        if supplier:
+            serializer = SupplierSerializer(data=supplier)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
+            instance.supplier = serializer.instance
+            instance.save()
+
         return instance
+
+
+class InvitationSerializerDetail(serializers.ModelSerializer):
+    invitated = PersonSerializer(many=True, required=False)
+    supplier = SupplierSerializerDetail(required=False)
+
+    class Meta:
+        model = models.Invitation
+        fields = [
+            'type_invitation',
+            'invitated',
+            'property',
+            'date_entry',
+            'date_out',
+            'note',
+            'supplier',
+            'total_companions',
+        ]
+
+        extra_kwargs = {
+            'property': {'source': 'ownership'},
+        }
+
+    def to_representation(self, instance):
+        result = super(InvitationSerializerDetail, self).to_representation(instance)
+        return OrderedDict([(key, result[key]) for key in result if result[key] is not None])
 
 
 class TypeInvitationProyectSerializer(serializers.ModelSerializer):

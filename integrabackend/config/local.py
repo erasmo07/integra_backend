@@ -2,8 +2,20 @@ import os
 import sentry_sdk
 from .common import Common
 from sentry_sdk.integrations.django import DjangoIntegration
+import logging
+import sys
+
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+class DisableMigrations(object):
+
+    def __contains__(self, item):
+        return True
+
+    def __getitem__(self, item):
+        return None
 
 
 class Local(Common):
@@ -36,3 +48,11 @@ class Local(Common):
     #         'NAME': 'mydatabase',
     #     }
     # }
+
+    TESTS_IN_PROGRESS = False
+    if 'test' in sys.argv[1:] or 'jenkins' in sys.argv[1:]:
+        logging.disable(logging.CRITICAL)
+        DEBUG = False
+        TEMPLATE_DEBUG = False
+        TESTS_IN_PROGRESS = True
+        MIGRATION_MODULES = DisableMigrations()

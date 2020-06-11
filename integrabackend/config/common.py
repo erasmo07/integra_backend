@@ -198,8 +198,9 @@ class Common(Configuration):
     AUTH_USER_MODEL = 'users.User'
 
     # Django Rest Framework
+    DATE_FORMAT = '%Y-%m-%d'
     REST_FRAMEWORK = {
-        'DATETIME_FORMAT': '%Y-%m-%dT%H:%M:%S%z',
+        # 'TEST_REQUEST_DEFAULT_FORMAT': 'json',
         'DEFAULT_RENDERER_CLASSES': (
             'rest_framework.renderers.JSONRenderer',
             'rest_framework.renderers.BrowsableAPIRenderer',
@@ -214,7 +215,11 @@ class Common(Configuration):
         ),
         'DEFAULT_FILTER_BACKENDS': (
             'django_filters.rest_framework.DjangoFilterBackend',
-        )
+        ),
+        'DATE_FORMAT': DATE_FORMAT,
+        'DATE_INPUT_FORMATS': [DATE_FORMAT],
+        'DATETIME_FORMAT': DATE_FORMAT,
+        "DATETIME_INPUT_FORMATS": [DATE_FORMAT],
     }
 
     CORS_ORIGIN_ALLOW_ALL = True

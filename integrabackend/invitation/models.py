@@ -117,6 +117,7 @@ class Invitation(models.Model):
         on_delete=models.CASCADE)
 
     invitated = models.ManyToManyField('resident.Person')
+    total_companions = models.IntegerField(null=True, blank=True, default=0)
 
     @property
     def is_pending(self):

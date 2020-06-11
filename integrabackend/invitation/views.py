@@ -23,10 +23,14 @@ class InvitationViewSet(viewsets.ModelViewSet):
 
     permission_classes = [permissions.OnlyUpdatePending]
     queryset = models.Invitation.objects.all()
-    serializer_class = serializers.InvitationSerializer
 
     status_class = models.StatusInvitation
     status_enums = enums.StatusInvitationEnums
+
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return serializers.InvitationSerializerDetail
+        return serializers.InvitationSerializer
 
     def _get_initial_status(self):
         status, _ = self.status_class.objects.get_or_create(
