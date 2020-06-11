@@ -49,8 +49,15 @@ class AccessApplicationSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         details = validated_data.pop('details')
         instance = self.Meta.model.objects.create(**validated_data)
+        instance, _ = self.Meta.model.objects.get_or_create(
+            **validated_data)
+
+        instance.details.update(default=False)
         for detail in details:
-            instance.details.create(**detail)
+            detail.pop('default')
+            element, _  = instance.details.get_or_create(**detail)
+            element.default = True
+            element.save()
         return instance
 
 
