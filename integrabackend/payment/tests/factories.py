@@ -82,6 +82,24 @@ class AdvancePaymentFactory(factory.django.DjangoModelFactory):
         model = 'payment.AdvancePayment'
 
 
+class ItemFactory(factory.django.DjangoModelFactory):
+    amount = 300.00
+    amount_dop = 3000.00
+    currency = 'DOP'
+    description = 'Shool Down Payment'
+    exchange_rate = '53.50'
+    location = 'Location'
+    number = random.randint(1, 999999)
+    position = "".join([str(random.randint(1, 9)) for _ in range(50)])
+    tax = 0.00
+
+    payment_attempt = factory.SubFactory(PaymentAttemptFactory)
+    status = factory.SubFactory(StatusDocumentFactory)
+    
+    class Meta:
+        model = 'payment.Item'
+
+
 class StatusCreditCardFactory(factory.django.DjangoModelFactory):
 
     class Meta:

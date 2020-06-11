@@ -343,7 +343,7 @@ class TestPaymenetAttemptTestCase(APITestCase, TransactionTestCase):
         self.client.force_authenticate(user=user)
 
         # THEN
-        with self.assertNumQueries(5):
+        with self.assertNumQueries(6):
             response = self.client.get(self.url)
 
     def test_can_list_payments_without_documents(self):
@@ -1120,3 +1120,143 @@ class TestPaymenetAttemptTestCase(APITestCase, TransactionTestCase):
         self.assertEqual(
             advancepayment.status.name,
             enums.StatusInvoices.compensated)
+
+
+
+class TestVerifone(APITestCase):
+
+    def setUp(self):
+        self.url = '/api/v1/verifone/'
+        self.model = models.PaymentAttempt
+
+        self.user = UserFactory.create()
+        self.resident = ResidentFactory(user=self.user)
+        self.payment_attempt = factories.PaymentAttemptFactory(
+            user=self.resident.user)
+        self.user.groups.create(name='Verifone')
+        self.client.force_login(self.user)
+    
+    def test_not_has_access_to_endpoint(self):
+        # WHEN
+        self.client.force_login(UserFactory.create())
+        response = self.client.post(
+            self.url, model_to_dict(self.payment_attempt))
+    
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_can_create_payment_attempt(self):
+        # GIVEN
+        payment_attempt_data = model_to_dict(
+            self.payment_attempt, exclude=['id'])
+
+        item = model_to_dict(
+            factories.ItemFactory.create(),
+            exclude=['id'])
+        
+        payment_attempt_data['items'] = [item]
+    
+        # WHEN
+        response = self.client.post(
+            self.url, payment_attempt_data, format='json')
+    
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        body = response.json()
+        self.assertEqual(len(body.get('items')), 1)
+
+        self.assertIn('total_item_amount_usd', body)
+        self.assertIn('total_item_amount_dop', body)
+        self.assertIn('total_item_tax', body)
+
+        payment_attempt = self.model.objects.get(id=body.get('id'))
+        self.assertTrue(payment_attempt.items.exists())
+        self.assertEqual(payment_attempt.items.count(), 1)
+    
+    def test_can_charge_verifone_with_invalid_transaction(self):
+        # GIVEN
+        factories.ItemFactory.create(payment_attempt=self.payment_attempt)
+    
+        # WHEN
+        url = f"{self.url}{self.payment_attempt.id}/charge/"
+        data = {
+            'card': {
+                'cvc': '977',
+                'expiration': '202001',
+                'name': 'Prueba',
+                'number': '5426064000424979',
+            }
+        }
+        response = self.client.post(url, data, format='json')
+    
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        self.payment_attempt.refresh_from_db()
+        self.assertEqual(
+            self.payment_attempt.status_process_payment.name,
+            enums.StatusProcessPayment.not_approved)
+
+        self.assertEqual(self.payment_attempt.process_payment, 'AZUL')
+        self.assertEqual(
+            self.payment_attempt.card_number,
+            data.get('card').get('number')[-4:])
+
+        self.assertIsNotNone(self.payment_attempt.request)
+        self.assertIsNotNone(self.payment_attempt.response)
+    
+    def test_cant_charge_verifone_with_amount_cero(self):
+        # GIVEN
+        # WHEN
+        url = f"{self.url}{self.payment_attempt.id}/charge/"
+        data = {
+            'card': {
+                'cvc': '979',
+                'expiration': '202412',
+                'name': 'Prueba',
+                'number': '5426064000424979',
+            }
+        }
+        response = self.client.post(url, data, format='json')
+    
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        self.assertEqual(
+            response.json().get('detail'),
+            'Cant charge PaymentAttempt because total is cero'
+        )
+    
+    def test_can_charge_verifone(self):
+        # GIVEN
+        factories.ItemFactory.create(payment_attempt=self.payment_attempt)
+    
+        # WHEN
+        url = f"{self.url}{self.payment_attempt.id}/charge/"
+        data = {
+            'card': {
+                'cvc': '979',
+                'expiration': '202412',
+                'name': 'Prueba',
+                'number': '5426064000424979',
+            }
+        }
+        response = self.client.post(url, data, format='json')
+    
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.payment_attempt.refresh_from_db()
+        self.assertEqual(
+            self.payment_attempt.status_process_payment.name,
+            enums.StatusProcessPayment.approved)
+
+        self.assertEqual(self.payment_attempt.process_payment, 'AZUL')
+        self.assertEqual(
+            self.payment_attempt.card_number,
+            data.get('card').get('number')[-4:])
+
+        self.assertIsNotNone(self.payment_attempt.request)
+        self.assertIsNotNone(self.payment_attempt.response)
+    

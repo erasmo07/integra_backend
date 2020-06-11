@@ -46,6 +46,14 @@ class AdvancePaymentSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'payment_attempt', 'status')
 
 
+class ItemSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = models.Item
+        fields = '__all__'
+        read_only_fields = ('id', 'payment_attempt', 'status')
+
+
 class PaymentUserSerializer(serializers.ModelSerializer):
     
     class Meta:
@@ -57,8 +65,12 @@ class PaymentUserSerializer(serializers.ModelSerializer):
 
 
 class PaymentAttemptSerializer(serializers.ModelSerializer):
-    invoices = InvoiceSerializer(many=True)
-    advancepayments = AdvancePaymentSerializer(many=True)
+    invoices = InvoiceSerializer(
+        many=True, required=False)
+    advancepayments = AdvancePaymentSerializer(
+        many=True, required=False)
+    items = ItemSerializer(many=True, required=False)
+
     response = ResponsePaymentAttemptSerializer(read_only=True)
     request = RequestPaymentAttemptSerializer(read_only=True)
     user = PaymentUserSerializer(read_only=True)
@@ -77,15 +89,22 @@ class PaymentAttemptSerializer(serializers.ModelSerializer):
             'id',
             'process_payment',
             'total_advancepayment_amount'
+
             'total_invoice_amount',
             'total_invoice_amount_usd',
             'total_invoice_tax',
+
+            'total_item_amount',
+            'total_item_amount_dop',
+            'total_item_tax',
             'transaction',
         )
 
     def create(self, validated_data):
-        invoices = validated_data.pop('invoices')
-        advancepayments = validated_data.pop('advancepayments')
+        invoices = validated_data.pop('invoices', [])
+        advancepayments = validated_data.pop('advancepayments', [])
+        items = validated_data.pop('items', [])
+
         payment_attempt = super(PaymentAttemptSerializer, self).create(validated_data)
 
         status_pending, _ = models.StatusDocument.objects.get_or_create(
@@ -106,6 +125,9 @@ class PaymentAttemptSerializer(serializers.ModelSerializer):
         
         for advancepayment in advancepayments:
             make_many(AdvancePaymentSerializer, advancepayment)
+        
+        for item in items:
+            make_many(ItemSerializer, item)
 
         payment_attempt.save()
         return payment_attempt
@@ -117,3 +139,10 @@ class PaymentAttemptPaySerializer(serializers.Serializer):
     name = serializers.CharField(max_length=500)
     number = serializers.CharField(max_length=19)
     save = serializers.BooleanField()
+
+
+class PaymentAttemptVerifoneSerializer(serializers.Serializer):
+    cvc = serializers.CharField(max_length=4)
+    expiration = serializers.CharField(max_length=6)
+    name = serializers.CharField(max_length=500)
+    number = serializers.CharField(max_length=19)

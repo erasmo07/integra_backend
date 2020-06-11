@@ -147,6 +147,13 @@ class PaymentAttempt(models.Model):
         max_digits=10, decimal_places=2, blank=True, null=True)
     total_invoice_amount_usd = models.DecimalField(
         max_digits=10, decimal_places=2, blank=True, null=True)
+    
+    total_item_amount_usd = models.DecimalField(
+        max_digits=10, decimal_places=2, blank=True, null=True)
+    total_item_amount_dop = models.DecimalField(
+        max_digits=10, decimal_places=2, blank=True, null=True)
+    total_item_tax = models.DecimalField(
+        max_digits=10, decimal_places=2, blank=True, null=True)
 
     user = models.ForeignKey("users.User", on_delete=models.DO_NOTHING, null=True)
 
@@ -168,8 +175,10 @@ class PaymentAttempt(models.Model):
         advancepayment = self.total_advancepayment_amount
         if not advancepayment:
             advancepayment = decimal.Decimal(0.00)
+        
+        item = self.total_item_amount_dop or decimal.Decimal(0.00)
 
-        return invoice + advancepayment
+        return invoice + item + advancepayment
     
     def get_total(self, foreign_key, field):
         total = getattr(self, foreign_key).values(
@@ -184,10 +193,14 @@ class PaymentAttempt(models.Model):
         else:
             self.transaction = last.transaction + 1
         
-        self.total_invoice_amount = self.get_total('invoices', 'amount_dop')
         self.total_advancepayment_amount = self.get_total('advancepayments', 'amount')
-        self.total_invoice_tax = self.get_total('invoices', 'tax')
+        self.total_invoice_amount = self.get_total('invoices', 'amount_dop')
         self.total_invoice_amount_usd = self.get_total('invoices', 'amount')
+        self.total_invoice_tax = self.get_total('invoices', 'tax')
+
+        self.total_item_amount_usd = self.get_total('items', 'amount')
+        self.total_item_amount_dop = self.get_total('items', 'amount_dop')
+        self.total_item_tax = self.get_total('items', 'tax')
 
         return super(PaymentAttempt, self).save(*args, **kwargs)
 
@@ -243,3 +256,14 @@ class AdvancePayment(PaymentDocument):
     concept_id = models.CharField('Concept', max_length=50)
     spras = models.CharField('Spras', max_length=1)
     bukrs = models.CharField('Bukrs', max_length=50)
+
+
+class Item(PaymentDocument):
+    merchant_number = None
+    location = models.CharField(max_length=250)
+    date = models.DateTimeField(auto_now_add=True)
+    number = models.BigIntegerField('Document Number')
+    tax = models.DecimalField('Tax', max_digits=10, decimal_places=2)
+    amount_dop = models.DecimalField(max_digits=10, decimal_places=2)
+    exchange_rate = models.DecimalField(
+        'Exchange rate', max_digits=7, decimal_places=5)

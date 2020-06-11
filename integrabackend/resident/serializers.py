@@ -72,17 +72,19 @@ class ResidentSerializer(serializers.ModelSerializer):
 
         application = request._request.META.get(
             "HTTP_APPLICATION", ' '
-        ).split(' ')
+        )
 
         if not application:
             return ''
+        
+        _, application = application.split(' ')
 
         access_detail = AccessDetail.objects.filter(
             default=True,
             accessapplication__user=obj.user,
             accessapplication__application=application,
         ).first()
-        return access_detail.sap_customer
+        return access_detail.sap_customer if access_detail else ''
 
     def create(self, validated_data):
         request_data = self.context.get('request')

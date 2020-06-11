@@ -1,6 +1,9 @@
 from datetime import datetime
 from django.forms.models import model_to_dict
 from oraculo.gods import sap
+from partenon.process_payment import azul
+
+from . import models
 
 
 class CompensationPayment:
@@ -65,3 +68,57 @@ class CompensationPayment:
     def commit(self):
         sap_api = self.sap_api()
         self.sap_response = sap_api.post(self.sap_url, self.build_request_body())
+
+
+def save_request_to_azul(payment_attempt, transaction):
+        azul_data = transaction.get_data()
+        data = {azul.convert(key): value for key, value in azul_data.items()}
+
+        data['card_number'] = data['card_number'][-4:]
+        data['payment_attempt_id'] = payment_attempt.pk
+
+        data.pop('cvc', None)
+        data.pop('expiration', None)
+        data.pop('data_vault_token', None)
+
+        models.RequestPaymentAttempt.objects.create(**data)
+
+def save_response_to_azul(
+        payment_attempt, transaction_response,
+        model=models.ResponsePaymentAttempt
+    ):
+    model.objects.create(
+        payment_attempt=payment_attempt,
+        response_code=transaction_response.response_code,
+        authorization_code=transaction_response.authorization_code,
+    )
+
+
+def make_transaction_in_azul(
+        payment_attempt,
+        card,
+        many='invoice',
+        transaction_class=azul.Transaction,
+        save_request=save_request_to_azul
+    ):
+    total = payment_attempt.total or "0.00"
+    amount, amount_cents = str(total).split('.')
+
+    taxs = getattr(payment_attempt, f'total_{many}_tax') or "0.00"
+    tax, tax_cents = str(taxs).split('.')
+
+    transaction = transaction_class(
+        card=card,
+        order_number=payment_attempt.transaction,
+        amount="%s%s" % (amount, amount_cents),
+        itbis="%s%s" % (tax, tax_cents),
+        save_to_data_vault=None,
+        merchan_name=payment_attempt.merchant_name,
+        store=payment_attempt.merchant_number)
+
+    save_request(payment_attempt, transaction)
+
+    payment_attempt.process_payment = 'AZUL'
+    payment_attempt.save()
+
+    return transaction.commit()

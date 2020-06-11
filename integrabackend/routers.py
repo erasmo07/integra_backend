@@ -58,6 +58,11 @@ router.register(
     payment_views.StateCompensationViewSet)
 
 router.register(
+    r'verifone',
+    payment_views.VerifoneViewSet
+)
+
+router.register(
     r'payment-attempt',
     payment_views.PaymentAttemptViewSet,
     base_name='payment_attempt')

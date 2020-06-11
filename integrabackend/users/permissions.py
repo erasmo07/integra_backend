@@ -53,3 +53,12 @@ class IsBackOfficeUserPermission(permissions.BasePermission):
             return False
 
         return request.user.is_backoffice
+
+
+class IsVerifoneUserPermission(permissions.BasePermission):
+    
+    def has_permission(self, request, view):
+        if request.user.is_anonymous:
+            return False
+
+        return request.user.is_verifone

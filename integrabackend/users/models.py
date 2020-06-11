@@ -44,6 +44,12 @@ class User(AbstractUser):
         return self.groups.filter(
             name=enums.GroupsEnums.monitoring_center
         ).exists()
+    
+    @property
+    def is_verifone(self):
+        return self.groups.filter(
+            name=enums.GroupsEnums.verifone
+        ).exists()
 
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)

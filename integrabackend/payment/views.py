@@ -13,6 +13,7 @@ from partenon.process_payment import azul
 
 from ..solicitude.serializers import StateSerializer
 from ..users.models import User
+from ..users.permissions import IsVerifoneUserPermission
 from . import enums, filters, helpers, models, serializers
 from .helpers import CompensationPayment
 
@@ -56,6 +57,81 @@ class StateCompensationViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = models.StatusCompensation.objects.all()
     serializer_class = StateSerializer
+
+
+class VerifoneViewSet(viewsets.ModelViewSet):
+    queryset = models.PaymentAttempt.objects.all()
+    serializer_class = serializers.PaymentAttemptSerializer
+    serializer_card_class = serializers.PaymentAttemptVerifoneSerializer
+    permission_classes = [IsVerifoneUserPermission]
+
+    card_class = azul.Card
+    
+    enums_process_payment = enums.StatusProcessPayment
+    status_process_payment = models.StatusProcessPayment.objects
+
+    def perform_create(self, serializer):
+        status, _ = self.status_process_payment.get_or_create(
+            name=self.enums_process_payment.initial)
+
+        serializer.save(
+            user=self.request.user, status_process_payment=status)
+    
+    def get_azul_card(self):
+        serializer = self.serializer_card_class(
+            data=self.request.data.get('card'))
+        serializer.is_valid(raise_exception=True)
+
+        card = self.card_class(
+            number=serializer.data.get('number'),
+            expiration=serializer.data.get('expiration'),
+            cvc=serializer.data.get('cvc'))
+
+        self.object.card_number = serializer.data.get('number')[-4:]
+        self.object.card_brand = card.brand
+        self.object.save()
+
+        return card
+    
+    @action(detail=True, methods=['POST'])
+    def charge(self, request, pk=None):
+        self.object = self.get_object()
+        if hasattr(self.object, 'response'):
+            raise ParseError(detail='PaymentAttempt has one response')
+
+        if hasattr(self.object, 'request'):
+            raise ParseError(detail='PaymentAttempt has one request')
+            
+        self.object.save()    # refresh calculate fields
+        if getattr(self.object, 'total') == 0:
+            raise ParseError(
+                detail='Cant charge PaymentAttempt because total is cero')
+
+        transaction_response = helpers.make_transaction_in_azul(
+            self.object, self.get_azul_card(), many='item')
+
+        if not transaction_response.is_valid():
+            status, _ = self.status_process_payment.get_or_create(
+                name=self.enums_process_payment.not_approved)
+
+            self.object.status_process_payment = status
+            self.object.save()
+
+            helpers.save_response_to_azul(self.object, transaction_response)
+            return Response(transaction_response.kwargs, status=400)
+        else:
+            status_process_payment, _ = models.StatusProcessPayment.objects.get_or_create(
+                name=self.enums_process_payment.approved
+            )
+            self.object.status_process_payment = status_process_payment
+            self.object.save()
+
+        helpers.save_response_to_azul(self.object, transaction_response)
+
+        response_body = transaction_response.kwargs
+        response_body.update(dict(success=True))
+
+        return Response(response_body)
 
 
 class PaymentAttemptViewSet(viewsets.ModelViewSet):
@@ -220,11 +296,7 @@ class PaymentAttemptViewSet(viewsets.ModelViewSet):
             self.object.status_process_payment = status_process_payment
             self.object.save()
 
-        self.response_payment_attemp_model.objects.create(
-            payment_attempt=self.object,
-            response_code=transaction_response.response_code,
-            authorization_code=transaction_response.authorization_code,
-        )
+        helpers.save_response_to_azul(self.object, transaction_response)
 
         if (transaction_response.is_valid()
                 and self.request.data.get('card', {}).get('save')):
