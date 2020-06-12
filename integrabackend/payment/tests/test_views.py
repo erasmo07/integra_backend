@@ -199,9 +199,9 @@ class TestStatusPaymentAttempt(APITestCase):
         self.url_compensation = '/api/v1/state-compensation/'
         self.url_process_payment = '/api/v1/state-process-payment/'
         self.keys_expect = ['name', 'id']
-        
+
         self.client.force_authenticate(user=UserFactory())
-    
+
     def validate_keys(self, response):
         for payment_attempt in response.json():
             for key in self.keys_expect:
@@ -255,7 +255,8 @@ class TestPaymenetAttemptTestCase(APITestCase, TransactionTestCase):
 
         self.user = UserFactory()
         self.resident = ResidentFactory(user=self.user, sap_customer=4259)
-        self.payment_attempt = factories.PaymentAttemptFactory(user=self.resident.user)
+        self.payment_attempt = factories.PaymentAttemptFactory(
+            user=self.resident.user, status_compensation=None)
 
     def test_backoffice_can_list_payments(self):
         user = UserFactory()
@@ -318,19 +319,11 @@ class TestPaymenetAttemptTestCase(APITestCase, TransactionTestCase):
 
         for _ in range(5):
             factories.PaymentAttemptFactory.create()
-        status_compensation = models.StatusCompensation.objects.create(name='TEST')
 
         payment = factories.PaymentAttemptFactory.create(
-            status_compensation=status_compensation)
-        
-        response_state = self.client.get('/api/v1/state-compensation/')
+            status_compensation__name='TEST')
 
-        self.assertEqual(response_state.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response_state.json()), 1)
-        self.assertIn('id', response_state.json()[0])
-
-        state_compensation_id = response_state.json()[0].get('id')
-        params = {'status_compensation': state_compensation_id}
+        params = {'status_compensation': payment.status_compensation.id}
         response = self.client.get(self.url, params)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -1122,7 +1115,6 @@ class TestPaymenetAttemptTestCase(APITestCase, TransactionTestCase):
             enums.StatusInvoices.compensated)
 
 
-
 class TestVerifone(APITestCase):
 
     def setUp(self):
@@ -1135,13 +1127,13 @@ class TestVerifone(APITestCase):
             user=self.resident.user)
         self.user.groups.create(name='Verifone')
         self.client.force_login(self.user)
-    
+
     def test_not_has_access_to_endpoint(self):
         # WHEN
         self.client.force_login(UserFactory.create())
         response = self.client.post(
             self.url, model_to_dict(self.payment_attempt))
-    
+
         # THEN
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
@@ -1153,13 +1145,13 @@ class TestVerifone(APITestCase):
         item = model_to_dict(
             factories.ItemFactory.create(),
             exclude=['id'])
-        
+
         payment_attempt_data['items'] = [item]
-    
+
         # WHEN
         response = self.client.post(
             self.url, payment_attempt_data, format='json')
-    
+
         # THEN
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
@@ -1173,11 +1165,11 @@ class TestVerifone(APITestCase):
         payment_attempt = self.model.objects.get(id=body.get('id'))
         self.assertTrue(payment_attempt.items.exists())
         self.assertEqual(payment_attempt.items.count(), 1)
-    
+
     def test_can_charge_verifone_with_invalid_transaction(self):
         # GIVEN
         factories.ItemFactory.create(payment_attempt=self.payment_attempt)
-    
+
         # WHEN
         url = f"{self.url}{self.payment_attempt.id}/charge/"
         data = {
@@ -1189,7 +1181,7 @@ class TestVerifone(APITestCase):
             }
         }
         response = self.client.post(url, data, format='json')
-    
+
         # THEN
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -1205,7 +1197,7 @@ class TestVerifone(APITestCase):
 
         self.assertIsNotNone(self.payment_attempt.request)
         self.assertIsNotNone(self.payment_attempt.response)
-    
+
     def test_cant_charge_verifone_with_amount_cero(self):
         # GIVEN
         # WHEN
@@ -1219,7 +1211,7 @@ class TestVerifone(APITestCase):
             }
         }
         response = self.client.post(url, data, format='json')
-    
+
         # THEN
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -1227,11 +1219,11 @@ class TestVerifone(APITestCase):
             response.json().get('detail'),
             'Cant charge PaymentAttempt because total is cero'
         )
-    
+
     def test_can_charge_verifone(self):
         # GIVEN
         factories.ItemFactory.create(payment_attempt=self.payment_attempt)
-    
+
         # WHEN
         url = f"{self.url}{self.payment_attempt.id}/charge/"
         data = {
@@ -1243,7 +1235,7 @@ class TestVerifone(APITestCase):
             }
         }
         response = self.client.post(url, data, format='json')
-    
+
         # THEN
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -1259,4 +1251,3 @@ class TestVerifone(APITestCase):
 
         self.assertIsNotNone(self.payment_attempt.request)
         self.assertIsNotNone(self.payment_attempt.response)
-    

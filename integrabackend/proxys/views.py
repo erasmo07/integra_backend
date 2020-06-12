@@ -10,6 +10,8 @@ import xmltodict
 from integrabackend.proxys import filters
 from integrabackend.solicitude import enums
 from integrabackend.solicitude.views import get_value_or_404
+from integrabackend.payment.models import Invoice
+from integrabackend.payment.enums import StatusCompensation, StatusInvoices
 from oraculo.gods.exceptions import BadRequest, NotFound
 from oraculo.gods.faveo import APIClient as APIClientFaveo
 from oraculo.gods.sita_db import APIClient as APIClientSitaDB
@@ -226,14 +228,28 @@ class ERPClientViewSet(viewsets.ViewSet):
     @action(detail=True, methods=['GET'], url_path='invoices')
     def invoice(self, request, pk=None, format=None):
         try:
-            erp_client = self.erp_client_class(**dict(client_code=pk))
+            erp_client = ERPClient(**dict(client_code=pk))
             
             params = request.query_params.dict()
             merchant = params.get('merchant', '')
             language = params.get('language', 'ES')
 
-            invoices = erp_client.invoices(merchant=merchant, language=language)
-            return Response([invoice._base for invoice in invoices])
+            invoices_sap = erp_client.invoices(merchant=merchant, language=language)
+
+            invoices_not_compensated = Invoice.objects.filter(
+                payment_attempt__sap_customer=pk,
+                payment_attempt__status_compensation__name=StatusCompensation.not_compensated,
+                status__name=StatusInvoices.not_compensated
+            )
+
+            for index, invoice in enumerate(invoices_sap):
+                pending_compensated = invoices_not_compensated.filter(
+                    document_number=invoice._base.get('document_number'))
+                if not pending_compensated.exists():
+                    continue
+                invoices_sap.pop(index)
+
+            return Response([invoice._base for invoice in invoices_sap])
         except NotFound as exception:
             return Response({}, status.HTTP_404_NOT_FOUND)
 

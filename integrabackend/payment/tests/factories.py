@@ -1,4 +1,5 @@
 import factory
+import factory.fuzzy
 import random
 import calendar
 from integrabackend.users.test.factories import UserFactory
@@ -40,6 +41,8 @@ class PaymentAttemptFactory(factory.DjangoModelFactory):
     merchant_name = 'CENREX'
     total_invoice_amount = 0
 
+    status_compensation = factory.SubFactory(StatusCompensationFactory)
+
     class Meta:
         model = 'payment.PaymentAttempt'
 
@@ -53,7 +56,7 @@ class InvoiceFactory(factory.django.DjangoModelFactory):
     day_pass_due = '1'
     description = "".join([str(random.randint(1, 9)) for _ in range(5)])
     document_date = '2019-11-24'
-    document_number = '0900194811'
+    document_number = factory.fuzzy.FuzzyInteger(0, 42, step=3)
     merchant_number = '349052692'
     payment_attempt = factory.SubFactory(PaymentAttemptFactory)
     position = "".join([str(random.randint(1, 9)) for _ in range(50)])
