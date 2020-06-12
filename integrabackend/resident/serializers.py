@@ -74,10 +74,10 @@ class ResidentSerializer(serializers.ModelSerializer):
             "HTTP_APPLICATION", ' '
         )
 
+        _, application = application.split(' ')
+        
         if not application:
             return ''
-        
-        _, application = application.split(' ')
 
         access_detail = AccessDetail.objects.filter(
             default=True,

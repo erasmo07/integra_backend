@@ -3,7 +3,7 @@
 {% block content %}
     <p> Apreciado Sr(a) {{ user.get_full_name }} </p>
     <p>
-        Hemos asignado su usuario del Portal de Clientes de Grupo Puntacana para acceder al portal de pagos del Puntacana International School - PCIS.
+        Hemos asignado su usuario poder acceder al portal de pagos de {{ application_name }}.
         Desde allí podrá realizar los pagos de colegiatura utilizando su tarjeta de crédito.
         Por favor ingrese a través del siguiente enlace: <a href="{{ link_portal }}" target="_blank" rel="noopener noreferrer">acceso al portal</a>
     </p> 
@@ -19,6 +19,6 @@
         <br>
         Equipo Administrativo
         <br>
-        Puntacana International School - PCIS 
+        {{ application_name }}
     </p>
 {% endblock content %}

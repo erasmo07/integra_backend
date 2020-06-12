@@ -6,7 +6,7 @@ from django.conf import settings
 from django.contrib.auth.forms import PasswordResetForm
 
 from rest_framework.response import Response
-from rest_framework import viewsets, mixins, status
+from rest_framework import viewsets, mixins, status, exceptions
 from rest_framework.decorators import action
 
 from . import filters
@@ -20,7 +20,9 @@ from .serializers import (
     ResidentUserserializer, TypeIdenticationSerializer,
     AreaSerializer, ProjectSerializer, DepartmentSerializer,
     OrganizationSerializer)
-from integrabackend.users.models import Application
+from integrabackend.solicitude.views import get_value_or_404
+from integrabackend.users.models import Application, AccessApplication
+from integrabackend.users.tasks import send_access_email
 from integrabackend.users.serializers import AccessApplicationSerializer
 from integrabackend.users.permissions import IsApplicationUserPermission
 
@@ -103,6 +105,33 @@ class ResidentCreateViewSet(viewsets.ModelViewSet):
             serializer.save()
             return Response({}, status=status.HTTP_200_OK)
         return Response({}, status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=["POST"], url_path='access-notify')
+    def access_notify(self, request, pk):
+        if not request.user.is_aplication:
+            detail = 'Only user application can notify'
+            raise exceptions.PermissionDenied(detail=detail)
+
+        application = get_value_or_404(
+            request.data, 'application', 'Not send application key')
+
+        resident = self.get_object()
+        if not hasattr(resident, 'user'):
+            detail = f'Resident {resident.pk} not has user'
+            raise exceptions.ParseError(detail=detail)
+
+        access_application = AccessApplication.objects.filter(
+            **{'user__resident': resident, "application_id": application}
+        ).first()
+        if not access_application:
+            detail = 'User assig to resident not has that application'
+            raise exceptions.ParseError(detail=detail)
+
+        new_user = False if request.user.last_login else True
+
+        send_access_email.delay(str(resident.user.id), application, new_user)
+
+        return Response(dict(success=True), status.HTTP_200_OK)
 
 
 class PersonViewSet(viewsets.ModelViewSet):

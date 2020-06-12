@@ -1,7 +1,10 @@
 import random
 
+from django.core import mail
 from django.forms.models import model_to_dict
 from django.urls import reverse
+from django.test import override_settings
+
 from nose.tools import eq_, ok_
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -268,6 +271,89 @@ class TestResidentListTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(resident.user.accessapplication_set.filter(
             application_id=self.application.id).exists())
+
+    def test_cant_notify_user_without_application_rol(self):
+        # GIVEN
+        resident = ResidentFactory.create()
+
+        # WHEN
+        user = UserFactory.create()
+        self.client.force_authenticate(user=user)
+
+        url = f'/api/v1/resident/{resident.pk}/access-notify/'
+        body = {'application': self.application.id}
+        response = self.client.post(url, body, format='json')
+
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_send_invalid_body(self):
+        # GIVEN
+        resident = ResidentFactory.create()
+
+        # WHEN
+        user = UserFactory.create()
+        user.groups.create(name=GroupsEnums.application)
+        self.client.force_authenticate(user=user)
+
+        url = f'/api/v1/resident/{resident.pk}/access-notify/'
+        body = {'id': self.application.id}
+        response = self.client.post(url, body, format='json')
+
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_notify_user_without_user_assign(self):
+        # GIVEN
+        resident = ResidentFactory.create()
+
+        # WHEN
+        user = UserFactory.create()
+        user.groups.create(name=GroupsEnums.application)
+        self.client.force_authenticate(user=user)
+
+        url = f'/api/v1/resident/{resident.pk}/access-notify/'
+        body = {'application': self.application.id}
+        response = self.client.post(url, body, format='json')
+
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_notify_user_without_application_assign(self):
+        # GIVEN
+        resident = ResidentFactory.create(user=UserFactory.create())
+
+        # WHEN
+        user = UserFactory.create()
+        user.groups.create(name=GroupsEnums.application)
+        self.client.force_authenticate(user=user)
+
+        url = f'/api/v1/resident/{resident.pk}/access-notify/'
+        body = {'application': self.application.id}
+        response = self.client.post(url, body, format='json')
+
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    def test_notify_user_good_path(self):
+         # GIVEN
+        resident = ResidentFactory.create(user=UserFactory.create())
+        resident.user.accessapplication_set.create(application=self.application)
+
+        # WHEN
+        user = UserFactory.create()
+        user.groups.create(name=GroupsEnums.application)
+        self.client.force_authenticate(user=user)
+
+        url = f'/api/v1/resident/{resident.pk}/access-notify/'
+        body = {'application': self.application.id}
+        response = self.client.post(url, body, format='json')
+
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [resident.user.email])
 
 
 class TestPersonTestCase(APITestCase):

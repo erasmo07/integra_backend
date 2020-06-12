@@ -4,7 +4,7 @@
     <p> Apreciado Sr(a) {{ user.get_full_name }} </p>
     <br>
     <p>
-        Hemos creado su usuario para acceder al portal de pagos del Puntacana International School - PCIS.
+        Hemos creado su usuario para acceder al portal de pagos de {{ application_name }}.
         Desde allí podrá realizar los pagos de colegiatura utilizando su tarjeta de crédito.
         Por favor ingrese al siguiente enlace para asignar su contraseña: <a href="{{ link }}" target="_blank" rel="noopener noreferrer">cambio de contraseña</a>
     </p> 
@@ -17,6 +17,6 @@
         <br>
         Equipo Administrativo
         <br>
-        Puntacana International School - PCIS 
+        {{ application_name }}
     </p>
 {% endblock content %}
