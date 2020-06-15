@@ -52,7 +52,7 @@ class InvitationCreateTest(InvitationTestBase, APITestCase):
             if key == 'invitated':
                 continue
             if key == 'date_entry' or key == 'date_out':
-                self.assertEqual(current_field.date(), date(2010, 12, 31))
+                self.assertEqual(current_field, date(2010, 12, 31))
                 continue
             self.assertEqual(current_field, invitation_data[key])
 

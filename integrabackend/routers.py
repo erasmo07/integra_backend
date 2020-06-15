@@ -34,6 +34,7 @@ router.register(r'organization', OrganizationViewSet)
 
 # APP - Invitation
 router.register(r'type-invitation', invitation_views.TypeInvitationViewSet)
+router.register(r'status-invitation', invitation_views.StatusInvitationViewSet)
 router.register(r'medio', invitation_views.MedioViewSet)
 router.register(r'color', invitation_views.ColorViewSet)
 router.register(r'invitation', invitation_views.InvitationViewSet)

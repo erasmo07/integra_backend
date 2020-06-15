@@ -91,8 +91,8 @@ class TypeInvitationProyect(models.Model):
 
 class Invitation(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    date_entry = models.DateTimeField()
-    date_out = models.DateTimeField()
+    date_entry = models.DateField()
+    date_out = models.DateField()
     cheking = models.DateTimeField(null=True, blank=True)
     chekout = models.DateTimeField(null=True, blank=True)
     note = models.TextField('Note', blank=True, null=True)

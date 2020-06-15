@@ -59,8 +59,8 @@ class UpdateInvitationTest(InvitationTestBase, APITestCase):
         self.invitation = self.invitation.__class__.objects.get(
             pk=self.invitation.pk)
         self.assertEqual(self.invitation.total_companions, 2)
-        self.assertEqual(self.invitation.date_entry.date(), date(2010, 12, 31))
-        self.assertEqual(self.invitation.date_out.date(), date(2010, 12, 31))
+        self.assertEqual(self.invitation.date_entry, date(2010, 12, 31))
+        self.assertEqual(self.invitation.date_out, date(2010, 12, 31))
         self.assertEqual(self.invitation.ownership, self.another_property)
         self.assertEqual(self.invitation.note, self.invitation_data.get('note'))
 

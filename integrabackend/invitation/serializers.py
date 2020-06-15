@@ -30,6 +30,18 @@ class ColorESSerializer(ColorSerializer):
     name = serializers.CharField(source='name_es')
 
 
+class StatusInvitationSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = models.StatusInvitation
+        fields = '__all__'
+        read_only_fields = ('id', )
+
+
+class StatusInvitationESSerializer(StatusInvitationSerializer):
+    name = serializers.CharField(source='name_es')
+
+
 class TransportationSerializer(serializers.ModelSerializer):
     color = serializers.UUIDField()
     medio = serializers.UUIDField()

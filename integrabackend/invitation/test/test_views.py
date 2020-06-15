@@ -10,7 +10,7 @@ from nose.tools import eq_, ok_
 from ..models import Invitation
 from ..enums import StatusInvitationEnums, TypeInvitationEnums
 from ..serializers import InvitationSerializer
-from .factories import InvitationFactory, TypeInvitationFactory
+from .factories import InvitationFactory, TypeInvitationFactory, StatusInvitationFactory
 from ...resident.test.factories import (
     ResidentFactory, PersonFactory, TypeIdentificationFactory,
     AreaFactory)
@@ -105,8 +105,8 @@ class TestInvitationTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         invitation.refresh_from_db()
-        self.assertEqual(invitation.date_entry.date(), data.get('date_entry').date())
-        self.assertEqual(invitation.date_out.date(), data.get('date_out').date())
+        self.assertEqual(invitation.date_entry, data.get('date_entry').date())
+        self.assertEqual(invitation.date_out, data.get('date_out').date())
         self.assertEqual(invitation.note, str(data.get('note')))
 
     def test_post_request_with_no_data_fails(self):
@@ -156,14 +156,14 @@ class TestInvitationTestCase(APITestCase):
         user = UserFactory()
         user.groups.create(name=GroupsEnums.backoffice)
         self.client.force_authenticate(user=user)
-        
+
         pk = response.json().get('id')
         url = f'/api/v1/invitation/{pk}/resend-notification/'
         response = self.client.post(url, {})
 
         # THEN
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-    
+
     def test_cant_application_resend_invitation(self):
         # GIVEN
         response = self.client.post(self.url, self.data_json)
@@ -172,7 +172,7 @@ class TestInvitationTestCase(APITestCase):
         user = UserFactory()
         user.groups.create(name=GroupsEnums.application)
         self.client.force_authenticate(user=user)
-        
+
         pk = response.json().get('id')
         url = f'/api/v1/invitation/{pk}/resend-notification/'
         response = self.client.post(url, {})
@@ -214,7 +214,7 @@ class TestInvitationTestCase(APITestCase):
 
         invitation.refresh_from_db()
         self.assertEqual(invitation.status.name, StatusInvitationEnums.pending)
-    
+
     def test_cant_cancel_invitation_not_pending(self):
         # GIVEN
         invitation = InvitationFactory.create(
@@ -227,7 +227,7 @@ class TestInvitationTestCase(APITestCase):
 
         # THEN
         self.assertEqual(
-            response.status_code, status.HTTP_403_FORBIDDEN)   
+            response.status_code, status.HTTP_403_FORBIDDEN)
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
     def test_owner_want_cancel_invitaton_pending(self):
@@ -300,23 +300,28 @@ class TestInvitationTestCase(APITestCase):
         area = AreaFactory.create()
         self.user.areapermission_set.create(area=area)
         self.user.groups.create(name=GroupsEnums.security_agent)
-        
-        for _ in range(5):
-            self.factory.create(ownership__project__area=area)
 
-        invitation = self.factory.create(ownership__project__area=area)
+        for _ in range(5):
+            self.factory.create(
+                ownership__project__area=area)
+
+        invitation = self.factory.create(
+            ownership__project__area=area)
         person = PersonFactory.create(
             create_by=self.user,
             type_identification=TypeIdentificationFactory.create())
         invitation.invitated.add(person)
 
         # WHEN
-        response = self.client.get(self.url, {'invitated__name': person.name})
+        response = self.client.get(
+            self.url, {'invitated__name': person.name})
 
         # THEN
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         eq_(len(response.json()), 1)
-        self.assertEqual(person.name, response.json()[0].get('invitated')[0].get('name'))
+        self.assertEqual(
+            person.name, 
+            response.json()[0].get('invitated')[0].get('name'))
 
     def test_can_search_by_property_address(self):
         # GIVEN
@@ -328,7 +333,8 @@ class TestInvitationTestCase(APITestCase):
             self.factory.create(ownership__project__area=area)
 
         invitation = self.factory.create(
-            ownership__project__area=area, ownership__address='Address')
+            ownership__project__area=area,
+            ownership__address='Address')
 
         # WHEN
         response = self.client.get(
@@ -338,7 +344,8 @@ class TestInvitationTestCase(APITestCase):
         # THEN
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         eq_(len(response.json()), 1)
-        eq_(invitation.ownership.address, response.json()[0].get('property'))
+        eq_(invitation.ownership.address,
+            response.json()[0].get('property'))
 
     def test_can_filter_by_invitation_number(self):
         # GIVEN
@@ -349,15 +356,72 @@ class TestInvitationTestCase(APITestCase):
         for _ in range(5):
             self.factory.create(ownership__project__area=area)
 
-        invitation = self.factory.create(ownership__project__area=area)
+        invitation = self.factory.create(
+            ownership__project__area=area)
 
         # WHEN
-        response = self.client.get(self.url, {'number': invitation.number})
+        response = self.client.get(
+            self.url, {'number': invitation.number})
 
         # THEN
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         eq_(len(response.json()), 1)
         eq_(str(invitation.number), response.json()[0].get('number'))
+    
+    def validate_response_filter(self, invitation, filters):
+        # WHEN
+        self.user.groups.create(name=GroupsEnums.application)
+        response = self.client.get(self.url, filters)
+
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.json()), 1)
+
+        self.assertEqual(
+            response.json()[0].get('id'),
+            invitation.id)
+
+    def test_can_filter_by_status(self):
+        # GIVEN
+        for _ in range(5):
+            self.factory.create(
+                status__name=StatusInvitationEnums.pending)
+
+        invitation = self.factory.create(
+            status__name=StatusInvitationEnums.check_in)
+
+        # WHEN
+        self.validate_response_filter(
+            invitation, {'status': invitation.status.pk})
+
+    def test_can_filter_by_date_in(self):
+        # GIVEN
+        for _ in range(5):
+            self.factory.create()
+
+        invitation = self.factory.create()
+
+        # WHEN
+        date_entry = invitation.date_entry.strftime("%Y-%m-%d")
+        self.validate_response_filter(invitation, {'date_entry': date_entry})
+
+    def test_can_filter_by_property_address(self):
+        # GIVEN
+        for _ in range(5):
+            self.factory.create()
+
+        invitation = self.factory.create(ownership__address='Dirección')
+
+        self.validate_response_filter(invitation, {'search': invitation.ownership.address})
+
+    def test_can_filter_by_number(self):
+            # GIVEN
+        for _ in range(5):
+            self.factory.create()
+        invitation = self.factory.create()
+
+        # WHEN
+        self.validate_response_filter(invitation, {'search': invitation.number})
 
 
 class TestTypeInvitationTestCase(APITestCase):
@@ -387,3 +451,24 @@ class TestTypeInvitationTestCase(APITestCase):
         type_invitation = response.json()
         ok_(type_invitation.get('id'))
         ok_(type_invitation.get('name') is not None)
+
+
+class TestStatusInvitation(APITestCase):
+
+    def setUp(self):
+        self.url = '/api/v1/status-invitation/'
+
+        self.user = UserFactory.create()
+        self.user.groups.create(name=GroupsEnums.application)
+        self.client.force_login(user=self.user)
+
+    def test_get_request_success(self):
+        # GIVEN
+        StatusInvitationFactory.create(name=StatusInvitationEnums.cancel)
+
+        # WHEN
+        response = self.client.get(self.url)
+
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.json()), 1)

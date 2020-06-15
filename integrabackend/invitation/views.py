@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 
-from . import models, serializers, mixins, enums, permissions, helpers
+from . import models, serializers, mixins, enums, permissions, helpers, filters
 from ..resident.models import Property
 
 
@@ -16,10 +16,7 @@ class InvitationViewSet(viewsets.ModelViewSet):
     CRUD Invitation
     """
     filter_backends = (DjangoFilterBackend,)
-    filter_fields = [
-        'number',
-        'ownership__address',
-        'invitated__name']
+    filter_class = filters.InvitationFilter
 
     permission_classes = [permissions.OnlyUpdatePending]
     queryset = models.Invitation.objects.all()
@@ -120,6 +117,18 @@ class TypeInvitationViewSet(viewsets.ReadOnlyModelViewSet):
             instance=typeinvitation_proyect)
 
         return Response(serializer.data)
+
+
+class StatusInvitationViewSet(
+        mixins.ModelTranslateMixin,
+        viewsets.ReadOnlyModelViewSet
+    ):
+    queryset = models.StatusInvitation.objects.all()
+    serializer_class = serializers.StatusInvitationSerializer
+    serializer_language = dict(
+        en=serializers.StatusInvitationSerializer,
+        es=serializers.StatusInvitationESSerializer
+    )
 
 
 class MedioViewSet(

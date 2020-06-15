@@ -98,7 +98,7 @@ class OrganizationFactory(factory.django.DjangoModelFactory):
 class PropertyFactory(factory.django.DjangoModelFactory):
     id_sap = "".join([str(random.randint(1, 9)) for _ in range(10)]) 
     name = factory.Sequence(lambda n: f'testuser{n}')
-    address = factory.Sequence(lambda n: f'address {n}')
+    address = factory.Sequence(lambda n: f'{n}')
     street = factory.Sequence(lambda n: f'street {n}')
     number = "".join([str(random.randint(1, 9)) for _ in range(5)]) 
     property_type = factory.SubFactory(PropertyTypeFactory) 
