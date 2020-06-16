@@ -12,7 +12,7 @@ from integrabackend.solicitude import enums
 from integrabackend.solicitude.views import get_value_or_404
 from integrabackend.payment.models import Invoice
 from integrabackend.payment.enums import StatusCompensation, StatusInvoices
-from oraculo.gods.exceptions import BadRequest, NotFound
+from oraculo.gods.exceptions import BadRequest, NotFound, InternalServer
 from oraculo.gods.faveo import APIClient as APIClientFaveo
 from oraculo.gods.sita_db import APIClient as APIClientSitaDB
 from oraculo.gods.sap import APIClient as APIClientERP
@@ -353,3 +353,21 @@ class TemporalInvoiceViewSet(viewsets.ViewSet):
         except (NotFound, BadRequest) as exception:
             error = dict(error=str(exception))
             return Response(error, status.HTTP_404_NOT_FOUND)
+
+
+class ExchangeRateViewSet(viewsets.ViewSet):
+    url = 'api_portal_clie/dolar_exchange'
+
+    def list(self, request):
+        try:
+            return Response(
+                APIClientERP().get(self.url)
+            )
+        except BadRequest as exception:
+            error = dict(error=str(exception))
+            return Response(error, status.HTTP_400_BAD_REQUEST)
+        except InternalServer as exception:
+            error = dict(error=str(exception))
+            return Response(
+                error,
+                status.HTTP_500_INTERNAL_SERVER_ERROR)

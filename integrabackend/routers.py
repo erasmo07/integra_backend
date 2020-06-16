@@ -134,6 +134,12 @@ router.register(
     base_name='temporal_invoice'
 )
 
+router.register(
+    r'sap/exchange-rate',
+    proxys.ExchangeRateViewSet,
+    base_name='sap_exchange_rate'
+)
+
 # WEBHOOK
 router.register(
     r'faveo-webhook',

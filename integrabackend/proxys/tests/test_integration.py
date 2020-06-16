@@ -1,3 +1,5 @@
+import random
+
 from django.forms.models import model_to_dict
 from django.test import TestCase, override_settings
 from mock import MagicMock, patch
@@ -10,7 +12,8 @@ from integrabackend.payment.tests.factories import (InvoiceFactory,
 from integrabackend.solicitude import helpers
 from integrabackend.solicitude.tests.test_helpers import create_service_request
 from integrabackend.users.test.factories import UserFactory
-import random
+
+from oraculo.gods.exceptions import InternalServer, BadRequest
 
 
 class TestFaveoTicketDetailTestCase(APITestCase):
@@ -218,3 +221,63 @@ class TestTemporalInvoice(APITestCase):
         response = self.client.post(self.url, body)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
+class TestExangeRate(TestCase):
+    
+    def setUp(self):
+        self.url = '/api/v1/sap/exchange-rate/'
+
+    def test_get_request_without_authentication(self):
+        # WHEN
+        response = self.client.get(self.url)
+    
+        # THEN
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN)
+    
+    def test_get_request_success(self):
+        # GIVEN
+        self.client.force_login(user=UserFactory.create())
+    
+        # WHEN
+        response = self.client.get(self.url)
+    
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+    
+    @patch('integrabackend.proxys.views.APIClientERP')
+    def test_get_request_sap_raise_internal_server_error(self, mock_client):
+        # GIVEN
+        self.client.force_login(user=UserFactory.create())
+        
+        mock = MagicMock()
+        mock.get.side_effect = InternalServer()
+
+        mock_client.return_value = mock
+    
+        # WHEN
+        response = self.client.get(self.url)
+    
+        # THEN
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @patch('integrabackend.proxys.views.APIClientERP')
+    def test_get_request_sap_raise_bad_request(self, mock_client):
+        # GIVEN
+        self.client.force_login(user=UserFactory.create())
+
+        mock = MagicMock()
+        mock.get.side_effect = BadRequest()
+
+        mock_client.return_value = mock
+    
+        # WHEN
+        response = self.client.get(self.url)
+    
+        # THEN
+        self.assertEqual(
+            response.status_code, status.HTTP_400_BAD_REQUEST)
