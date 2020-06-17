@@ -87,6 +87,34 @@ class InvitationViewSet(viewsets.ModelViewSet):
         )
         self.object.save()
         return Response({}, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['POST'], url_path='check-in')
+    def check_in(self, request, pk):
+        if not request.user.is_security_agent:
+            raise exceptions.PermissionDenied()
+
+        self.object = self.get_object()
+        if hasattr(self.object, 'checkin'):
+            msg = 'Invitation has check-in relationship'
+            raise exceptions.ParseError(detail=msg)
+
+        serializer = serializers.CheckInSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        terminal = models.Terminal.objects.get(
+            pk=serializer.initial_data.get('terminal'))
+
+        if not terminal.check_point.type_invitation_allowed.filter(
+            id=self.object.type_invitation.id
+        ):
+            raise exceptions.PermissionDenied()
+        
+        serializer.save(invitation=self.object, user=self.request.user)
+
+        self.object.status, _ = models.StatusInvitation.objects.get_or_create(
+            name=enums.StatusInvitationEnums.check_in)
+        self.object.save()
+        return Response(serializer.data, status.HTTP_201_CREATED)
 
 
 class TypeInvitationViewSet(viewsets.ReadOnlyModelViewSet):

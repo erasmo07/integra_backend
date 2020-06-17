@@ -13,14 +13,12 @@ class InvitationCreateTest(InvitationTestBase, APITestCase):
 
         self.invitation_data = {
             'type_invitation': str(self.friends_and_family.pk),
-            'invitated': [
-                {
+            'invitated': {
                     'name': 'Julio Voltio',
                     'email': 'jvoltio@nomail.com',
                     'identification': '123-0034569-4',
                     'type_identification': str(self.cedula.id),
-                }
-            ],
+            },
             'total_companions': 2,
             'date_entry': '2010-12-31',
             'date_out': '2010-12-31',
@@ -56,4 +54,4 @@ class InvitationCreateTest(InvitationTestBase, APITestCase):
                 continue
             self.assertEqual(current_field, invitation_data[key])
 
-        self.assertEqual(invitation.invitated.count(), 1)
+        self.assertIsNotNone(invitation.invitated)

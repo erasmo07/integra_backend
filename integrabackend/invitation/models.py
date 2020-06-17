@@ -116,7 +116,7 @@ class Invitation(models.Model):
         "resident.Property",
         on_delete=models.CASCADE)
 
-    invitated = models.ManyToManyField('resident.Person')
+    invitated = models.ForeignKey("resident.Person", on_delete=models.CASCADE)
     total_companions = models.IntegerField(null=True, blank=True, default=0)
 
     @property
@@ -154,3 +154,60 @@ class Invitation(models.Model):
                 return self.save(*args, **kwargs)
             self.number = number
         super(Invitation, self).save(*args, **kwargs)
+
+
+class CheckPoint(models.Model):
+    """Model definition for CheckPoint."""
+
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4, editable=False)
+    name = models.CharField('Nombre', max_length=250)
+    description = models.TextField('Descripción')
+    address = models.CharField('Dirección', max_length=550)
+
+    type_invitation_allowed = models.ManyToManyField(
+        "invitation.TypeInvitation")
+    areas = models.ManyToManyField("resident.Area")
+
+    def __str__(self):
+        """Unicode representation of CheckPoint."""
+        return f'{self.name}'
+
+
+class Terminal(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4, editable=False)
+    name = models.CharField('Nombre', max_length=250)
+    ip_address = models.GenericIPAddressField()
+    is_active = models.BooleanField(default=True)
+
+    check_point = models.ForeignKey(
+        "invitation.CheckPoint",
+        on_delete=models.DO_NOTHING)
+
+
+class CheckIn(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4, editable=False)
+    note = models.CharField('Nota', max_length=50)
+    total_companions = models.IntegerField()
+    date = models.DateTimeField(auto_now_add=True)
+
+    user = models.ForeignKey("users.User", on_delete=models.DO_NOTHING)
+    terminal = models.ForeignKey("invitation.Terminal", on_delete=models.DO_NOTHING)
+
+    invitation = models.OneToOneField(
+        "invitation.Invitation", on_delete=models.CASCADE)
+    guest = models.ForeignKey(
+        "resident.Person",
+        on_delete=models.DO_NOTHING,
+        related_name='check_in_guest')
+    persons = models.ManyToManyField(
+        "resident.Person",
+        related_name='check_in_persons')
+    transport = models.ForeignKey(
+        "invitation.Transportation", on_delete=models.DO_NOTHING)
+    

@@ -1,5 +1,5 @@
 import random
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 
 import factory
 import factory.fuzzy
@@ -7,7 +7,7 @@ import factory.fuzzy
 from integrabackend.resident.test.factories import PropertyFactory
 from integrabackend.users.test.factories import UserFactory
 
-from ...resident.test.factories import ResidentFactory
+from ...resident.test.factories import ResidentFactory, PersonFactory
 from ..models import TypeInvitation
 
 
@@ -30,16 +30,15 @@ class InvitationFactory(factory.django.DjangoModelFactory):
         model = 'invitation.Invitation'
 
     id = factory.Faker('uuid4')
-    date_entry = factory.fuzzy.FuzzyDateTime(
-        datetime(2008, 1, 1, tzinfo=timezone.utc))
-    date_out = factory.fuzzy.FuzzyDateTime(
-        datetime(2008, 1, 1, tzinfo=timezone.utc))
+    date_entry = factory.fuzzy.FuzzyDate(date(2008, 1, 1))
+    date_out = factory.fuzzy.FuzzyDate(date(2008, 1, 1))
     note = int("".join([str(random.randint(1, 9)) for _ in range(5)]))
 
     create_by = factory.SubFactory(UserFactory)
     type_invitation = factory.SubFactory(TypeInvitationFactory)
     ownership = factory.SubFactory(PropertyFactory)
     status = factory.SubFactory(StatusInvitationFactory)
+    invitated = factory.SubFactory(PersonFactory)
 
 
 class ColorFactory(factory.django.DjangoModelFactory):
@@ -59,6 +58,38 @@ class TransportationFactory(factory.django.DjangoModelFactory):
     plate = 'A12345678'
     color = factory.SubFactory(ColorFactory)
     medio = factory.SubFactory(MedioFactory)
+
+
+class CheckPointFactory(factory.django.DjangoModelFactory):
+    name = int("".join([str(random.randint(1, 9)) for _ in range(5)]))
+    description = int("".join([str(random.randint(1, 9)) for _ in range(5)]))
+    address = int("".join([str(random.randint(1, 9)) for _ in range(5)]))
+
+    class Meta:
+        model = 'invitation.CheckPoint'
+
+
+class TerminalFactory(factory.django.DjangoModelFactory):
+    name = int("".join([str(random.randint(1, 9)) for _ in range(5)]))
+    ip_address = '0.0.0.0'
+    check_point = factory.SubFactory(CheckPointFactory)
+
+
+    class Meta:
+        model = 'invitation.Terminal'
+
+
+class CheckInFactory(factory.django.DjangoModelFactory):
+    guest = factory.SubFactory(PersonFactory)
+    transport = factory.SubFactory(TransportationFactory)
+    note = int("".join([str(random.randint(1, 9)) for _ in range(5)]))
+    total_companions = 2
+
+    user = factory.SubFactory(UserFactory)
+    terminal = factory.SubFactory(TerminalFactory)
+
+    class Meta:
+        model = 'invitation.CheckIn'
 
 
 class SupplierFactory(factory.django.DjangoModelFactory):

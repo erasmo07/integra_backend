@@ -10,6 +10,10 @@ from datetime import date
 class UpdateInvitationTest(InvitationTestBase, APITestCase):
 
     def setUp(self):
+        self.person = PersonFactory.create(
+            create_by=self.gpc_user,
+            type_identification=self.cedula,
+        )
         self.invitation = InvitationFactory.create(
             create_by=self.gpc_user,
             status=self.pending,
@@ -18,26 +22,20 @@ class UpdateInvitationTest(InvitationTestBase, APITestCase):
             date_entry='2010-11-08',
             date_out='2010-11-08',
             note='Lets have a good time!',
+            invitated=self.person
         )
-        self.person = PersonFactory.create(
-            create_by=self.gpc_user,
-            type_identification=self.cedula,
-        )
-        self.invitation.invitated.add(self.person)
-
+        
         self.url = reverse('invitation-detail', args=[self.invitation.pk])
 
         self.invitation_data = {
             'type_invitation': str(self.friends_and_family.pk),
-            'invitated': [
-                {
-                    'id': str(self.person.id),
-                    'name': 'Julio Voltio',
-                    'email': 'jvoltio@nomail.com',
-                    'identification': '123-0034569-4',
-                    'type_identification': str(self.person.type_identification.id),
-                }
-            ],
+            'invitated':{
+                'id': str(self.person.id),
+                'name': 'Julio Voltio',
+                'email': 'jvoltio@nomail.com',
+                'identification': '123-0034569-4',
+                'type_identification': str(self.person.type_identification.id),
+            },
             'total_companions': 2,
             'date_entry': '2010-12-31',
             'date_out': '2010-12-31',
@@ -56,8 +54,7 @@ class UpdateInvitationTest(InvitationTestBase, APITestCase):
 
         # Assert
         self.assertEqual(response.status_code, 200)
-        self.invitation = self.invitation.__class__.objects.get(
-            pk=self.invitation.pk)
+        self.invitation.refresh_from_db()
         self.assertEqual(self.invitation.total_companions, 2)
         self.assertEqual(self.invitation.date_entry, date(2010, 12, 31))
         self.assertEqual(self.invitation.date_out, date(2010, 12, 31))
@@ -65,11 +62,10 @@ class UpdateInvitationTest(InvitationTestBase, APITestCase):
         self.assertEqual(self.invitation.note, self.invitation_data.get('note'))
 
         # Assert updated guest :)
-        self.assertEqual(self.invitation.invitated.count(), 1)
-        guest = self.invitation.invitated.first()
-        self.assertEqual(guest.name, 'Julio Voltio')
-        self.assertEqual(guest.email, 'jvoltio@nomail.com')
-        self.assertEqual(guest.identification, '123-0034569-4')
+        self.assertIsNotNone(self.invitation.invitated)
+        self.assertEqual(self.invitation.invitated.name, 'Julio Voltio')
+        self.assertEqual(self.invitation.invitated.email, 'jvoltio@nomail.com')
+        self.assertEqual(self.invitation.invitated.identification, '123-0034569-4')
 
     def test_change_invitation_from_friend_to_supplier(self):
         # Arrange

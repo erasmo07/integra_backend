@@ -22,9 +22,6 @@ def notify_invitation(
     if invitation.is_supplier:
         return
 
-    if not invitation.invitated.exists():
-        return
-    
     if not invitation.barcode:
         barcode.get(
             'ean13',
@@ -37,16 +34,13 @@ def notify_invitation(
                 f'invitation_{invitation.number}.png',
                 File(f), save=True)
 
-    emails = list(
-        invitation.invitated.values_list('email', flat=True))
-
     email_template = get_template(email_template)
 
     invitation_property = [
         ('Propiedad a vistiar', invitation.ownership.address),
-        ('Nombre del invitado (titular)', invitation.invitated.first().name),
+        ('Nombre del invitado (titular)', invitation.invitated.name),
         ('Número de acompañantes', 3),
-        ('Identificación', invitation.invitated.first().identification),
+        ('Identificación', invitation.invitated.identification),
         ('Fecha de inicio de la visita',
          invitation.date_entry.strftime('%d-%m-%Y')),
         ('Fecha en que termina la visita',
@@ -63,7 +57,7 @@ def notify_invitation(
         Subjects.send_notification,
         email_template.render(context),
         settings.DEFAULT_FROM_EMAIL,
-        to=[emails], cc=[invitation.create_by.email])
+        to=[invitation.invitated.email], cc=[invitation.create_by.email])
     msg.content_subtype = "html"  # Main content is now text/html
     msg.send()
 

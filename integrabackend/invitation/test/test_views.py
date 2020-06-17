@@ -1,26 +1,28 @@
-from django.urls import reverse
+import datetime
+import json
+import uuid
+
+from django.conf import settings
 from django.core import mail
 from django.forms.models import model_to_dict
 from django.test import override_settings
-
+from django.urls import reverse
+from nose.tools import eq_, ok_
 from rest_framework import status
 from rest_framework.test import APITestCase
-from nose.tools import eq_, ok_
 
-from ..models import Invitation
-from ..enums import StatusInvitationEnums, TypeInvitationEnums
-from ..serializers import InvitationSerializer
-from .factories import InvitationFactory, TypeInvitationFactory, StatusInvitationFactory
-from ...resident.test.factories import (
-    ResidentFactory, PersonFactory, TypeIdentificationFactory,
-    AreaFactory)
-from ...users.test.factories import UserFactory
-from ...users.enums import GroupsEnums
-import json
-import datetime
-from django.conf import settings
-import uuid
 from integrabackend.resident.models import Person
+
+from ...resident.test.factories import (AreaFactory, PersonFactory,
+                                        ResidentFactory,
+                                        TypeIdentificationFactory)
+from ...users.enums import GroupsEnums
+from ...users.test.factories import UserFactory
+from ..enums import StatusInvitationEnums, TypeInvitationEnums
+from ..models import Invitation, Transportation
+from ..serializers import InvitationSerializer
+from .factories import (CheckInFactory, InvitationFactory,
+                        StatusInvitationFactory, TypeInvitationFactory)
 
 
 def default(obj):
@@ -48,21 +50,46 @@ class TestInvitationTestCase(APITestCase):
 
     def setUp(self):
         self.base_name = 'invitation'
-        self.url = reverse('%s-list' % self.base_name)
         self.user = UserFactory.create()
-        invitation = InvitationFactory.create(create_by=self.user)
-        person = PersonFactory.create(
+        self.person = PersonFactory.create()
+        self.invitation = InvitationFactory.create(
             create_by=self.user,
-            type_identification=TypeIdentificationFactory.create())
-        invitation.invitated.add(person)
+            invitated=self.person)
+        
+        self.url = reverse('%s-list' % self.base_name)
+        self.url_check_in = f'{self.url}{self.invitation.pk}/check-in/'
 
         self.factory = InvitationFactory
+        self.factory_check_in = CheckInFactory
+        self.factory_area = AreaFactory
+
         self.data = model_to_dict(
-            invitation, exclude=['id', 'barcode', 'supplier'])
+            self.invitation, exclude=['id', 'barcode', 'supplier'])
         self.data['property'] = self.data.pop('ownership')
+        self.data['invitated'] = model_to_dict(self.person, exclude=['id'])
         self.client.force_authenticate(user=self.user)
 
         self.data_json = json.loads(json.dumps(self.data, default=default))
+    
+    def validation_for_success_checkin(self, check_in):
+        self.assertEqual(Transportation.objects.count(), 1)
+
+        self.invitation.refresh_from_db()
+
+        self.assertEqual(
+            self.invitation.status.name,
+            StatusInvitationEnums.check_in)
+        
+        self.assertIsNotNone(self.invitation.checkin)
+
+        self.assertEqual(self.invitation.invitated, self.invitation.checkin.guest)
+        self.assertEqual(check_in.guest.name, self.invitation.invitated.name)
+        self.assertEqual(
+            check_in.guest.type_identification,
+            self.invitation.invitated.type_identification)
+        self.assertEqual(
+            check_in.guest.identification,
+            self.invitation.invitated.identification)
 
     def test_put_request_cant_update_invitation_checkin(self):
         # GIVEN
@@ -89,11 +116,12 @@ class TestInvitationTestCase(APITestCase):
         # GIVEN
         invitation = self.factory.create(
             status__name=StatusInvitationEnums.pending,
-            create_by=self.user)
+            create_by=self.user, invitated=self.person)
 
         data = model_to_dict(
             self.factory.create(),
             exclude=['id', 'barcode', 'supplier'])
+        data['invitated'] = model_to_dict(self.person, exclude=['id'])
         data['property'] = data.pop('ownership')
         data_json = json.loads(json.dumps(data, default=default))
 
@@ -105,8 +133,8 @@ class TestInvitationTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         invitation.refresh_from_db()
-        self.assertEqual(invitation.date_entry, data.get('date_entry').date())
-        self.assertEqual(invitation.date_out, data.get('date_out').date())
+        self.assertEqual(invitation.date_entry, data.get('date_entry'))
+        self.assertEqual(invitation.date_out, data.get('date_out'))
         self.assertEqual(invitation.note, str(data.get('note')))
 
     def test_post_request_with_no_data_fails(self):
@@ -114,14 +142,15 @@ class TestInvitationTestCase(APITestCase):
         eq_(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_post_request_with_valid_data_succeeds(self):
-        response = self.client.post(self.url, data=self.data_json)
+        response = self.client.post(
+            self.url, data=self.data_json, format='json')
         eq_(response.status_code, status.HTTP_201_CREATED)
 
         invitation = Invitation.objects.get(pk=response.data.get('id'))
         eq_(str(invitation.create_by.id), self.data.get('create_by'))
 
     def test_get_request_list_succeeds(self):
-        response = self.client.post(self.url, self.data_json)
+        response = self.client.post(self.url, self.data_json, format='json')
         eq_(response.status_code, status.HTTP_201_CREATED)
 
         response = self.client.get(self.url)
@@ -150,7 +179,7 @@ class TestInvitationTestCase(APITestCase):
 
     def test_cant_backoffice_resend_invitation(self):
         # GIVEN
-        response = self.client.post(self.url, self.data_json)
+        response = self.client.post(self.url, self.data_json, format='json')
 
         # WHEN
         user = UserFactory()
@@ -166,7 +195,7 @@ class TestInvitationTestCase(APITestCase):
 
     def test_cant_application_resend_invitation(self):
         # GIVEN
-        response = self.client.post(self.url, self.data_json)
+        response = self.client.post(self.url, self.data_json, format='json')
 
         # WHEN
         user = UserFactory()
@@ -200,8 +229,8 @@ class TestInvitationTestCase(APITestCase):
         invitation = InvitationFactory.create(
             create_by=self.user,
             status__name=StatusInvitationEnums.pending,
-            type_invitation__name=TypeInvitationEnums.friend_and_family)
-        invitation.invitated.add(PersonFactory.create())
+            type_invitation__name=TypeInvitationEnums.friend_and_family,
+            invitated=PersonFactory.create())
 
         # WHEN
         url = f'/api/v1/invitation/{invitation.pk}/resend-notification/'
@@ -234,8 +263,8 @@ class TestInvitationTestCase(APITestCase):
         # GIVEN
         invitation = InvitationFactory.create(
             create_by=self.user,
-            status__name=StatusInvitationEnums.pending)
-        invitation.invitated.add(PersonFactory.create())
+            status__name=StatusInvitationEnums.pending,
+            invitated=PersonFactory.create())
 
         # WHEN
         url = f'/api/v1/invitation/{invitation.pk}/cancel/'
@@ -305,12 +334,12 @@ class TestInvitationTestCase(APITestCase):
             self.factory.create(
                 ownership__project__area=area)
 
-        invitation = self.factory.create(
-            ownership__project__area=area)
         person = PersonFactory.create(
             create_by=self.user,
             type_identification=TypeIdentificationFactory.create())
-        invitation.invitated.add(person)
+
+        invitation = self.factory.create(
+            ownership__project__area=area, invitated=person)
 
         # WHEN
         response = self.client.get(
@@ -321,7 +350,7 @@ class TestInvitationTestCase(APITestCase):
         eq_(len(response.json()), 1)
         self.assertEqual(
             person.name, 
-            response.json()[0].get('invitated')[0].get('name'))
+            response.json()[0].get('invitated').get('name'))
 
     def test_can_search_by_property_address(self):
         # GIVEN
@@ -422,6 +451,171 @@ class TestInvitationTestCase(APITestCase):
 
         # WHEN
         self.validate_response_filter(invitation, {'search': invitation.number})
+    
+    def test_only_security_agent_do_checking(self):
+        # WHEN
+        response = self.client.post(self.url_check_in, {})
+    
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+    
+    def test_only_check_in_agent_areas(self):
+        # GIVEN
+        self.user.groups.create(name=GroupsEnums.security_agent)
+
+        check_in = self.factory_check_in.create(invitation=self.invitation)
+        data = model_to_dict(check_in, exclude=['id', 'invitation'])
+    
+        # WHEN
+        response = self.client.post(self.url_check_in, data)
+    
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+    
+    def test_only_check_in_type_invitation_allowed(self):
+        # GIVEN
+        area = self.factory_area.create()
+        self.user.areapermission_set.create(area=area)
+        self.user.groups.create(name=GroupsEnums.security_agent)
+
+        self.invitation.ownership.project.area = area
+        self.invitation.ownership.project.save()
+
+        check_in = self.factory_check_in.create(invitation=self.invitation)
+        data = model_to_dict(check_in, exclude=['id', 'invitation'])
+        data['guest'] = model_to_dict(check_in.guest, exclude=['id'])
+        data['transport'] = model_to_dict(check_in.transport, exclude=['id'])
+        check_in.delete()
+    
+        # WHEN
+        response = self.client.post(self.url_check_in, data, format='json')
+    
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+    
+    def test_invitation_only_can_has_one_checkin(self):
+        # GIVEN
+        area = self.factory_area.create()
+        self.user.areapermission_set.create(area=area)
+        self.user.groups.create(name=GroupsEnums.security_agent)
+
+        self.invitation.ownership.project.area = area
+        self.invitation.ownership.project.save()
+
+        check_in = self.factory_check_in.create(invitation=self.invitation)
+        data = model_to_dict(check_in, exclude=['id', 'invitation'])
+        data['guest'] = model_to_dict(check_in.guest, exclude=['id'])
+        data['transport'] = model_to_dict(check_in.transport, exclude=['id'])
+    
+        # WHEN
+        response = self.client.post(self.url_check_in, data, format='json')
+    
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_success_path_only_invitated_to_create_checkin(self):
+        # GIVEN
+        area = self.factory_area.create()
+        self.user.areapermission_set.create(area=area)
+        self.user.groups.create(name=GroupsEnums.security_agent)
+
+        self.invitation.ownership.project.area = area
+        self.invitation.ownership.project.save()
+
+        check_in = self.factory_check_in.create(invitation=self.invitation)
+        data = model_to_dict(check_in, exclude=['id', 'invitation'])
+        data['guest'] = model_to_dict(
+            check_in.guest,
+            fields=['name', 'type_identification', 'identification'])
+        data['transport'] = model_to_dict(check_in.transport, exclude=['id'])
+        check_in.terminal.check_point.type_invitation_allowed.add(
+            self.invitation.type_invitation)
+
+        check_in.delete()
+    
+        # WHEN
+        response = self.client.post(self.url_check_in, data, format='json')
+    
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.validation_for_success_checkin(check_in)
+    
+    def test_success_path_with_persons_invitated_to_create_checkin(self):
+        # GIVEN
+        area = self.factory_area.create()
+        self.user.areapermission_set.create(area=area)
+        self.user.groups.create(name=GroupsEnums.security_agent)
+
+        self.invitation.ownership.project.area = area
+        self.invitation.ownership.project.save()
+
+        check_in = self.factory_check_in.create(invitation=self.invitation)
+        data = model_to_dict(check_in, exclude=['id', 'invitation'])
+        data['transport'] = model_to_dict(check_in.transport, exclude=['id'])
+        data['guest'] = model_to_dict(
+            check_in.guest,
+            fields=['name', 'type_identification', 'identification'])
+        data['persons'] = [
+            model_to_dict(
+                PersonFactory.create(), exclude=['id']
+            ) for _ in range(5)]
+
+        check_in.terminal.check_point.type_invitation_allowed.add(
+            self.invitation.type_invitation)
+
+        check_in.delete()
+    
+        # WHEN
+        response = self.client.post(self.url_check_in, data, format='json')
+    
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.validation_for_success_checkin(check_in)
+
+        self.assertEqual(self.invitation.checkin.persons.count(), 5)
+
+    def test_success_path_with_same_person(self):
+            # GIVEN
+        area = self.factory_area.create()
+        self.user.areapermission_set.create(area=area)
+        self.user.groups.create(name=GroupsEnums.security_agent)
+
+        self.invitation.ownership.project.area = area
+        self.invitation.ownership.project.save()
+
+        check_in = self.factory_check_in.create(
+            invitation=self.invitation)
+
+        data = model_to_dict(check_in, exclude=['id', 'invitation'])
+        data['transport'] = model_to_dict(
+            check_in.transport, exclude=['id'])
+
+        data['guest'] = model_to_dict(
+            check_in.guest,
+            fields=['name', 'type_identification', 'identification'])
+
+        data['persons'] = [model_to_dict(
+            self.person, exclude=['id', 'create_by'])]
+
+        check_in.terminal.check_point.type_invitation_allowed.add(
+            self.invitation.type_invitation)
+
+        check_in.delete()
+    
+        # WHEN
+        response = self.client.post(
+            self.url_check_in, data, format='json')
+    
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.validation_for_success_checkin(check_in)
+
+        self.assertEqual(self.invitation.checkin.persons.count(), 1)
+
+        self.assertEqual(
+            Person.objects.filter(
+                **data.get('persons')[0]
+            ).count(), 1)
 
 
 class TestTypeInvitationTestCase(APITestCase):
