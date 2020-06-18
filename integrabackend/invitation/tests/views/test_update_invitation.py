@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
-from rest_framework.test import APITestCase
-from integrabackend.invitation.tests.base import InvitationTestBase
-from django.urls import reverse
-from integrabackend.invitation.test.factories import InvitationFactory
-from integrabackend.resident.test.factories import PersonFactory
 from datetime import date
+
+from django.test import override_settings
+from django.core import mail
+from django.urls import reverse
+from rest_framework.test import APITestCase
+
+from integrabackend.invitation.test.factories import InvitationFactory
+from integrabackend.invitation.tests.base import InvitationTestBase
+from integrabackend.resident.test.factories import PersonFactory
 
 
 class UpdateInvitationTest(InvitationTestBase, APITestCase):
@@ -43,6 +47,7 @@ class UpdateInvitationTest(InvitationTestBase, APITestCase):
             'note': 'This is a super note.',
         }
 
+    @override_settings(CELERY_ALWAYS_EAGER=True)
     def test_update_invitation_friends_and_family(self):
         # Arrange
         access = self.gpc_user.accessapplication_set.first()
@@ -67,6 +72,10 @@ class UpdateInvitationTest(InvitationTestBase, APITestCase):
         self.assertEqual(self.invitation.invitated.email, 'jvoltio@nomail.com')
         self.assertEqual(self.invitation.invitated.identification, '123-0034569-4')
 
+        # Assert send email
+        self.assertEqual(len(mail.outbox), 1)
+
+    @override_settings(CELERY_ALWAYS_EAGER=True)
     def test_change_invitation_from_friend_to_supplier(self):
         # Arrange
         access = self.gpc_user.accessapplication_set.first()
@@ -97,3 +106,5 @@ class UpdateInvitationTest(InvitationTestBase, APITestCase):
         self.assertEqual(self.invitation.type_invitation, self.supplier)
         self.assertIsNotNone(self.invitation.supplier)
         self.assertEqual(self.invitation.supplier.name, 'Sh it supply')
+
+        self.assertEqual(len(mail.outbox), 0)

@@ -56,6 +56,11 @@ class InvitationViewSet(viewsets.ModelViewSet):
 
         helpers.notify_invitation.delay(serializer.instance.id.hex)
     
+    def perform_update(self, serializer):
+        super(InvitationViewSet, self).perform_update(serializer)
+
+        helpers.notify_invitation.delay(serializer.instance.id.hex)
+    
     @action(detail=True, methods=['POST'], url_path='resend-notification')
     def resend_notification(self, request, pk):
         if request.user.is_aplication or request.user.is_backoffice:

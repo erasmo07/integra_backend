@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from rest_framework.test import APITestCase
 from integrabackend.invitation.tests.base import InvitationTestBase
+from django.core import mail
 from django.urls import reverse
 from integrabackend.invitation.test.factories import (
     InvitationFactory, SupplierFactory)
@@ -68,3 +69,4 @@ class UpdateInvitationTest(InvitationTestBase, APITestCase):
         # Assert
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), self.expected_json)
+        self.assertEqual(len(mail.outbox), 0)

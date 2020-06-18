@@ -115,9 +115,6 @@ class InvitationSerializer(serializers.ModelSerializer):
     supplier = SupplierSerializer(required=False)
     type_invitation = TypeInvitationField(
         queryset=models.TypeInvitation.objects.all())
-    property = PropertyField(
-        source='ownership', queryset=Property.objects.all()
-    )
     status = serializers.SlugRelatedField(
         read_only=True, slug_field='name')
 
@@ -128,6 +125,7 @@ class InvitationSerializer(serializers.ModelSerializer):
             'date_out', 'invitated', 'note', 'number',
             'supplier', 'status', 'property', 'area', 'total_companions')
         read_only_fields = ('id', 'number', 'area')
+        extra_kwargs = {'property': {'source': 'ownership'}}
     
     def validate(self, data):
         supplier = enums.TypeInvitationEnums.supplier
