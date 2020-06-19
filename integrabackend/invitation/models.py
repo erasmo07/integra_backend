@@ -180,7 +180,7 @@ class Terminal(models.Model):
         primary_key=True,
         default=uuid.uuid4, editable=False)
     name = models.CharField('Nombre', max_length=250)
-    ip_address = models.GenericIPAddressField()
+    ip_address = models.GenericIPAddressField(unique=True)
     is_active = models.BooleanField(default=True)
 
     check_point = models.ForeignKey(
@@ -192,7 +192,8 @@ class CheckIn(models.Model):
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid4, editable=False)
-    note = models.CharField('Nota', max_length=50)
+    note = models.CharField(
+        'Nota', max_length=50, blank=True, null=True)
     total_companions = models.IntegerField()
     date = models.DateTimeField(auto_now_add=True)
 

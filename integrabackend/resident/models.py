@@ -33,7 +33,7 @@ class Person(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=120)
     identification = models.CharField(max_length=30)
-    email = models.EmailField()
+    email = models.EmailField(blank=True, null=True)
     depurate = models.BooleanField(default=False)
 
     create_by = models.ForeignKey(

@@ -252,23 +252,23 @@ class CheckInSerializer(serializers.ModelSerializer):
     invitation = serializers.UUIDField(required=False)
     guest = PersonUpdateCheckinSerializer(required=True)
     persons = PersonSerializer(many=True, required=False)
-    terminal = serializers.PrimaryKeyRelatedField(
-        queryset=models.Terminal.objects.all(),
-        required=True
-    )
     transport = TransportationSerializer()
     
     class Meta:
         model = models.CheckIn
-        fields = "__all__"
+        exclude = ['user', 'terminal']
         read_only = (
             'id', 'invitation', 'user', 'date')
 
     def create(self, validated_data):
         persons = validated_data.pop('persons', [])
-        validated_data['transport'] = models.Transportation.objects.get_or_create(
-            **validated_data.pop('transport')
-        )[0]
+
+        transport = TransportationSerializer(
+            data=validated_data.pop('transport'))
+        transport.is_valid(raise_exception=True)
+        transport.save()
+
+        validated_data['transport'] = transport.instance
 
         guest = validated_data.pop('guest')
 
@@ -286,10 +286,16 @@ class CheckInSerializer(serializers.ModelSerializer):
         check_in = self.Meta.model.objects.create(**validated_data)
 
         for person in persons:
+            type_identification = person.pop('type_identification')
+            person['type_identification'] = type_identification.id
+            serializer = PersonSerializer(data=person)
+            serializer.is_valid(raise_exception=True)
+
             instance = Person.objects.filter(**person)
             if instance.exists():
                 check_in.persons.add(instance.first())
             else:
                 person['create_by_id'] = check_in.user.id
+                person['type_identification'] = type_identification
                 check_in.persons.add(Person.objects.create(**person))
         return check_in

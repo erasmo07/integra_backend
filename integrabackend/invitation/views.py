@@ -38,8 +38,8 @@ class InvitationViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = super(InvitationViewSet, self).get_queryset()
         if (
-            self.request.user.is_monitoring_center
-            or self.request.user.is_aplication
+            self.request.user.is_monitoring_center or
+            self.request.user.is_aplication
         ):
             return queryset
 
@@ -71,9 +71,9 @@ class InvitationViewSet(viewsets.ModelViewSet):
             raise exceptions.PermissionDenied('Invitation is not pending')
 
         helpers.notify_invitation.delay(self.object.id.hex)
-            
+
         return Response({}, status=status.HTTP_200_OK)
-    
+
     @action(detail=True, methods=['POST'], url_path='cancel')
     def cancel(self, request, pk):
         if request.user.is_aplication or request.user.is_backoffice:
@@ -121,6 +121,42 @@ class InvitationViewSet(viewsets.ModelViewSet):
         self.object.save()
         return Response(serializer.data, status.HTTP_201_CREATED)
 
+    @action(detail=True, methods=['POST'], url_path='check-in')
+    def check_in(self, request, pk):
+        if not request.user.is_security_agent:
+            raise exceptions.PermissionDenied()
+
+        self.object = self.get_object()
+        if hasattr(self.object, 'checkin'):
+            msg = 'Invitation has check-in relationship'
+            raise exceptions.ParseError(detail=msg)
+
+        serializer = serializers.CheckInSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        terminal = models.Terminal.objects.filter(
+            ip_address=self.request._request.META.get('REMOTE_ADDR'))
+
+        if not terminal.exists():
+            raise exceptions.PermissionDenied()
+
+        terminal = terminal.first()
+
+        if not terminal.check_point.type_invitation_allowed.filter(
+            id=self.object.type_invitation.id
+        ):
+            raise exceptions.PermissionDenied()
+
+        serializer.save(
+            invitation=self.object,
+            user=self.request.user,
+            terminal=terminal)
+
+        self.object.status, _ = models.StatusInvitation.objects.get_or_create(
+            name=enums.StatusInvitationEnums.check_in)
+        self.object.save()
+        return Response(serializer.data, status.HTTP_201_CREATED)
+
 
 class TypeInvitationViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -153,9 +189,9 @@ class TypeInvitationViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class StatusInvitationViewSet(
-        mixins.ModelTranslateMixin,
-        viewsets.ReadOnlyModelViewSet
-    ):
+    mixins.ModelTranslateMixin,
+    viewsets.ReadOnlyModelViewSet
+):
     queryset = models.StatusInvitation.objects.all()
     serializer_class = serializers.StatusInvitationSerializer
     serializer_language = dict(

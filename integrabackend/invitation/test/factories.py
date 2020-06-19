@@ -71,7 +71,7 @@ class CheckPointFactory(factory.django.DjangoModelFactory):
 
 class TerminalFactory(factory.django.DjangoModelFactory):
     name = int("".join([str(random.randint(1, 9)) for _ in range(5)]))
-    ip_address = '0.0.0.0'
+    ip_address = factory.Sequence(lambda n: f'127.0.0.{n}')
     check_point = factory.SubFactory(CheckPointFactory)
 
 

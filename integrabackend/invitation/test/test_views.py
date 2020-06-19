@@ -67,11 +67,31 @@ class TestInvitationTestCase(APITestCase):
             self.invitation, exclude=['id', 'barcode', 'supplier'])
         self.data['property'] = self.data.pop('ownership')
         self.data['invitated'] = model_to_dict(self.person, exclude=['id'])
+        self.data_json = json.loads(json.dumps(self.data, default=default))
+
         self.client.force_authenticate(user=self.user)
 
-        self.data_json = json.loads(json.dumps(self.data, default=default))
+        self.check_in = self.factory_check_in.create(
+            invitation=self.invitation,
+            terminal__ip_address='127.0.0.1')
+
+        self.check_in.terminal.check_point.type_invitation_allowed.add(
+            self.invitation.type_invitation)
+
+        self.checkin_data = model_to_dict(
+            self.check_in,
+            exclude=['id', 'invitation', 'user', 'terminal'])
+
+        self.checkin_data['guest'] = model_to_dict(
+            self.check_in.guest,
+            fields=['name', 'type_identification', 'identification'])
+
+        self.checkin_data['transport'] = model_to_dict(
+            self.check_in.transport, exclude=['id'])
+
+        self.check_in.delete()
     
-    def validation_for_success_checkin(self, check_in):
+    def validation_for_success_checkin(self):
         self.assertEqual(Transportation.objects.count(), 1)
 
         self.invitation.refresh_from_db()
@@ -83,12 +103,12 @@ class TestInvitationTestCase(APITestCase):
         self.assertIsNotNone(self.invitation.checkin)
 
         self.assertEqual(self.invitation.invitated, self.invitation.checkin.guest)
-        self.assertEqual(check_in.guest.name, self.invitation.invitated.name)
+        self.assertEqual(self.check_in.guest.name, self.invitation.invitated.name)
         self.assertEqual(
-            check_in.guest.type_identification,
+            self.check_in.guest.type_identification,
             self.invitation.invitated.type_identification)
         self.assertEqual(
-            check_in.guest.identification,
+            self.check_in.guest.identification,
             self.invitation.invitated.identification)
 
     def test_put_request_cant_update_invitation_checkin(self):
@@ -471,6 +491,25 @@ class TestInvitationTestCase(APITestCase):
     
         # THEN
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_only_check_and_terminal_not_exist(self):
+        # GIVEN
+        area = self.factory_area.create()
+        self.user.areapermission_set.create(area=area)
+        self.user.groups.create(name=GroupsEnums.security_agent)
+
+        self.invitation.ownership.project.area = area
+        self.invitation.ownership.project.save()
+
+        self.check_in.terminal.ip_address = '0.0.0.0'
+        self.check_in.terminal.save()
+
+        # WHEN
+        response = self.client.post(
+            self.url_check_in, self.checkin_data, format='json')
+    
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
     
     def test_only_check_in_type_invitation_allowed(self):
         # GIVEN
@@ -481,14 +520,14 @@ class TestInvitationTestCase(APITestCase):
         self.invitation.ownership.project.area = area
         self.invitation.ownership.project.save()
 
-        check_in = self.factory_check_in.create(invitation=self.invitation)
-        data = model_to_dict(check_in, exclude=['id', 'invitation'])
-        data['guest'] = model_to_dict(check_in.guest, exclude=['id'])
-        data['transport'] = model_to_dict(check_in.transport, exclude=['id'])
-        check_in.delete()
-    
+        self.invitation.type_invitation.checkpoint_set.first(
+        ).type_invitation_allowed.remove(
+            self.invitation.type_invitation
+        )
+
         # WHEN
-        response = self.client.post(self.url_check_in, data, format='json')
+        response = self.client.post(
+            self.url_check_in, self.checkin_data, format='json')
     
         # THEN
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
@@ -521,25 +560,39 @@ class TestInvitationTestCase(APITestCase):
 
         self.invitation.ownership.project.area = area
         self.invitation.ownership.project.save()
-
-        check_in = self.factory_check_in.create(invitation=self.invitation)
-        data = model_to_dict(check_in, exclude=['id', 'invitation'])
-        data['guest'] = model_to_dict(
-            check_in.guest,
-            fields=['name', 'type_identification', 'identification'])
-        data['transport'] = model_to_dict(check_in.transport, exclude=['id'])
-        check_in.terminal.check_point.type_invitation_allowed.add(
-            self.invitation.type_invitation)
-
-        check_in.delete()
     
         # WHEN
-        response = self.client.post(self.url_check_in, data, format='json')
+        response = self.client.post(
+            self.url_check_in, self.checkin_data, format='json')
     
         # THEN
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.validation_for_success_checkin(check_in)
+        self.validation_for_success_checkin()
     
+    def test_success_path_without_note(self):
+        # GIVEN
+        area = self.factory_area.create()
+        self.user.areapermission_set.create(area=area)
+        self.user.groups.create(name=GroupsEnums.security_agent)
+
+        self.invitation.ownership.project.area = area
+        self.invitation.ownership.project.save()
+
+        self.checkin_data['persons'] = [
+            model_to_dict(
+                PersonFactory.create(),
+                exclude=['id', 'email'])]
+
+        # WHEN
+        response = self.client.post(
+            self.url_check_in, self.checkin_data, format='json')
+    
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.validation_for_success_checkin()
+
+        self.assertEqual(self.invitation.checkin.persons.count(), 1)
+
     def test_success_path_with_persons_invitated_to_create_checkin(self):
         # GIVEN
         area = self.factory_area.create()
@@ -549,33 +602,23 @@ class TestInvitationTestCase(APITestCase):
         self.invitation.ownership.project.area = area
         self.invitation.ownership.project.save()
 
-        check_in = self.factory_check_in.create(invitation=self.invitation)
-        data = model_to_dict(check_in, exclude=['id', 'invitation'])
-        data['transport'] = model_to_dict(check_in.transport, exclude=['id'])
-        data['guest'] = model_to_dict(
-            check_in.guest,
-            fields=['name', 'type_identification', 'identification'])
-        data['persons'] = [
+        self.checkin_data['persons'] = [
             model_to_dict(
-                PersonFactory.create(), exclude=['id']
+                PersonFactory.create(), exclude=['id', 'email']
             ) for _ in range(5)]
 
-        check_in.terminal.check_point.type_invitation_allowed.add(
-            self.invitation.type_invitation)
-
-        check_in.delete()
-    
         # WHEN
-        response = self.client.post(self.url_check_in, data, format='json')
+        response = self.client.post(
+            self.url_check_in, self.checkin_data, format='json')
     
         # THEN
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.validation_for_success_checkin(check_in)
+        self.validation_for_success_checkin()
 
         self.assertEqual(self.invitation.checkin.persons.count(), 5)
 
     def test_success_path_with_same_person(self):
-            # GIVEN
+        # GIVEN
         area = self.factory_area.create()
         self.user.areapermission_set.create(area=area)
         self.user.groups.create(name=GroupsEnums.security_agent)
@@ -583,38 +626,22 @@ class TestInvitationTestCase(APITestCase):
         self.invitation.ownership.project.area = area
         self.invitation.ownership.project.save()
 
-        check_in = self.factory_check_in.create(
-            invitation=self.invitation)
+        self.checkin_data['persons'] = [model_to_dict(
+            self.person, exclude=['id', 'create_by', 'email'])]
 
-        data = model_to_dict(check_in, exclude=['id', 'invitation'])
-        data['transport'] = model_to_dict(
-            check_in.transport, exclude=['id'])
-
-        data['guest'] = model_to_dict(
-            check_in.guest,
-            fields=['name', 'type_identification', 'identification'])
-
-        data['persons'] = [model_to_dict(
-            self.person, exclude=['id', 'create_by'])]
-
-        check_in.terminal.check_point.type_invitation_allowed.add(
-            self.invitation.type_invitation)
-
-        check_in.delete()
-    
         # WHEN
         response = self.client.post(
-            self.url_check_in, data, format='json')
+            self.url_check_in, self.checkin_data, format='json')
     
         # THEN
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.validation_for_success_checkin(check_in)
+        self.validation_for_success_checkin()
 
         self.assertEqual(self.invitation.checkin.persons.count(), 1)
 
         self.assertEqual(
             Person.objects.filter(
-                **data.get('persons')[0]
+                **self.checkin_data.get('persons')[0]
             ).count(), 1)
 
 
