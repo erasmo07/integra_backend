@@ -1,41 +1,29 @@
 import uuid
 import random
 from django.db import models, IntegrityError
-from integrabackend.payment.models import Status
+from integrabackend.contrib.models import BaseModel, BaseStatus
 
 from . import enums
-
 
 def random_number():
     return str(random.randint(100000000000, 999999999999))
 
 
-class StatusInvitation(Status):
+class StatusInvitation(BaseStatus):
     pass
 
 
-class Medio(models.Model):
-    id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid4,
-        editable=False)
+class Medio(BaseModel):
     name = models.CharField('Name', max_length=50)
-    icon = models.CharField('Icon', max_length=50, blank=True, null=True)
+    icon = models.CharField(
+        'Icon', max_length=50, blank=True, null=True)
 
 
-class Color(models.Model):
-    id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid4,
-        editable=False)
+class Color(BaseModel):
     name = models.CharField('Nombre', max_length=50)
 
 
-class Transportation(models.Model):
-    id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid4,
-        editable=False)
+class Transportation(BaseModel):
     plate = models.CharField(
         'Plate', max_length=50,
         blank=True, null=True)
@@ -45,21 +33,13 @@ class Transportation(models.Model):
         "invitation.Medio", on_delete=models.CASCADE)
 
 
-class Supplier(models.Model):
-    id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid4,
-        editable=False)
+class Supplier(BaseModel):
     name = models.CharField('Name Suplier', max_length=250)
     transportation = models.ForeignKey(
         "invitation.Transportation", on_delete=models.CASCADE)
 
 
-class TypeInvitation(models.Model):
-    id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid4,
-        editable=False)
+class TypeInvitation(BaseModel):
     name = models.CharField(max_length=120)
 
     def __str__(self):
@@ -74,11 +54,7 @@ class TypeInvitation(models.Model):
         return self.typeinvitationproyect.not_available_days.all()
 
 
-class TypeInvitationProyect(models.Model):
-    id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid4,
-        editable=False)
+class TypeInvitationProyect(BaseModel):
     type_invitation = models.ForeignKey(
         "invitation.TypeInvitation", on_delete=models.CASCADE)
     project = models.ForeignKey(
@@ -89,8 +65,7 @@ class TypeInvitationProyect(models.Model):
         related_name='type_invitation_not_available_day')
 
 
-class Invitation(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+class Invitation(BaseModel):
     date_entry = models.DateField()
     date_out = models.DateField()
     cheking = models.DateTimeField(null=True, blank=True)
@@ -156,12 +131,8 @@ class Invitation(models.Model):
         super(Invitation, self).save(*args, **kwargs)
 
 
-class CheckPoint(models.Model):
+class CheckPoint(BaseModel):
     """Model definition for CheckPoint."""
-
-    id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid4, editable=False)
     name = models.CharField('Nombre', max_length=250)
     description = models.TextField('Descripción')
     address = models.CharField('Dirección', max_length=550)
@@ -175,10 +146,7 @@ class CheckPoint(models.Model):
         return f'{self.name}'
 
 
-class Terminal(models.Model):
-    id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid4, editable=False)
+class Terminal(BaseModel):
     name = models.CharField('Nombre', max_length=250)
     ip_address = models.GenericIPAddressField(unique=True)
     is_active = models.BooleanField(default=True)
@@ -188,12 +156,8 @@ class Terminal(models.Model):
         on_delete=models.DO_NOTHING)
 
 
-class CheckIn(models.Model):
-    id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid4, editable=False)
-    note = models.CharField(
-        'Nota', max_length=50, blank=True, null=True)
+class CheckIn(BaseModel):
+    note = models.CharField('Nota', max_length=50)
     total_companions = models.IntegerField()
     date = models.DateTimeField(auto_now_add=True)
 
@@ -211,4 +175,15 @@ class CheckIn(models.Model):
         related_name='check_in_persons')
     transport = models.ForeignKey(
         "invitation.Transportation", on_delete=models.DO_NOTHING)
-    
+
+
+class CheckOut(BaseModel):
+    date = models.DateTimeField(auto_now_add=True)
+
+    user = models.ForeignKey(
+        "users.User", on_delete=models.DO_NOTHING)
+    terminal = models.ForeignKey(
+        "invitation.Terminal", on_delete=models.DO_NOTHING)
+
+    invitation = models.OneToOneField(
+        "invitation.Invitation", on_delete=models.CASCADE)

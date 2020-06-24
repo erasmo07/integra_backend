@@ -4,38 +4,23 @@ from django.contrib.contenttypes.fields import GenericRelation, GenericForeignKe
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 
+from integrabackend.contrib.models import BaseStatus
 from . import enums
 
 
-class Status(models.Model):
-    id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid4,
-        editable=False
-    )
-    name = models.CharField(max_length=50)
-
-    class Meta:
-        abstract = True
-
-    def __unicode__(self):
-        """Unicode representation of StatusDocument."""
-        return self.name
-
-
-class StatusDocument(Status):
+class StatusDocument(BaseStatus):
     pass
 
 
-class StatusCreditcard(Status):
+class StatusCreditcard(BaseStatus):
     pass
 
 
-class StatusProcessPayment(Status):
+class StatusProcessPayment(BaseStatus):
     pass
 
 
-class StatusCompensation(Status):
+class StatusCompensation(BaseStatus):
     pass
 
 

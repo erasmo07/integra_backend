@@ -55,9 +55,10 @@ class TestInvitationTestCase(APITestCase):
         self.invitation = InvitationFactory.create(
             create_by=self.user,
             invitated=self.person)
-        
+
         self.url = reverse('%s-list' % self.base_name)
         self.url_check_in = f'{self.url}{self.invitation.pk}/check-in/'
+        self.url_check_out = f'{self.url}{self.invitation.pk}/check-out/'
 
         self.factory = InvitationFactory
         self.factory_check_in = CheckInFactory
@@ -91,6 +92,9 @@ class TestInvitationTestCase(APITestCase):
 
         self.check_in.delete()
     
+    def get_status_invitation(self, name):
+        return StatusInvitationFactory.create(name=name)
+
     def validation_for_success_checkin(self):
         self.assertEqual(Transportation.objects.count(), 1)
 
@@ -99,7 +103,7 @@ class TestInvitationTestCase(APITestCase):
         self.assertEqual(
             self.invitation.status.name,
             StatusInvitationEnums.check_in)
-        
+
         self.assertIsNotNone(self.invitation.checkin)
 
         self.assertEqual(self.invitation.invitated, self.invitation.checkin.guest)
@@ -110,6 +114,17 @@ class TestInvitationTestCase(APITestCase):
         self.assertEqual(
             self.check_in.guest.identification,
             self.invitation.invitated.identification)
+    
+    def validation_for_success_checkout(self):
+        self.assertEqual(Transportation.objects.count(), 1)
+
+        self.invitation.refresh_from_db()
+
+        self.assertEqual(
+            self.invitation.status.name,
+            StatusInvitationEnums.check_out)
+
+        self.assertIsNotNone(self.invitation.checkout)
 
     def test_put_request_cant_update_invitation_checkin(self):
         # GIVEN
@@ -369,7 +384,7 @@ class TestInvitationTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         eq_(len(response.json()), 1)
         self.assertEqual(
-            person.name, 
+            person.name,
             response.json()[0].get('invitated').get('name'))
 
     def test_can_search_by_property_address(self):
@@ -416,7 +431,7 @@ class TestInvitationTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         eq_(len(response.json()), 1)
         eq_(str(invitation.number), response.json()[0].get('number'))
-    
+
     def validate_response_filter(self, invitation, filters):
         # WHEN
         self.user.groups.create(name=GroupsEnums.application)
@@ -471,24 +486,24 @@ class TestInvitationTestCase(APITestCase):
 
         # WHEN
         self.validate_response_filter(invitation, {'search': invitation.number})
-    
+
     def test_only_security_agent_do_checking(self):
         # WHEN
         response = self.client.post(self.url_check_in, {})
-    
+
         # THEN
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-    
+
     def test_only_check_in_agent_areas(self):
         # GIVEN
         self.user.groups.create(name=GroupsEnums.security_agent)
 
         check_in = self.factory_check_in.create(invitation=self.invitation)
         data = model_to_dict(check_in, exclude=['id', 'invitation'])
-    
+
         # WHEN
         response = self.client.post(self.url_check_in, data)
-    
+
         # THEN
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
@@ -507,10 +522,10 @@ class TestInvitationTestCase(APITestCase):
         # WHEN
         response = self.client.post(
             self.url_check_in, self.checkin_data, format='json')
-    
+
         # THEN
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-    
+
     def test_only_check_in_type_invitation_allowed(self):
         # GIVEN
         area = self.factory_area.create()
@@ -528,10 +543,10 @@ class TestInvitationTestCase(APITestCase):
         # WHEN
         response = self.client.post(
             self.url_check_in, self.checkin_data, format='json')
-    
+
         # THEN
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-    
+
     def test_invitation_only_can_has_one_checkin(self):
         # GIVEN
         area = self.factory_area.create()
@@ -545,10 +560,10 @@ class TestInvitationTestCase(APITestCase):
         data = model_to_dict(check_in, exclude=['id', 'invitation'])
         data['guest'] = model_to_dict(check_in.guest, exclude=['id'])
         data['transport'] = model_to_dict(check_in.transport, exclude=['id'])
-    
+
         # WHEN
         response = self.client.post(self.url_check_in, data, format='json')
-    
+
         # THEN
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -560,15 +575,15 @@ class TestInvitationTestCase(APITestCase):
 
         self.invitation.ownership.project.area = area
         self.invitation.ownership.project.save()
-    
+
         # WHEN
         response = self.client.post(
             self.url_check_in, self.checkin_data, format='json')
-    
+
         # THEN
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.validation_for_success_checkin()
-    
+
     def test_success_path_without_note(self):
         # GIVEN
         area = self.factory_area.create()
@@ -586,7 +601,7 @@ class TestInvitationTestCase(APITestCase):
         # WHEN
         response = self.client.post(
             self.url_check_in, self.checkin_data, format='json')
-    
+
         # THEN
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.validation_for_success_checkin()
@@ -610,7 +625,7 @@ class TestInvitationTestCase(APITestCase):
         # WHEN
         response = self.client.post(
             self.url_check_in, self.checkin_data, format='json')
-    
+
         # THEN
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.validation_for_success_checkin()
@@ -632,7 +647,7 @@ class TestInvitationTestCase(APITestCase):
         # WHEN
         response = self.client.post(
             self.url_check_in, self.checkin_data, format='json')
-    
+
         # THEN
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.validation_for_success_checkin()
@@ -643,6 +658,43 @@ class TestInvitationTestCase(APITestCase):
             Person.objects.filter(
                 **self.checkin_data.get('persons')[0]
             ).count(), 1)
+    
+    def test_only_check_out_invitation_in_checkin(self):
+        # GIVEN
+        area = self.factory_area.create()
+        self.user.areapermission_set.create(area=area)
+        self.user.groups.create(name=GroupsEnums.security_agent)
+
+        self.invitation.ownership.project.area = area
+        self.invitation.ownership.project.save()
+
+        # WHEN
+        response = self.client.post(
+            self.url_check_out, self.checkin_data, format='json')
+
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_success_path_only_invitated_to_create_checkout(self):
+        # GIVEN
+        area = self.factory_area.create()
+        self.user.areapermission_set.create(area=area)
+        self.user.groups.create(name=GroupsEnums.security_agent)
+
+        self.invitation.ownership.project.area = area
+        self.invitation.ownership.project.save()
+
+        self.invitation.status = self.get_status_invitation(
+            StatusInvitationEnums.check_in)
+        self.invitation.save()
+
+        # WHEN
+        response = self.client.post(
+            self.url_check_out, self.checkin_data, format='json')
+
+        # THEN
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.validation_for_success_checkout()
 
 
 class TestTypeInvitationTestCase(APITestCase):

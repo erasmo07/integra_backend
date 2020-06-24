@@ -24,6 +24,12 @@ class InvitationViewSet(viewsets.ModelViewSet):
     status_class = models.StatusInvitation
     status_enums = enums.StatusInvitationEnums
 
+    model_status = models.StatusInvitation
+    model_terminal = models.Terminal
+
+    checkin_serializer = serializers.CheckInSerializer
+    checkout_serializer = serializers.CheckOutSerializer
+
     def get_serializer_class(self):
         if self.action == 'retrieve':
             return serializers.InvitationSerializerDetail
@@ -55,12 +61,56 @@ class InvitationViewSet(viewsets.ModelViewSet):
             status=self._get_initial_status())
 
         helpers.notify_invitation.delay(serializer.instance.id.hex)
-    
+
     def perform_update(self, serializer):
         super(InvitationViewSet, self).perform_update(serializer)
 
         helpers.notify_invitation.delay(serializer.instance.id.hex)
-    
+
+    def apply_action_to_invitation(self, action, status):
+        action_serializers = {
+            'checkin': self.checkin_serializer,
+            'checkout': self.checkout_serializer}
+
+        if not self.request.user.is_security_agent:
+            raise exceptions.PermissionDenied()
+
+        self.object = self.get_object()
+        if hasattr(self.object, action):
+            msg = f'Invitation has {action} relationship'
+            raise exceptions.ParseError(detail=msg)
+
+        self.request.data.update(
+            dict(invitation=self.object.id)
+        )
+        serializer = action_serializers.get(
+            action
+        )(data=self.request.data)
+        serializer.is_valid(raise_exception=True)
+
+        terminal = self.model_terminal.objects.filter(
+            ip_address=self.request._request.META.get('REMOTE_ADDR'))
+
+        if not terminal.exists():
+            raise exceptions.PermissionDenied()
+
+        terminal = terminal.first()
+
+        if not terminal.check_point.type_invitation_allowed.filter(
+            id=self.object.type_invitation.id
+        ):
+            raise exceptions.PermissionDenied()
+
+        serializer.save(
+            invitation=self.object,
+            user=self.request.user,
+            terminal=terminal)
+
+        self.object.status, _ = self.model_status.objects.get_or_create(
+            name=status)
+        self.object.save()
+        return serializer
+
     @action(detail=True, methods=['POST'], url_path='resend-notification')
     def resend_notification(self, request, pk):
         if request.user.is_aplication or request.user.is_backoffice:
@@ -92,69 +142,25 @@ class InvitationViewSet(viewsets.ModelViewSet):
         )
         self.object.save()
         return Response({}, status=status.HTTP_200_OK)
-    
+
     @action(detail=True, methods=['POST'], url_path='check-in')
     def check_in(self, request, pk):
-        if not request.user.is_security_agent:
-            raise exceptions.PermissionDenied()
-
-        self.object = self.get_object()
-        if hasattr(self.object, 'checkin'):
-            msg = 'Invitation has check-in relationship'
-            raise exceptions.ParseError(detail=msg)
-
-        serializer = serializers.CheckInSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        terminal = models.Terminal.objects.get(
-            pk=serializer.initial_data.get('terminal'))
-
-        if not terminal.check_point.type_invitation_allowed.filter(
-            id=self.object.type_invitation.id
-        ):
-            raise exceptions.PermissionDenied()
-        
-        serializer.save(invitation=self.object, user=self.request.user)
-
-        self.object.status, _ = models.StatusInvitation.objects.get_or_create(
-            name=enums.StatusInvitationEnums.check_in)
-        self.object.save()
+        serializer = self.apply_action_to_invitation(
+            'checkin',
+            enums.StatusInvitationEnums.check_in)
         return Response(serializer.data, status.HTTP_201_CREATED)
 
-    @action(detail=True, methods=['POST'], url_path='check-in')
-    def check_in(self, request, pk):
-        if not request.user.is_security_agent:
-            raise exceptions.PermissionDenied()
-
+    @action(detail=True, methods=['POST'], url_path='check-out')
+    def check_out(self, request, pk):
         self.object = self.get_object()
-        if hasattr(self.object, 'checkin'):
-            msg = 'Invitation has check-in relationship'
-            raise exceptions.ParseError(detail=msg)
+        if (not self.object.status.name == self.status_enums.check_in):
+            msg = 'Only can check-in invitation in {}'.format(
+                    self.status_enums.check_in)
+            raise exceptions.PermissionDenied(detail=msg)
 
-        serializer = serializers.CheckInSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        terminal = models.Terminal.objects.filter(
-            ip_address=self.request._request.META.get('REMOTE_ADDR'))
-
-        if not terminal.exists():
-            raise exceptions.PermissionDenied()
-
-        terminal = terminal.first()
-
-        if not terminal.check_point.type_invitation_allowed.filter(
-            id=self.object.type_invitation.id
-        ):
-            raise exceptions.PermissionDenied()
-
-        serializer.save(
-            invitation=self.object,
-            user=self.request.user,
-            terminal=terminal)
-
-        self.object.status, _ = models.StatusInvitation.objects.get_or_create(
-            name=enums.StatusInvitationEnums.check_in)
-        self.object.save()
+        serializer = self.apply_action_to_invitation(
+            'checkout',
+            enums.StatusInvitationEnums.check_out)
         return Response(serializer.data, status.HTTP_201_CREATED)
 
 

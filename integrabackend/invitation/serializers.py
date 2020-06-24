@@ -110,6 +110,66 @@ class PropertyField(serializers.RelatedField):
         return Property.objects.filter(id=data).first()
 
 
+class PersonUpdateCheckinSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = Person
+        fields = ['name', 'type_identification', 'identification']
+
+
+class CheckInSerializer(serializers.ModelSerializer):
+    invitation = serializers.UUIDField(required=False)
+    guest = PersonUpdateCheckinSerializer(required=True)
+    persons = PersonSerializer(many=True, required=False)
+    transport = TransportationSerializer()
+    
+    class Meta:
+        model = models.CheckIn
+        exclude = ['user', 'terminal']
+        read_only = (
+            'id', 'invitation', 'user', 'date')
+
+    def create(self, validated_data):
+        persons = validated_data.pop('persons', [])
+
+        transport = TransportationSerializer(
+            data=validated_data.pop('transport'))
+        transport.is_valid(raise_exception=True)
+        transport.save()
+
+        validated_data['transport'] = transport.instance
+
+        guest = validated_data.pop('guest')
+
+        invitation = validated_data.get('invitation')
+        
+        for attribute in PersonUpdateCheckinSerializer.Meta.fields:
+            setattr(
+                invitation.invitated,
+                attribute,
+                guest.get(attribute, getattr(invitation.invitated, attribute)))
+        invitation.invitated.save()
+
+        validated_data['guest'] = invitation.invitated
+
+        check_in = self.Meta.model.objects.create(**validated_data)
+
+        for person in persons:
+            type_identification = person.pop('type_identification')
+            person['type_identification'] = type_identification.id
+            serializer = PersonSerializer(data=person)
+            serializer.is_valid(raise_exception=True)
+
+            instance = Person.objects.filter(**person)
+            if instance.exists():
+                check_in.persons.add(instance.first())
+            else:
+                person['create_by_id'] = check_in.user.id
+                person['type_identification'] = type_identification
+                check_in.persons.add(Person.objects.create(**person))
+        return check_in
+
+
 class InvitationSerializer(serializers.ModelSerializer):
     invitated = PersonSerializer()
     supplier = SupplierSerializer(required=False)
@@ -117,15 +177,18 @@ class InvitationSerializer(serializers.ModelSerializer):
         queryset=models.TypeInvitation.objects.all())
     status = serializers.SlugRelatedField(
         read_only=True, slug_field='name')
+    checkin = CheckInSerializer(read_only=True)
+    property = PropertyField(
+        queryset=Property.objects.all(), source='ownership')
 
     class Meta:
         model = models.Invitation
         fields = (
             'id', 'type_invitation', 'date_entry',
             'date_out', 'invitated', 'note', 'number',
-            'supplier', 'status', 'property', 'area', 'total_companions')
+            'supplier', 'status', 'property', 'area',
+            'total_companions', 'checkin')
         read_only_fields = ('id', 'number', 'area')
-        extra_kwargs = {'property': {'source': 'ownership'}}
     
     def validate(self, data):
         supplier = enums.TypeInvitationEnums.supplier
@@ -197,6 +260,7 @@ class InvitationSerializer(serializers.ModelSerializer):
 class InvitationSerializerDetail(serializers.ModelSerializer):
     invitated = PersonSerializer(required=False)
     supplier = SupplierSerializerDetail(required=False)
+    checkin = CheckInSerializer(read_only=True)
 
     class Meta:
         model = models.Invitation
@@ -209,6 +273,7 @@ class InvitationSerializerDetail(serializers.ModelSerializer):
             'note',
             'supplier',
             'total_companions',
+            'checkin'
         ]
 
         extra_kwargs = {
@@ -241,61 +306,10 @@ class TypeInvitationSerializer(serializers.ModelSerializer):
         read_only_fields = ('id',)
 
 
-class PersonUpdateCheckinSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = Person
-        fields = ['name', 'type_identification', 'identification']
-
-
-class CheckInSerializer(serializers.ModelSerializer):
-    invitation = serializers.UUIDField(required=False)
-    guest = PersonUpdateCheckinSerializer(required=True)
-    persons = PersonSerializer(many=True, required=False)
-    transport = TransportationSerializer()
+class CheckOutSerializer(serializers.ModelSerializer):
     
     class Meta:
-        model = models.CheckIn
+        model = models.CheckOut
         exclude = ['user', 'terminal']
         read_only = (
             'id', 'invitation', 'user', 'date')
-
-    def create(self, validated_data):
-        persons = validated_data.pop('persons', [])
-
-        transport = TransportationSerializer(
-            data=validated_data.pop('transport'))
-        transport.is_valid(raise_exception=True)
-        transport.save()
-
-        validated_data['transport'] = transport.instance
-
-        guest = validated_data.pop('guest')
-
-        invitation = validated_data.get('invitation')
-        
-        for attribute in PersonUpdateCheckinSerializer.Meta.fields:
-            setattr(
-                invitation.invitated,
-                attribute,
-                guest.get(attribute, getattr(invitation.invitated, attribute)))
-        invitation.invitated.save()
-
-        validated_data['guest'] = invitation.invitated
-
-        check_in = self.Meta.model.objects.create(**validated_data)
-
-        for person in persons:
-            type_identification = person.pop('type_identification')
-            person['type_identification'] = type_identification.id
-            serializer = PersonSerializer(data=person)
-            serializer.is_valid(raise_exception=True)
-
-            instance = Person.objects.filter(**person)
-            if instance.exists():
-                check_in.persons.add(instance.first())
-            else:
-                person['create_by_id'] = check_in.user.id
-                person['type_identification'] = type_identification
-                check_in.persons.add(Person.objects.create(**person))
-        return check_in

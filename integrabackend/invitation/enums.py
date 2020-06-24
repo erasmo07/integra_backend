@@ -53,6 +53,7 @@ class StatusInvitationEnums(DefaultEnums):
     # _model = apps.get_model('invitation', 'StatusInvitation')
 
     check_in = 'In House'
+    check_out = 'Check Out'
     pending = 'Pending'
     cancel = 'Cancelled'
 
