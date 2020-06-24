@@ -19,7 +19,7 @@ class MedioESSerializer(MedioSerializer):
 
 
 class ColorSerializer(serializers.ModelSerializer):
-    
+
     class Meta:
         model = models.Color
         fields = ['name', 'id']
@@ -50,13 +50,13 @@ class TransportationSerializer(serializers.ModelSerializer):
         model = models.Transportation
         fields = '__all__'
         read_only_fields = ('id', )
-    
+
     def create(self, validated_data):
         validated_data['color_id'] = str(validated_data.pop('color'))
         validated_data['medio_id'] = str(validated_data.pop('medio'))
         instance, _ = self.Meta.model.objects.get_or_create(**validated_data)
         return instance
-    
+
 
 class TransportationSerializerDetail(serializers.ModelSerializer):
 
@@ -72,7 +72,7 @@ class SupplierSerializer(serializers.ModelSerializer):
         model = models.Supplier
         fields = '__all__'
         read_only_fields = ('id', )
-    
+
     def create(self, validated_data):
         transportation = validated_data.pop('transportation', None)
 
@@ -81,7 +81,7 @@ class SupplierSerializer(serializers.ModelSerializer):
         serializer.save()
 
         validated_data.update(dict(transportation=serializer.instance))
-        return super(SupplierSerializer, self).create(validated_data)   
+        return super(SupplierSerializer, self).create(validated_data)
 
 
 class SupplierSerializerDetail(serializers.ModelSerializer):
@@ -93,7 +93,7 @@ class SupplierSerializerDetail(serializers.ModelSerializer):
 
 
 class TypeInvitationField(serializers.RelatedField):
-    
+
     def to_representation(self, value):
         return value.name
 
@@ -105,13 +105,13 @@ class PropertyField(serializers.RelatedField):
 
     def to_representation(self, value):
         return value.address
-    
+
     def to_internal_value(self, data):
         return Property.objects.filter(id=data).first()
 
 
 class PersonUpdateCheckinSerializer(serializers.ModelSerializer):
-    
+
     class Meta:
         model = Person
         fields = ['name', 'type_identification', 'identification']
@@ -122,7 +122,7 @@ class CheckInSerializer(serializers.ModelSerializer):
     guest = PersonUpdateCheckinSerializer(required=True)
     persons = PersonSerializer(many=True, required=False)
     transport = TransportationSerializer()
-    
+
     class Meta:
         model = models.CheckIn
         exclude = ['user', 'terminal']
@@ -142,7 +142,7 @@ class CheckInSerializer(serializers.ModelSerializer):
         guest = validated_data.pop('guest')
 
         invitation = validated_data.get('invitation')
-        
+
         for attribute in PersonUpdateCheckinSerializer.Meta.fields:
             setattr(
                 invitation.invitated,
@@ -170,6 +170,15 @@ class CheckInSerializer(serializers.ModelSerializer):
         return check_in
 
 
+class CheckOutSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = models.CheckOut
+        exclude = ['user', 'terminal']
+        read_only = (
+            'id', 'invitation', 'user', 'date')
+
+
 class InvitationSerializer(serializers.ModelSerializer):
     invitated = PersonSerializer()
     supplier = SupplierSerializer(required=False)
@@ -178,6 +187,7 @@ class InvitationSerializer(serializers.ModelSerializer):
     status = serializers.SlugRelatedField(
         read_only=True, slug_field='name')
     checkin = CheckInSerializer(read_only=True)
+    checkout = CheckOutSerializer(read_only=True)
     property = PropertyField(
         queryset=Property.objects.all(), source='ownership')
 
@@ -187,9 +197,9 @@ class InvitationSerializer(serializers.ModelSerializer):
             'id', 'type_invitation', 'date_entry',
             'date_out', 'invitated', 'note', 'number',
             'supplier', 'status', 'property', 'area',
-            'total_companions', 'checkin')
+            'total_companions', 'checkin', 'checkout')
         read_only_fields = ('id', 'number', 'area')
-    
+
     def validate(self, data):
         supplier = enums.TypeInvitationEnums.supplier
         is_supplier = data.get('type_invitation') == supplier
@@ -197,8 +207,7 @@ class InvitationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 'supplier field is required for supplier invitation')
         return data
-        
-    
+
     def create(self, validated_data):
         invitated = validated_data.pop('invitated', None)
         supplier = validated_data.pop('supplier', None)
@@ -214,7 +223,7 @@ class InvitationSerializer(serializers.ModelSerializer):
             validated_data['invitated_id'] = person.id
 
         invitation = super(InvitationSerializer, self).create(validated_data)
-        
+
         if supplier:
             serializer = SupplierSerializer(data=supplier)
             serializer.is_valid(raise_exception=True)
@@ -261,6 +270,7 @@ class InvitationSerializerDetail(serializers.ModelSerializer):
     invitated = PersonSerializer(required=False)
     supplier = SupplierSerializerDetail(required=False)
     checkin = CheckInSerializer(read_only=True)
+    checkout = CheckOurSerializer(read_only=True)
 
     class Meta:
         model = models.Invitation
@@ -273,7 +283,8 @@ class InvitationSerializerDetail(serializers.ModelSerializer):
             'note',
             'supplier',
             'total_companions',
-            'checkin'
+            'checkin',
+            'checkout',
         ]
 
         extra_kwargs = {
@@ -286,8 +297,8 @@ class InvitationSerializerDetail(serializers.ModelSerializer):
         ).to_representation(instance)
         return OrderedDict(
             [(key, result[key])
-            for key in result
-            if result[key] is not None])
+             for key in result
+             if result[key] is not None])
 
 
 class TypeInvitationProyectSerializer(serializers.ModelSerializer):
@@ -302,14 +313,5 @@ class TypeInvitationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.TypeInvitation
-        fields = ['name', 'id',]
+        fields = ['name', 'id', ]
         read_only_fields = ('id',)
-
-
-class CheckOutSerializer(serializers.ModelSerializer):
-    
-    class Meta:
-        model = models.CheckOut
-        exclude = ['user', 'terminal']
-        read_only = (
-            'id', 'invitation', 'user', 'date')
