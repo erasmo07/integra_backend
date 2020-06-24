@@ -1,25 +1,28 @@
-from django.shortcuts import render, get_object_or_404
 from django.http import Http404
-from rest_framework import viewsets
-from rest_framework import status
-from rest_framework.response import Response
-from rest_framework import status
+from django.shortcuts import get_object_or_404, render
+from django_filters.rest_framework import DjangoFilterBackend
+from oraculo.gods.sap import APIClient as APISap
+from partenon.ERP import ERPAviso, ERPClient
+from partenon.ERP.exceptions import NotHasOrder
+from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import APIException, NotFound
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters
-from .models import Service, ServiceRequest, State, Day
-from .paginates import ServiceRequestPaginate
-from .serializers import (
-    ServiceSerializer, ServiceEnSerializer, StateSerializer,
-    ServiceRequestSerializer, ServiceRequestDetailSerializer,
-    DaySerializer, ServiceRequestFaveo)
-from .enums import StateEnums
+from rest_framework.response import Response
+
 from . import helpers, tasks
-from oraculo.gods.sap import APIClient as APISap
-from partenon.ERP import ERPAviso
-from partenon.ERP.exceptions import NotHasOrder
+from .enums import StateEnums
+from .models import Day, Service, ServiceRequest, State
+from .paginates import ServiceRequestPaginate
 from .permissions import HasCreditPermission
+from .serializers import (DaySerializer, ServiceEnSerializer,
+                          ServiceRequestDetailSerializer, ServiceRequestFaveo,
+                          ServiceRequestSerializer, ServiceSerializer,
+                          StateSerializer)
+
+from integrabackend.resident.serializers import ResidentSerializer
+from integrabackend.contrib import enums
+from integrabackend.message.models import Message
+from integrabackend.message.serializers import MessageSerializer
 
 
 class Http500(APIException):
@@ -52,6 +55,57 @@ class ServiceViewSet(viewsets.ModelViewSet):
         return super(ServiceViewSet, self).get_queryset()
     
 
+class ServiceAPPViewSet(viewsets.ViewSet):
+    serializer_resident = ResidentSerializer
+    serializer_service = ServiceSerializer
+    model_service = Service
+
+    def get_serializer_context(self, *args, **kwargs):
+        return {
+            'request': self.request,
+            'view': self,
+        }
+    
+    def get_queryset(self):
+        _property = self.request.query_params.get('property', None)
+
+        queryset = self.model_service.objects.all()
+        if _property:
+            return queryset.filter(
+                projectservice__project__property__pk=_property)
+        return queryset
+
+    def get_services_and_message(self):
+        if not hasattr(self.request.user, 'resident'):
+            return '', []
+
+        resident = self.serializer_resident(
+            instance=self.request.user.resident,
+            context=self.get_serializer_context())
+
+        if not resident.data.get('sap_customer'):
+            return '', []
+
+        queryset = self.get_queryset() 
+
+        kwargs = { 'client_code': resident.data.get('sap_customer')}
+        erp_client = ERPClient(**kwargs)
+        if not erp_client.has_credit().get('puede_consumir'):
+            code = enums.MessageCode.not_has_credit
+            instance = Message.objects.get_or_create(code=code)
+            message = MessageSerializer(
+                instance=instance, context={'request': self.request}) 
+            return message.data.get('message'), queryset.filter(skip_credit_validation=True)
+
+        return '', queryset
+
+    def list(self, request, *args, **kwargs):
+        msg, services = self.get_services_and_message()
+
+        serializer_service = self.serializer_service(services, many=True)
+        data = {'service': serializer_service.data, 'message': msg}
+        return Response(data)
+    
 
 class StateSolicitudeServiceViewSet(viewsets.ReadOnlyModelViewSet):
     """

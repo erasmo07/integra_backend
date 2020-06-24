@@ -9,7 +9,8 @@ from .resident.views import (AreaViewSet, DepartmentViewSet,
                              PropertyViewSet, ResidentCreateViewSet,
                              TypeIdentificationViewSet)
 from .solicitude.views import (AvisoViewSet, DayViewSet, ServiceRequestViewSet,
-                               ServiceViewSet, StateSolicitudeServiceViewSet)
+                               ServiceViewSet, StateSolicitudeServiceViewSet,
+                               ServiceAPPViewSet)
 from .users.views import (AccessApplicationViewSet, ApplicationViewSet,
                           MerchantViewSet, UserViewSet)
 from .webhook import views as webhooks
@@ -42,6 +43,9 @@ router.register(r'person', PersonViewSet)
 
 # APP - solicitude
 router.register(r'service', ServiceViewSet)
+router.register(
+    r'service-app', ServiceAPPViewSet,
+    base_name='service_app')
 router.register(
     r'state/solicitude', StateSolicitudeServiceViewSet)
 router.register(r'service-request', ServiceRequestViewSet)

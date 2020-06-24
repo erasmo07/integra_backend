@@ -1,24 +1,25 @@
 import json
-from mock import patch, MagicMock
-from django.urls import reverse
-from django.forms.models import model_to_dict
+
 from django.core import mail
-from rest_framework import status
-from django.test import TestCase
-from rest_framework.test import APITestCase
+from django.forms.models import model_to_dict
+from django.test import TestCase, tag
+from django.urls import reverse
+from mock import MagicMock, patch
 from nose.tools import eq_, ok_
+from rest_framework import status
+from rest_framework.test import APITestCase
 
-from .factories import (
-    ServiceFactory, ServiceRequestFactory, StateFactory,
-    DayFactory, DateServiceRequestFactory, DayTypeFactory,
-    QuotationFactory)
+from integrabackend.contrib import enums
+from ...message.factories import MessageFactory
+from ...resident.test.factories import (PropertyFactory, PropertyTypeFactory,
+                                        ResidentFactory)
+from ...users.test.factories import (AccessApplicationFactory, GroupFactory,
+                                     UserFactory)
 from ..enums import StateEnums
-from ...users.test.factories import UserFactory, GroupFactory
-from ...resident.test.factories import (
-    ResidentFactory, PropertyFactory, PropertyTypeFactory)
-from django.test import tag
 from ..permissions import HasCreditPermission
-
+from .factories import (DateServiceRequestFactory, DayFactory, DayTypeFactory,
+                        QuotationFactory, ServiceFactory,
+                        ServiceRequestFactory, StateFactory)
 
 
 class TestServiceTestCase(APITestCase):
@@ -51,6 +52,87 @@ class TestServiceTestCase(APITestCase):
         service = response.json()
         ok_(service.get('id'))
         ok_(service.get('name') is not None)
+
+
+class TestServiceAPPTestCase(APITestCase):
+    """
+    Test /services-app/ list.
+    """
+
+    def setUp(self):
+        self.factory = ServiceFactory
+        self.url = '/api/v1/service-app/'
+
+        self.user = UserFactory.create()
+        ResidentFactory.create(user=self.user)
+
+        access = AccessApplicationFactory.create(user=self.user)
+        access.details.create(sap_customer='0007', default=True)
+        self.client.credentials(
+            HTTP_APPLICATION=f'Bifrost {access.application.id}')
+        self.client.force_authenticate(user=self.user)
+
+        self.factory.create()
+        MessageFactory.create(
+            code=enums.MessageCode.not_has_credit,
+            message="MENSAJE", message_es='MENSAJE_ES')
+    
+    def test_get_request_user_not_has_resident(self):
+        user = UserFactory.create()
+        self.client.force_authenticate(user=user)
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json().get('service'), [])
+    
+    def test_get_request_user_not_has_sap_customer(self):
+        user = UserFactory.create()
+        ResidentFactory.create(user=user)
+
+        self.client.force_authenticate(user=user)
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json().get('service'), [])
+
+    @patch('integrabackend.solicitude.views.ERPClient')
+    def test_get_request_success_user_has_credit(self, mock_erp):
+        mock = MagicMock()
+        mock.has_credit.return_value = {'puede_consumir': True}
+        mock_erp.return_value = mock
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json().get('message'), '')
+        for service in response.json().get('service'):
+            ok_(service.get('id'))
+            ok_(service.get('name') is not None)
+       
+    @patch('integrabackend.solicitude.views.ERPClient')
+    def test_get_request_user_not_has_credit_en(self, mock_erp):
+        mock = MagicMock()
+        mock.has_credit.return_value = {'puede_consumir': False}
+        mock_erp.return_value = mock
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.json().get('service')), 0)
+        self.assertEqual('MENSAJE', response.json().get('message'))
+    
+    @patch('integrabackend.solicitude.views.ERPClient')
+    def test_get_request_user_not_has_credit_es(self, mock_erp):
+        mock = MagicMock()
+        mock.has_credit.return_value = {'puede_consumir': False}
+        mock_erp.return_value = mock
+        
+        response = self.client.get(self.url, **dict(HTTP_ACCEPT_LANGUAGE='es'))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.json().get('service')), 0)
+        self.assertEqual('MENSAJE_ES', response.json().get('message'))
 
 
 class TestServiceRequestTestCase(APITestCase):

@@ -40,6 +40,7 @@ class Common(Configuration):
         'integrabackend.invitation',
         'integrabackend.solicitude',
         'integrabackend.payment',
+        'integrabackend.message',
 
     )
 
