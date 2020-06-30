@@ -137,6 +137,7 @@ class CheckInSerializer(serializers.ModelSerializer):
     persons = PersonSerializer(many=True, required=False)
     transport = TransportationSerializer()
     user = UserField(read_only=True)
+    date = serializers.DateTimeField(format='%Y-%m-%dT%H:%M:%S', read_only=True)
 
     class Meta:
         model = models.CheckIn
@@ -189,6 +190,7 @@ class CheckInSerializer(serializers.ModelSerializer):
 
 class CheckOutSerializer(serializers.ModelSerializer):
     user = UserField(read_only=True)
+    date = serializers.DateTimeField(format='%Y-%m-%dT%H:%M:%S', read_only=True)
 
     class Meta:
         model = models.CheckOut
