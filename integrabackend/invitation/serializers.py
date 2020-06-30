@@ -117,7 +117,7 @@ class PropertyField(serializers.RelatedField):
 
 
 class UserField(serializers.RelatedField):
-
+    
     def to_representation(self, value):
         return value.username
     
